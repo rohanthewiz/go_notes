@@ -15,6 +15,7 @@ func main() {
 	bodyPtr := flag.String("b", "", "Body")
 	tagsPtr := flag.String("g", "", "Tags")
 	dbPtr := flag.String("db", "/Users/rohan/db/notes.sqlite", "Sqlite DB path")
+	flag.Parse()
 
 	fmt.Println("Query: ", *queryPtr)
 	fmt.Println("Limit: ", *limitPtr)
@@ -36,28 +37,28 @@ func main() {
 		Id int64
 		Title string `sql: "size:128"`
 		Description string `sql: "size:128"`
-		Details string `sql: "type:text"`
+		Body string `sql: "type:text"`
 	}
 
 	db.DropTableIfExists(&Note{})
 	db.CreateTable(&Note{})
 
-	note := Note{Title: "First Note", Description: "This is my first note", Details: "Notes are good things"}
+	note := Note{Title: "First Note", Description: "This is my first note", Body: "Notes are good things"}
 	db.Create(&note)
-	if ! db.NewRecord(note) { fmt.Println("Record saved:\n", note.Title)  }
+	if db.NewRecord(note) { fmt.Println("Failed to save note", note.Title) }
 
-	note2 := Note{Title: "Second Note", Description: "This is my second note", Details: "More notes are good things"}
+	note2 := Note{Title: *titlePtr, Description: *descPtr, Body: *bodyPtr}
 	db.Create(&note2)
-	if ! db.NewRecord(note2) { fmt.Println("Record saved:\n", note2.Title)  }
+	if ! db.NewRecord(note2) { fmt.Println("Record saved:", note2.Title) }
 
-	var note_retrieved Note
-	db.First(&note_retrieved)
-	fmt.Println("Here is the first note retrieved: \n", note_retrieved.Title)
+	// var note_retrieved Note
+	// db.First(&note_retrieved)
+	// fmt.Println("Here is the first note retrieved: \n", note_retrieved.Title)
 
 	var notes []Note
-	db.Find(&notes)
+	db.Limit(*limitPtr).Find(&notes)
 
-	fmt.Println("A Slice of notes: ")
-	for _, n := range notes { println(n.Title) }
+	fmt.Println("All notes:")
+	for _, n := range notes { println("Title:", n.Title) }
 
 }
