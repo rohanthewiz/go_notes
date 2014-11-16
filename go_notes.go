@@ -10,17 +10,17 @@ import (
 )
 
 func main() {
-	queryPtr := flag.String("q", "", "Query - read operation")
-	limitPtr := flag.Int("l", 9, "Limit")
+	queryPtr := flag.String("q", "", "Query - Retrieve notes based on a LIKE search")
+	limitPtr := flag.Int("l", 9, "Limit the number of notes returned")
 	titlePtr := flag.String("t", "", "Title")
 	descPtr := flag.String("d", "", "Description")
 	bodyPtr := flag.String("b", "", "Body")
-	tagsPtr := flag.String("g", "", "Tags")
-	shortPtr := flag.Bool("s", false, "Short Listing")
-	adminPtr := flag.String("admin", "", "Privileged actions")
+	tagsPtr := flag.String("g", "", "Tags - not yet implemented")
+	shortPtr := flag.Bool("s", false, "Short Listing - don't show the body")
+	adminPtr := flag.String("admin", "", "Privileged actions like 'delete_table'")
 	dbPtr := flag.String("db", "", "Sqlite DB path")
 	var home string
-	if len(*dbPtr) == 0 {
+	if len(*dbPtr) == 0 { 
 		home = os.Getenv("HOME")
 		if len(home) > 0 {
 			home += "/go_notes.sqlite"
