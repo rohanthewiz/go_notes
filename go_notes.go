@@ -67,7 +67,7 @@ func main() {
 				return
 			}
 			// Create new note
-			println("Creating new note...")
+			print("Creating new note...")
 			note2 := Note{Title: *titlePtr, Description: *descPtr, Body: *bodyPtr}
 			db.Create(&note2)
 			if ! db.NewRecord(note2) { fmt.Println("Record saved:", note2.Title) }
