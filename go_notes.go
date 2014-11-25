@@ -12,6 +12,7 @@ import (
 func main() {
 	queryPtr := flag.String("q", "", "Query - Retrieve notes based on a LIKE search")
 	limitPtr := flag.Int("l", 9, "Limit the number of notes returned")
+	delPtr := flag.String("del", "n", "Delete the notes listed")
 	titlePtr := flag.String("t", "", "Title")
 	descPtr := flag.String("d", "", "Description")
 	bodyPtr := flag.String("b", "", "Body")
@@ -57,10 +58,7 @@ func main() {
 // Fyi, AutoMigrate will only *add new columns*, it won't update column's type or delete unused columns, to make sure your data is safe.
 // If the table is not existing, AutoMigrate will create the table automatically.
 
-	// note := Note{Title: "First Note", Description: "This is my first note", Body: "Notes are good things"}
-	// db.Create(&note)
-	// if db.NewRecord(note) { fmt.Println("Failed to save note", note.Title) }
-	if *queryPtr == "" { // Then try to create
+	if *queryPtr == "" { // Then try to Create
 		if *titlePtr != "" {
 			var chk_unique_title []Note
 			db.Where("title = ?", *titlePtr).Find(&chk_unique_title)
@@ -76,17 +74,32 @@ func main() {
 		} else {
 			println("Title (-t=\"A Title\") is required")
 		}
-	} else {
-		// var note_retrieved Note
-		// db.First(&note_retrieved)
-		// fmt.Println("Here is the first note retrieved: \n", note_retrieved.Title)
+	} else { // Query and possibly delete
 
 		var notes []Note
-		db.Where("title LIKE ?", "%" + *queryPtr + "%").Or("description LIKE ?", "%" + *queryPtr + "%").Or("body LIKE ?", "%" + *queryPtr + "%").Limit(*limitPtr).Find(&notes)
+		if *queryPtr == "all" {
+			db.Find(&notes)
+		} else {
+			db.Where("title LIKE ?", "%"+*queryPtr+"%").Or("description LIKE ?", "%"+*queryPtr+"%").Or("body LIKE ?", "%"+*queryPtr+"%").Limit(*limitPtr).Find(&notes)
+		}
 
-		for i, n := range notes {
-		 println( "(", i, ") Title:", n.Title, "-", n.Description)
-		 if ! *shortPtr { println("Body:", n.Body) }
+		for _, n := range notes {
+			fmt.Printf("(%d) Title: %s - %s", n.Id, n.Title, n.Description)
+			if ! *shortPtr { println("Body:", n.Body) }
+		}
+
+		// See if there was a delete
+		if *delPtr == "yes" || *delPtr == "y" {
+			var input string
+			for _, n := range notes {
+				save_id := n.Id
+				fmt.Printf("Delete this note? (y/N) - (%d) Title: %s - %s", n.Id, n.Title, n.Description)
+				//if ! *shortPtr { println("Body:", n.Body) }
+				println("")
+				db.Delete(&n)
+				fmt.Scanln(&input)
+				println("Note", save_id, "deleted")
+			}
 		}
 	}
 }
