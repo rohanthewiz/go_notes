@@ -11,6 +11,7 @@ import (
 
 func main() {
 	queryPtr := flag.String("q", "", "Query - Retrieve notes based on a LIKE search")
+	queryIndexPtr := flag.Int("qi", 0, "Query - Retrieve notes based on index")
 	limitPtr := flag.Int("l", 9, "Limit the number of notes returned")
 	delPtr := flag.String("del", "n", "Delete the notes listed")
 	titlePtr := flag.String("t", "", "Title")
@@ -58,7 +59,7 @@ func main() {
 // Fyi, AutoMigrate will only *add new columns*, it won't update column's type or delete unused columns, to make sure your data is safe.
 // If the table is not existing, AutoMigrate will create the table automatically.
 
-	if *queryPtr == "" { // Then try to Create
+	if *queryPtr == "" && *queryIndexPtr == 0 { // Then try to Create
 		if *titlePtr != "" {
 			var chk_unique_title []Note
 			db.Where("title = ?", *titlePtr).Find(&chk_unique_title)
@@ -77,28 +78,34 @@ func main() {
 	} else { // Query and possibly delete
 
 		var notes []Note
-		if *queryPtr == "all" {
+		if *queryIndexPtr != 0 {
+			db.Find(&notes, *queryIndexPtr)
+		} else if *queryPtr == "all" {
 			db.Find(&notes)
 		} else {
 			db.Where("title LIKE ?", "%"+*queryPtr+"%").Or("description LIKE ?", "%"+*queryPtr+"%").Or("body LIKE ?", "%"+*queryPtr+"%").Limit(*limitPtr).Find(&notes)
 		}
 
+		// Print notes found
 		for _, n := range notes {
-			fmt.Printf("(%d) Title: %s - %s", n.Id, n.Title, n.Description)
-			if ! *shortPtr { println("Body:", n.Body) }
+			fmt.Printf("[%d] %s - %s\n", n.Id, n.Title, n.Description)
+			if ! *shortPtr { println(n.Body) }
+			println("---------------------------------------------")
 		}
 
 		// See if there was a delete
 		if *delPtr == "yes" || *delPtr == "y" {
-			var input string
 			for _, n := range notes {
 				save_id := n.Id
-				fmt.Printf("Delete this note? (y/N) - (%d) Title: %s - %s", n.Id, n.Title, n.Description)
-				//if ! *shortPtr { println("Body:", n.Body) }
-				println("")
-				db.Delete(&n)
-				fmt.Scanln(&input)
-				println("Note", save_id, "deleted")
+				println("---------------------------------------------")
+				fmt.Printf("[%d] %s - %s\n", n.Id, n.Title, n.Description)
+				print("Delete this note? (y/N) ")
+				var input string
+				fmt.Scanln(&input) // Get keyboard input
+				if input == "y" || input == "Y" {
+					db.Delete(&n)
+					println("Note", save_id, "deleted")
+				}
 			}
 		}
 	}
