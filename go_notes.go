@@ -10,10 +10,13 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
 )
+const app_name = "Go Notes"
+const version string = "0.8.0"
 
 func main() {
     opts_str, opts_intf := options.Get()
     //println( "DBPath: " + opts_str["db_path"] )
+    if opts_intf["v"].(bool) { println(app_name, version); return }
     
 	db, err := gorm.Open("sqlite3", opts_str["db_path"])
 	if err != nil {

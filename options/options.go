@@ -20,6 +20,7 @@ func Get() (map[string]string, map[string]interface{}) {
         qiPtr := flag.Int("qi", 0, "Query - Retrieve notes based on index")
         qlPtr := flag.Int("ql", 9, "Limit the number of notes returned")
         sPtr := flag.Bool("s", false, "Short Listing - don't show the body")
+        vPtr := flag.Bool("v", false, "Show version")
         delPtr := flag.Bool("del", false, "Delete the notes queried")
         updPtr := flag.Bool("upd", false, "Update the notes queried")
 
@@ -34,6 +35,7 @@ func Get() (map[string]string, map[string]interface{}) {
         opts_intf["qi"] = *qiPtr
         opts_intf["ql"] = *qlPtr
         opts_intf["s"] =  *sPtr
+        opts_intf["v"] =  *vPtr
         opts_intf["del"] = *delPtr
         opts_intf["upd"] = *updPtr
         
