@@ -77,7 +77,7 @@ Update and delete is now implemented. So now we have full CRUD!
 
 ###TIPS
 Firefox has a great addon called SQLite Manager which you can use to peek into the database file
-Feel free to create a pull requests if you'd like to pitch in.
+Feel free to create a pull request if you'd like to pitch in.
 
 ###Credits
 - Go - http://golang.org/  Thanks Google!
