@@ -2,8 +2,22 @@
 
 This is a very fast command line note-taking and searching system.
 No need to wait for a heavy GUI to load, just fire off go_notes with a few command line options and your tips and snippets are recorded to an SQLite database. This is also a sweet way to learn a modern, performant language - Go (aka Golang) using a database with an ORM (object relational manager) while building a useful tool!
-Tip: you might be able to alias this to gn on your system. Google how to alias commands on your system if neeeded.
 
+##GETTING SETUP
+
+###Go Workspace Setup Tip
+The environment variable *GOPATH* must point to your Go project workspace. Google how to do that for your operating system.
+Your can check your current GOPATH by running the following command
+```
+go env
+```
+
+Your project should live under a folder path of this format:
+```
+GOPATH/src/yourdomain.com/your_go_project
+```
+
+##Building GoNotes
 Build with (Make sure Go is downloaded and setup first - http://golang.org/dl/)
 
 ```
@@ -15,8 +29,11 @@ go get // should only need to run once
 go build go_notes.go
 ```
 
-###Windows Tip
-gcc is required to compile SQLite. You can get 64bit MinGW here http://mingw-w64.sourceforge.net/download.php. Install it the make sure to add the bin directory to your path
+####TIPS
+* gcc is required to compile SQLite. On Windows you can get 64bit MinGW here http://mingw-w64.sourceforge.net/download.php. Install it and make sure to add the bin directory to your path
+* you might be able to alias the executable to gn on your system. Google how to alias commands on your system if neeeded.
+
+##Using GoNotes
 
 ###Basic command line options
 
@@ -78,7 +95,7 @@ D:\> D:\GoProjs\src\gotut.org\go_notes>go_notes -db "D:\xfr\gn.sqlite" -t "Test 
     -s Short Listing - don't show the body
     -admin="" Privileged actions like 'delete_table' (drops the notes table)
 ###TODO
-Update and delete is now implemented. So now we have full CRUD!
+Update and delete is now implemented. We now have full CRUD!
 
 ###TIPS
 Firefox has a great addon called SQLite Manager which you can use to peek into the database file
