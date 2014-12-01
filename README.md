@@ -51,8 +51,8 @@ Example:
 
 ###Retrieving Notes
 
--q Query - Retrieve notes based on a LIKE search
--qi Integer - Retrieve notes by ID (the number in square brackets on the left of the note is its ID)
+-q Query -- Retrieve notes based on a LIKE search
+-qi Integer -- Retrieve notes by ID (the number in square brackets on the left of the note is its ID)
 
 Example:
 
@@ -64,7 +64,7 @@ Tags: Test
 ```
 
 ###Updating
--upd Update an existing note - must be used with a query
+-upd -- Update an existing note - must be used with a query
 
 Example:
 
@@ -73,7 +73,7 @@ $ ./go_notes -q "old note" -upd
 ```
 
 ###Deleting
--del Delete an existing note - must be used with a query
+-del -- Delete an existing note - must be used with a query
 
 Example:
 
@@ -81,19 +81,20 @@ Example:
 $ ./go_notes -q trash -del
 ```
 
-###Advanced Options
-
-    -db "" Sqlite DB path. It will try to create the database 'go_notes.sqlite' in your home directory by default
+###Other Options
+    
+    -h -- List available options with defaults
+    -db "" -- Sqlite DB path. It will try to create the database 'go_notes.sqlite' in your home directory by default
 
 Example:
 
 ```
 D:\> D:\GoProjs\src\gotut.org\go_notes>go_notes -db "D:\xfr\gn.sqlite" -t "Test New DB Loc" -d "This is a test of the -db option"
 ```
-    -qg "" - Query by Tags column only
-    -ql 9 - Limit the number of notes returned
-    -s Short Listing - don't show the body
-    -admin="" Privileged actions like 'delete_table' (drops the notes table)
+    -qg "" -- Query by Tags column only
+    -ql 9 -- Limit the number of notes returned
+    -s Short Listing -- don't show the body
+    -admin="" -- Privileged actions like 'delete_table' (drops the notes table)
 ###TODO
 Update and delete is now implemented. We now have full CRUD!
 
@@ -102,6 +103,6 @@ Firefox has a great addon called SQLite Manager which you can use to peek into t
 Feel free to create a pull request if you'd like to pitch in.
 
 ###Credits
-- Go - http://golang.org/  Thanks Google!
-- GORM - https://github.com/jinzhu/gorm  - Who needs sluggish ActiveRecord, or other interpreted code interfacing to your database.
-- SQLite - http://www.sqlite.org/ - A great place to start. Actually GORM includes all the things needed for SQLite so SQLite gets compiled into GoNotes!
+- Go -- http://golang.org/  Thanks Google!
+- GORM -- https://github.com/jinzhu/gorm  - Who needs sluggish ActiveRecord, or other interpreted code interfacing to your database.
+- SQLite -- http://www.sqlite.org/ - A great place to start. Actually GORM includes all the things needed for SQLite so SQLite gets compiled into GoNotes!
