@@ -77,7 +77,9 @@ func main() {
 		// LIST NOTES  found
         println("---------------------------------------------")
 		for _, n := range notes {
-			fmt.Printf("[%d] %s - %s\n", n.Id, n.Title, n.Description)
+			fmt.Printf("[%d] %s", n.Id, n.Title)
+			if n.Description != "" { fmt.Printf(" - %s", n.Description) }
+			println("")
 			if ! opts_intf["s"].(bool) {
                 if n.Body != "" { println(n.Body) }
                 if n.Tag != "" { println("Tags:", n.Tag) }
