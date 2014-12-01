@@ -18,7 +18,7 @@ func Get() (map[string]string, map[string]interface{}) {
         gPtr := flag.String("g", "", "Comma separated list of Tags for new note")
         adminPtr := flag.String("admin", "", "Privileged actions like 'delete_table'")
         dbPtr := flag.String("db", "", "Sqlite DB path")
-        qiPtr := flag.Int("qi", 0, "Query for notes based on index")
+        qiPtr := flag.Int("qi", 0, "Query for notes based on ID")
         qlPtr := flag.Int("ql", 9, "Limit the number of notes returned")
         sPtr := flag.Bool("s", false, "Short Listing - don't show the body")
         vPtr := flag.Bool("v", false, "Show version")
