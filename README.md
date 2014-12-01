@@ -7,7 +7,11 @@ Tip: you might be able to alias this to gn on your system. Google how to alias c
 Build with (Make sure Go is downloaded and setup first - http://golang.org/dl/)
 
 ```
-go get
+cd project_root/options
+go get // should only need to run once
+go install // build and install our options package
+cd project_root
+go get // should only need to run once
 go build go_notes.go
 ```
 
@@ -21,10 +25,11 @@ Creating a Note (quote option values with double-quotes if they contain spaces)
     -t Title
     -d Description
     -b Body
+    -g Comma separated list of Tags
 
 Example:
 ```
-./go_notes -t "My First Note" -d "Yep, it's my first note" -b "The body is where you give the long story about the note. I'm thinking you should be able to use all kinds of symbols too, but those need to be tested."
+./go_notes -t "My First Note" -d "Yep, it's my first note" -b "The body is where you give the long story about the note. I'm thinking you should be able to use all kinds of symbols. Double-quotes should be escaped with a backslash" -g "Test"
 ```
 
 ###Retrieving Notes
@@ -37,7 +42,8 @@ Example:
 ```
 $ ./go_notes -q note
 [0] Title: My First Note - Yep, it's my first note
-Body: The body is where you give the long story about the note. I'm thinking you should be able to use all kinds of symbols too, but those need to be tested.
+The body is where you give the long story about the note. I'm thinking you should be able to use all kinds of symbols too, but those need to be tested.
+Tags: Test
 ```
 
 ###Updating
@@ -67,13 +73,12 @@ Example:
 ```
 D:\> D:\GoProjs\src\gotut.org\go_notes>go_notes -db "D:\xfr\gn.sqlite" -t "Test New DB Loc" -d "This is a test of the -db option"
 ```
-    -g="" Tags - Not yet enabled - but would be a good exercise for the reader
-    -ql=9 Limit the number of notes returned
+    -qg "" Query by Tags column only
+    -ql 9 Limit the number of notes returned
     -s Short Listing - don't show the body
     -admin="" Privileged actions like 'delete_table' (drops the notes table)
 ###TODO
 Update and delete is now implemented. So now we have full CRUD!
-~~Update and delete existing notes. For now an SQLite tool can be used for deleting.~~
 
 ###TIPS
 Firefox has a great addon called SQLite Manager which you can use to peek into the database file
@@ -82,4 +87,4 @@ Feel free to create a pull request if you'd like to pitch in.
 ###Credits
 - Go - http://golang.org/  Thanks Google!
 - GORM - https://github.com/jinzhu/gorm  - Who needs sluggish ActiveRecord, or other interpreted code interfacing to your database.
-- SQLite - http://www.sqlite.org/ - A great place to start. Actually GORM includes all the things need for SQLite!
+- SQLite - http://www.sqlite.org/ - A great place to start. Actually GORM includes all the things needed for SQLite so SQLite gets compiled into GoNotes!

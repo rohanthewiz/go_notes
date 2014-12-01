@@ -10,8 +10,8 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
 )
-const app_name = "Go Notes"
-const version string = "0.8.0"
+const app_name = "GoNotes"
+const version string = "0.8.2"
 
 func main() {
     opts_str, opts_intf := options.Get()
@@ -29,16 +29,18 @@ func main() {
 		Title string `sql: "size:128"`
 		Description string `sql: "size:128"`
 		Body string `sql: "type:text"`
+        Tag string `sql: "size:128"`
 		CreatedAt time.Time
 		UpdatedAt time.Time
 	}
 
-	if opts_str["admin"] == "delete_table" { db.DropTableIfExists(&Note{}) }
+	if opts_str["admin"] == "delete_table" { db.DropTableIfExists(&Note{}); println("notes table deleted"); return }
 	db.AutoMigrate(&Note{}) // Feel free to change your struct, AutoMigrate will keep your database up-to-date.
 // Fyi, AutoMigrate will only *add new columns*, it won't update column's type or delete unused columns, to make sure your data is safe.
 // If the table is not existing, AutoMigrate will create the table automatically.
     
-	if opts_str["q"] == "" && opts_intf["qi"].(int) == 0 { // Then try to Create
+	if opts_str["q"] == "" && opts_intf["qi"].(int) == 0 && opts_str["qg"] == "" {
+        // CREATE
 		if opts_str["t"] != "" {
 			var chk_unique_title []Note
 			db.Where("title = ?", opts_str["t"]).Find(&chk_unique_title)
@@ -47,32 +49,39 @@ func main() {
 				return
 			}
 			print("Creating new note...")
-			note2 := Note{Title: opts_str["t"], Description: opts_str["d"], Body: opts_str["b"]}
+			note2 := Note{Title: opts_str["t"], Description: opts_str["d"], Body: opts_str["b"], Tag: opts_str["g"]}
 			db.Create(&note2)
 			if ! db.NewRecord(note2) { fmt.Println("Record saved:", note2.Title) }
 		} else {
 			println("Title (-t \"A Title\") is required")
 		}
-	} else { // Query and possibly delete/update
-
+	} else {
+        // QUERY and possibly delete/update
 		var notes []Note
 		if opts_intf["qi"].(int) != 0 {
 			db.Find(&notes, opts_intf["qi"].(int))
+		} else if opts_str["qg"] != "" {
+			db.Where("tag LIKE ?", "%"+opts_str["qg"]+"%").
+                Limit(opts_intf["ql"].(int)).Find(&notes)
 		} else if opts_str["q"] == "all" {
 			db.Find(&notes)
-		} else {
+		} else if opts_str["q"] != "" {
 			db.Where("title LIKE ?", "%"+opts_str["q"]+"%").
                 Or("description LIKE ?", "%"+opts_str["q"]+"%").
                 Or("body LIKE ?", "%"+opts_str["q"]+"%").
+                Or("tag LIKE ?", "%"+opts_str["q"]+"%").
                 Limit(opts_intf["ql"].(int)).
                 Find(&notes)
 		}
 
-		// Print notes found
+		// LIST NOTES  found
         println("---------------------------------------------")
 		for _, n := range notes {
 			fmt.Printf("[%d] %s - %s\n", n.Id, n.Title, n.Description)
-			if ! opts_intf["s"].(bool) { println(n.Body) }
+			if ! opts_intf["s"].(bool) {
+                if n.Body != "" { println(n.Body) }
+                if n.Tag != "" { println("Tags:", n.Tag) }
+            } 
 			println("---------------------------------------------")
 		}
         msg := "notes found"
@@ -109,25 +118,32 @@ func main() {
                     tit, _ := reader.ReadString('\n')
                     tit = strings.TrimRight(tit, " \r\n")
                     if len(tit) > 0 { n.Title = tit }
-                    println(n.Title)
+                    //println(n.Title)
                     
                     println("\n" + n.Description)
                     fmt.Print("Enter New Description: (blank for no change) ")
                     desc, _ := reader.ReadString('\n')
                     desc = strings.TrimRight(desc, " \r\n")
                     if len(desc) > 0 {n.Description = desc}
-                    println(n.Description)
+                    //println(n.Description)
                     
                     println("\n" + n.Body)
                     fmt.Print("Enter New Body: (blank for no change) ")
                     body, _ := reader.ReadString('\n')
                     body = strings.TrimRight(body, " \r\n ")
                     if len(body) > 0 { n.Body = body }
-                    println(n.Body)
+                    //println(n.Body)
+                    
+                    println("\n" + n.Tag)
+                    fmt.Print("Enter New Tags: (comma separated) ")
+                    tag, _ := reader.ReadString('\n')
+                    tag = strings.TrimRight(tag, " \r\n ")
+                    if len(tag) > 0 { n.Tag = tag }
+                    //println(n.Tag)
 
                     db.Save(&n)
                     println("---------------------------------------------")
-                    fmt.Printf("[%d] %s - %s\n%s", n.Id, n.Title, n.Description, n.Body)
+                    fmt.Printf("[%d] %s - %s\n%s\nTags: %s", n.Id, n.Title, n.Description, n.Body, n.Tag)
 				}
 			}
 		}

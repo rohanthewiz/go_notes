@@ -10,14 +10,15 @@ func Get() (map[string]string, map[string]interface{}) {
         opts_str := make( map[string]string )
         opts_intf := make( map[string]interface{} )
         
-        qPtr := flag.String("q", "", "Query - Retrieve notes based on a LIKE search")
-        tPtr := flag.String("t", "", "Title")
-        dPtr := flag.String("d", "", "Description")
-        bPtr := flag.String("b", "", "Body")
-        gPtr := flag.String("g", "", "Tags - not yet implemented")
+        qPtr := flag.String("q", "", "Query for notes based on a LIKE search. \"all\" will return all notes")
+        qgPtr := flag.String("qg", "", "Query tags based on a LIKE search")
+        tPtr := flag.String("t", "", "Create note Title")
+        dPtr := flag.String("d", "", "Create note Description")
+        bPtr := flag.String("b", "", "Create note Body")
+        gPtr := flag.String("g", "", "Comma separated list of Tags for new note")
         adminPtr := flag.String("admin", "", "Privileged actions like 'delete_table'")
         dbPtr := flag.String("db", "", "Sqlite DB path")
-        qiPtr := flag.Int("qi", 0, "Query - Retrieve notes based on index")
+        qiPtr := flag.Int("qi", 0, "Query for notes based on index")
         qlPtr := flag.Int("ql", 9, "Limit the number of notes returned")
         sPtr := flag.Bool("s", false, "Short Listing - don't show the body")
         vPtr := flag.Bool("v", false, "Show version")
@@ -26,6 +27,7 @@ func Get() (map[string]string, map[string]interface{}) {
 
         flag.Parse()
         opts_str["q"] = *qPtr
+        opts_str["qg"] = *qgPtr
         opts_str["t"] = *tPtr
         opts_str["d"] = *dPtr
         opts_str["b"] = *bPtr
