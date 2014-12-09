@@ -11,10 +11,36 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 const app_name = "GoNotes"
-const version string = "0.8.3"
+const version string = "0.8.4"
+const line_separator string = "---------------------------------------------------------"
+
+type Note struct {
+	Id int64
+	Title string `sql: "size:128"`
+	Description string `sql: "size:255"`
+	Body string `sql: "type:text"`
+    Tag string `sql: "size:128"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+var opts_str, opts_intf = options.Get() //returns map[string]string, map[string]interface{}
+
+func listNotes(notes []Note) {
+	println(line_separator)
+	for _, n := range notes {
+		fmt.Printf("[%d] %s", n.Id, n.Title)
+		if n.Description != "" { fmt.Printf(" - %s", n.Description) }
+		println("")
+		if ! opts_intf["s"].(bool) {
+	        if n.Body != "" { println(n.Body) }
+	        if n.Tag != "" { println("Tags:", n.Tag) }
+	    } 
+		println(line_separator)
+	}
+}
 
 func main() {
-    opts_str, opts_intf := options.Get()
     //println( "DBPath: " + opts_str["db_path"] )
     if opts_intf["v"].(bool) { println(app_name, version); return }
     
@@ -22,16 +48,6 @@ func main() {
 	if err != nil {
 		println("There was an error connecting to the DB")
 		os.Exit(2)
-	}
-
-	type Note struct {
-		Id int64
-		Title string `sql: "size:128"`
-		Description string `sql: "size:255"`
-		Body string `sql: "type:text"`
-        Tag string `sql: "size:128"`
-		CreatedAt time.Time
-		UpdatedAt time.Time
 	}
 
 	if opts_str["admin"] == "delete_table" { db.DropTableIfExists(&Note{}); println("notes table deleted"); return }
@@ -53,7 +69,7 @@ func main() {
 			db.Create(&note2)
 			if ! db.NewRecord(note2) { fmt.Println("Record saved:", note2.Title) }
 		} else {
-			println("Title (-t) is required if creating a note. Remember to use '-' with option flags")
+			println("Title (-t) is required if creating a note. Remember to precede option flags with '-'")
 		}
 	} else {
         // QUERY and possibly delete/update
@@ -75,17 +91,7 @@ func main() {
 		}
 
 		// LIST NOTES  found
-        println("---------------------------------------------")
-		for _, n := range notes {
-			fmt.Printf("[%d] %s", n.Id, n.Title)
-			if n.Description != "" { fmt.Printf(" - %s", n.Description) }
-			println("")
-			if ! opts_intf["s"].(bool) {
-                if n.Body != "" { println(n.Body) }
-                if n.Tag != "" { println("Tags:", n.Tag) }
-            } 
-			println("---------------------------------------------")
-		}
+		listNotes(notes)
         msg := "notes found"
         if len(notes) == 1 { msg = "note found" }
         println(len(notes), msg)
@@ -107,17 +113,19 @@ func main() {
 		}
 		// See if there was an update
 		if  opts_intf["upd"].(bool) {
+			var curr_note [1]Note //array since listNotes takes an array
 			for _, n := range notes {
-				println("\n---------------------------------------------")
-				fmt.Printf("[%d] %s - %s\n%s\n", n.Id, n.Title, n.Description, n.Body)
+				curr_note[0] = n; listNotes(curr_note[0:1])
+				// println("\n---------------------------------------------")
+				// fmt.Printf("[%d] %s - %s\n%s\n", n.Id, n.Title, n.Description, n.Body)
 				print("Update this note? (y/N) ")
 				var input string
 				fmt.Scanln(&input) // Get keyboard input
 				if input == "y" || input == "Y" {
                     reader := bufio.NewReader(os.Stdin)
                     
-                    println("\nTitle--> " + n.Title)
-                    fmt.Print("Enter New Title: (blank for no change) ")
+                    println("\nTitle--> \"" + n.Title + "\"")
+                    fmt.Println("Enter new Title (or '+ blah' to append, or <ENTER> for no change)")
                     tit, _ := reader.ReadString('\n')
                     tit = strings.TrimRight(tit, " \r\n")
                     if len(tit) > 1 && tit[0:1] == "+" {
@@ -125,8 +133,8 @@ func main() {
                     } else if len(tit) > 0 { n.Title = tit }
 //                    println(n.Title); println()
                     
-                    println("\nDescription--> " + n.Description)
-                    fmt.Print("Enter New Description: (blank for no change) ")
+                    println("Description--> \"" + n.Description + "\"")
+                    fmt.Println("Enter new Description (or '-' to blank, '+ blah' to append, or <ENTER> for no change)")
                     desc, _ := reader.ReadString('\n')
                     desc = strings.TrimRight(desc, " \r\n")
                     if desc == "-" {
@@ -136,8 +144,8 @@ func main() {
                     } else if len(desc) > 0 {n.Description = desc}
                     //println(n.Description)
                     
-                    println("\nBody--> " + n.Body)
-                    fmt.Print("Enter New Body: (blank for no change) ")
+                    println("Body--> \"" + n.Body + "\"")
+                    fmt.Println("Enter new Body (or '-' to blank, '+ blah' to append, or <ENTER> for no change)")
                     body, _ := reader.ReadString('\n')
                     body = strings.TrimRight(body, " \r\n ")
                     if body == "-" {
@@ -147,8 +155,8 @@ func main() {
                     } else if len(body) > 0 { n.Body = body }
                     //println(n.Body)
                     
-                    println("\nTag--> " + n.Tag)
-                    fmt.Print("Enter New Tags: (comma separated) ")
+                    println("Tags--> \"" + n.Tag + "\"")
+                    fmt.Println("Enter new Tags (or '-' to blank, '+ blah' to append, or <ENTER> for no change)")
                     tag, _ := reader.ReadString('\n')
                     tag = strings.TrimRight(tag, " \r\n ")
                     if tag == "-" { 
@@ -159,8 +167,9 @@ func main() {
                     //println(n.Tag)
 
                     db.Save(&n)
-                    println("---------------------------------------------")
-                    fmt.Printf("[%d] %s - %s\n%s\nTags: %s\n", n.Id, n.Title, n.Description, n.Body, n.Tag)
+                    curr_note[0] = n; listNotes(curr_note[:]) // [:] means all of the slice
+                    // println("---------------------------------------------")
+                    // fmt.Printf("[%d] %s - %s\n%s\nTags: %s\n", n.Id, n.Title, n.Description, n.Body, n.Tag)
 				}
 			}
 		}
