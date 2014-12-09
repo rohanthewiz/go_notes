@@ -72,9 +72,9 @@ Example:
 $ ./go_notes -q "old note" -upd
 ```
 ####Update Tips
-* if a *+* is placed at the start of an input field, that field of the current note will be *appended* to
-* if a *-* is placed at the start of an input field, that field of the current note will be *blanked*
-* if nothing is entered, the field be unchanged
+* if a _+_ is placed at the start of an input field, that field of the current note will be _appended_ to
+* if a _-_ is placed at the start of an input field, that field of the current note will be _blanked_
+* if nothing is entered, the field will be unchanged
 
 ###Deleting
 -del -- Delete an existing note - must be used with a query
