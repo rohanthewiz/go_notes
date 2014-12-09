@@ -74,7 +74,7 @@ $ ./go_notes -q "old note" -upd
 ####Update Tips
 * if a *+* is placed at the start of an input field, that field of the current note will be *appended* to
 * if a *-* is placed at the start of an input field, that field of the current note will be *blanked*
-* if <ENTER> is pressed, the field be unchanged
+* if nothing is entered, the field be unchanged
 
 ###Deleting
 -del -- Delete an existing note - must be used with a query
