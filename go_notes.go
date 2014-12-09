@@ -11,7 +11,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 const app_name = "GoNotes"
-const version string = "0.8.2"
+const version string = "0.8.3"
 
 func main() {
     opts_str, opts_intf := options.Get()
@@ -27,7 +27,7 @@ func main() {
 	type Note struct {
 		Id int64
 		Title string `sql: "size:128"`
-		Description string `sql: "size:128"`
+		Description string `sql: "size:255"`
 		Body string `sql: "type:text"`
         Tag string `sql: "size:128"`
 		CreatedAt time.Time
@@ -40,7 +40,7 @@ func main() {
 // If the table is not existing, AutoMigrate will create the table automatically.
     
 	if opts_str["q"] == "" && opts_intf["qi"].(int) == 0 && opts_str["qg"] == "" {
-        // CREATE
+        // No query options, we must be trying to CREATE
 		if opts_str["t"] != "" {
 			var chk_unique_title []Note
 			db.Where("title = ?", opts_str["t"]).Find(&chk_unique_title)
@@ -53,7 +53,7 @@ func main() {
 			db.Create(&note2)
 			if ! db.NewRecord(note2) { fmt.Println("Record saved:", note2.Title) }
 		} else {
-			println("Title (-t \"A Title\") is required")
+			println("Title (-t) is required if creating a note. Remember to use '-' with option flags")
 		}
 	} else {
         // QUERY and possibly delete/update
@@ -115,37 +115,52 @@ func main() {
 				fmt.Scanln(&input) // Get keyboard input
 				if input == "y" || input == "Y" {
                     reader := bufio.NewReader(os.Stdin)
-                    println("\n" + n.Title)
+                    
+                    println("\nTitle--> " + n.Title)
                     fmt.Print("Enter New Title: (blank for no change) ")
                     tit, _ := reader.ReadString('\n')
                     tit = strings.TrimRight(tit, " \r\n")
-                    if len(tit) > 0 { n.Title = tit }
-                    //println(n.Title)
+                    if len(tit) > 1 && tit[0:1] == "+" {
+                        n.Title = n.Title + tit[1:]
+                    } else if len(tit) > 0 { n.Title = tit }
+//                    println(n.Title); println()
                     
-                    println("\n" + n.Description)
+                    println("\nDescription--> " + n.Description)
                     fmt.Print("Enter New Description: (blank for no change) ")
                     desc, _ := reader.ReadString('\n')
                     desc = strings.TrimRight(desc, " \r\n")
-                    if len(desc) > 0 {n.Description = desc}
+                    if desc == "-" {
+                        n.Description = ""
+                    } else if len(desc) > 1 && desc[0:1] == "+"  {
+                        n.Description = n.Description + desc[1:]
+                    } else if len(desc) > 0 {n.Description = desc}
                     //println(n.Description)
                     
-                    println("\n" + n.Body)
+                    println("\nBody--> " + n.Body)
                     fmt.Print("Enter New Body: (blank for no change) ")
                     body, _ := reader.ReadString('\n')
                     body = strings.TrimRight(body, " \r\n ")
-                    if len(body) > 0 { n.Body = body }
+                    if body == "-" {
+                        n.Body = ""
+                    } else if len(body) > 1 && body[0:1] == "+" {
+                        n.Body = n.Body + body[1:]
+                    } else if len(body) > 0 { n.Body = body }
                     //println(n.Body)
                     
-                    println("\n" + n.Tag)
+                    println("\nTag--> " + n.Tag)
                     fmt.Print("Enter New Tags: (comma separated) ")
                     tag, _ := reader.ReadString('\n')
                     tag = strings.TrimRight(tag, " \r\n ")
-                    if len(tag) > 0 { n.Tag = tag }
+                    if tag == "-" { 
+                        n.Tag = ""
+                    } else if len(tag) > 1 && tag[0:1] == "+" {
+                        n.Tag = n.Tag + tag[1:]
+                    } else if len(tag) > 0 { n.Tag = tag }
                     //println(n.Tag)
 
                     db.Save(&n)
                     println("---------------------------------------------")
-                    fmt.Printf("[%d] %s - %s\n%s\nTags: %s", n.Id, n.Title, n.Description, n.Body, n.Tag)
+                    fmt.Printf("[%d] %s - %s\n%s\nTags: %s\n", n.Id, n.Title, n.Description, n.Body, n.Tag)
 				}
 			}
 		}
