@@ -48,11 +48,12 @@ func main() {
 		return
 	}
 
-	//Create or update the table structure as needed
+	// Create or update the table structure as needed
 	db.AutoMigrate(&Note{}) //According to GORM: Feel free to change your struct, AutoMigrate will keep your database up-to-date.
 	// Fyi, AutoMigrate will only *add new columns*, it won't update column's type or delete unused columns, to make sure your data is safe.
 	// If the table is not existing, AutoMigrate will create the table automatically.
 
+	// CORE PROCESSING
 	if opts_str["q"] == "" && opts_intf["qi"].(int) == 0 && opts_str["qg"] == "" {
 		createNote() // No query options, we must be trying to CREATE
 	} else {
@@ -60,12 +61,7 @@ func main() {
 		notes := queryNotes()
 
 		// List Notes found
-		listNotes(notes)
-		msg := "notes found"
-		if len(notes) == 1 {
-			msg = "note found"
-		}
-		println(len(notes), msg)
+		listNotes(notes, true)
 
 		// See if there was an update
 		if opts_intf["upd"].(bool) {
@@ -117,7 +113,7 @@ func queryNotes() []Note {
 	return notes
 }
 
-func listNotes(notes []Note) {
+func listNotes(notes []Note, show_count bool) {
 	println(line_separator)
 	for _, n := range notes {
 		fmt.Printf("[%d] %s", n.Id, n.Title)
@@ -135,6 +131,13 @@ func listNotes(notes []Note) {
 		}
 		println(line_separator)
 	}
+	if show_count {
+		var msg string // init'd to ""
+		if len(notes) != 1 {
+			msg = "s"
+		}
+		fmt.Printf("(%d note%s found\n)", len(notes), msg)
+	}
 }
 
 func deleteNotes(notes []Note) {
@@ -142,7 +145,7 @@ func deleteNotes(notes []Note) {
 	for _, n := range notes {
 		save_id := n.Id
 		curr_note[0] = n
-		listNotes(curr_note[0:1])
+		listNotes(curr_note[0:1], false)
 		print("Delete this note? (y/N) ")
 		var input string
 		fmt.Scanln(&input) // Get keyboard input
@@ -157,7 +160,7 @@ func updateNotes(notes []Note) {
 	var curr_note [1]Note //array since listNotes takes a slice
 	for _, n := range notes {
 		curr_note[0] = n
-		listNotes(curr_note[0:1]) //pass a slice of the array
+		listNotes(curr_note[0:1], false) //pass a slice of the array
 		print("Update this note? (y/N) ")
 		var input string
 		fmt.Scanln(&input) // Get keyboard input
@@ -212,7 +215,7 @@ func updateNotes(notes []Note) {
 
 			db.Save(&n)
 			curr_note[0] = n
-			listNotes(curr_note[:]) // [:] means all of the slice
+			listNotes(curr_note[:], false) // [:] means all of the slice
 		}
 	}
 }
