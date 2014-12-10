@@ -9,11 +9,13 @@ import (
 	"os"
 	"strings"
 	"time"
+	"encoding/csv"
 )
 
 const app_name = "GoNotes"
 const version string = "0.8.4"
 const line_separator string = "---------------------------------------------------------"
+const out_csv = "output.csv"
 
 type Note struct {
 	Id          int64
@@ -63,11 +65,15 @@ func main() {
 		// List Notes found
 		listNotes(notes, true)
 
-		// See if there was an update
-		if opts_intf["upd"].(bool) {
+		// See if we want to export
+		if opts_intf["exp"].(bool) {
+			exportNotes(notes)
+
+		// See if we want to update
+		} else if opts_intf["upd"].(bool) {
 			updateNotes(notes)
 
-			// See if there was a delete
+			// See if we want to delete
 		} else if opts_intf["del"].(bool) {
 			deleteNotes(notes)
 		}
@@ -136,8 +142,47 @@ func listNotes(notes []Note, show_count bool) {
 		if len(notes) != 1 {
 			msg = "s"
 		}
-		fmt.Printf("(%d note%s found\n)", len(notes), msg)
+		fmt.Printf("(%d note%s found)\n", len(notes), msg)
 	}
+}
+
+func exportNotes(notes []Note) {
+	csv_file, err := os.Create(out_csv)
+	if err != nil { fmt.Println("Error: ", err); return }
+//	defer csv_file.Close()
+	writer := csv.NewWriter(csv_file)
+
+	for _, n := range notes {
+		arr := []string{n.Title, n.Description, n.Body, n.Tag}
+		err := writer.Write(arr)
+		if err != nil { fmt.Println("Error: ", err); return }
+	}
+	writer.Flush()
+	println("Exported to", out_csv)
+
+	csv_file.Close()
+
+	// Base check of importNotes
+	println("Reading the csv back in...")
+	importNotes(out_csv)
+}
+
+func importNotes(in_file string) {
+	csvfile, err := os.Open(in_file)
+	if err != nil { fmt.Println("Error: ", err); return }
+	defer csvfile.Close()
+
+	reader := csv.NewReader(csvfile)
+	reader.FieldsPerRecord = -1 // Todo match this with Note struct
+
+	rawCSVdata, err := reader.ReadAll()
+	if err != nil { fmt.Println("Error: ", err); return }
+
+	// sanity check, display to standard output
+	for _, f := range rawCSVdata {
+		fmt.Printf("Title : %s - Desc: %s\nBody: %s\nTags: %s\n", f[0], f[1], f[2], f[3])
+	}
+
 }
 
 func deleteNotes(notes []Note) {
