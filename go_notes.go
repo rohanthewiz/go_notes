@@ -144,16 +144,16 @@ func updateNotes(notes []Note) {
 		if input == "y" || input == "Y" {
             reader := bufio.NewReader(os.Stdin)
             
-            println("\nTitle--> \"" + n.Title + "\"")
-            fmt.Println("Enter new Title (or '+ blah' to append, or <ENTER> for no change)")
+            println("\nTitle-->" + n.Title)
+            fmt.Println("Enter new Title (without quotes), or '+ blah' to append, or <ENTER> for no change")
             tit, _ := reader.ReadString('\n')
             tit = strings.TrimRight(tit, " \r\n")
             if len(tit) > 1 && tit[0:1] == "+" {
                 n.Title = n.Title + tit[1:]
             } else if len(tit) > 0 { n.Title = tit }
             
-            println("Description--> \"" + n.Description + "\"")
-            fmt.Println("Enter new Description (or '-' to blank, '+ blah' to append, or <ENTER> for no change)")
+            println("Description-->" + n.Description)
+            fmt.Println("Enter new Description (without quotes), or '-' to blank, '+ blah' to append, or <ENTER> for no change")
             desc, _ := reader.ReadString('\n')
             desc = strings.TrimRight(desc, " \r\n")
             if desc == "-" {
@@ -162,8 +162,8 @@ func updateNotes(notes []Note) {
                 n.Description = n.Description + desc[1:]
             } else if len(desc) > 0 {n.Description = desc}
             
-            println("Body--> \"" + n.Body + "\"")
-            fmt.Println("Enter new Body (or '-' to blank, '+ blah' to append, or <ENTER> for no change)")
+            println("Body-->" + n.Body)
+            fmt.Println("Enter new Body (without quotes), or '-' to blank, '+ blah' to append, or <ENTER> for no change")
             body, _ := reader.ReadString('\n')
             body = strings.TrimRight(body, " \r\n ")
             if body == "-" {
@@ -172,8 +172,8 @@ func updateNotes(notes []Note) {
                 n.Body = n.Body + body[1:]
             } else if len(body) > 0 { n.Body = body }
             
-            println("Tags--> \"" + n.Tag + "\"")
-            fmt.Println("Enter new Tags (or '-' to blank, '+ blah' to append, or <ENTER> for no change)")
+            println("Tags-->" + n.Tag)
+            fmt.Println("Enter new Tags (without quotes), or '-' to blank, '+ blah' to append, or <ENTER> for no change")
             tag, _ := reader.ReadString('\n')
             tag = strings.TrimRight(tag, " \r\n ")
             if tag == "-" { 
