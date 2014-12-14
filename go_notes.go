@@ -13,7 +13,7 @@ import (
 )
 
 const app_name = "GoNotes"
-const version string = "0.8.4"
+const version string = "0.8.5"
 const line_separator string = "---------------------------------------------------------"
 const out_csv = "output.csv"
 
@@ -66,8 +66,15 @@ func main() {
 		listNotes(notes, true)
 
 		// See if we want to export
-		if opts_intf["exp"].(bool) {
-			exportNotes(notes)
+		if opts_str["exp"] != "" {
+			arr := strings.Split(opts_str["exp"], ".")
+			arr_item_last := len(arr) -1
+			if arr[arr_item_last] == "csv" {
+				exportCsv(notes)
+			}
+//			if arr[arr_item_last] == "gob" {
+//				exportGob(notes)
+//			}
 
 		// See if we want to update
 		} else if opts_intf["upd"].(bool) {
@@ -146,7 +153,7 @@ func listNotes(notes []Note, show_count bool) {
 	}
 }
 
-func exportNotes(notes []Note) {
+func exportCsv(notes []Note) {
 	csv_file, err := os.Create(out_csv)
 	if err != nil { fmt.Println("Error: ", err); return }
 //	defer csv_file.Close()
