@@ -8,7 +8,7 @@ Learning tip: use git to checkout an early version of go_notes so you can start 
 ###Download
  Get Go for your operating system: http://golang.org/dl/
 ###Go Workspace Setup
-(Make sure Go is first downloaded)
+(Make sure Go is first downloaded and installed)
 The environment variable *GOPATH* must point to your Go project workspace. Google 'environment variable set Windows', for example, to do that for your operating system.
 Your can check your current GOPATH by running the following command
 ```
