@@ -1,11 +1,14 @@
 ##Go Notes - Go, GORM and SQLite tracking your notes from the Command Line
 
 This is a very fast command line note-taking and searching system.
-No need to wait for a heavy GUI to load, just fire off go_notes with a few command line options and your tips and snippets are recorded to an SQLite database. This is also a sweet way to learn a modern, performant language - Go (aka Golang) using a database with an ORM (object relational manager) while building a useful tool!
+No need to wait for a heavy GUI to load, just fire off go_notes with a few command line options and your tips and snippets are recorded to an SQLite database. This is also a sweet way to learn a modern, highly performant language - The Go Programming Language (aka Golang) using a database with an ORM (object relational manager) while building a useful tool!
+Learning tip: use git to checkout an early version of go_notes so you can start out simple
 
 ##Getting Setup
-
-###Go Workspace Setup Tip
+###Download
+ Get Go for your operating system: http://golang.org/dl/
+###Go Workspace Setup
+(Make sure Go is first downloaded)
 The environment variable *GOPATH* must point to your Go project workspace. Google 'environment variable set Windows', for example, to do that for your operating system.
 Your can check your current GOPATH by running the following command
 ```
@@ -18,13 +21,19 @@ GOPATH/src/yourdomain.com/your_go_project
 ```
 
 ##Building GoNotes
-Build with (Make sure Go is downloaded and setup first - http://golang.org/dl/)
+First clone the repo:
+```
+cd GOPATH/src/yourdomain.com
+git clone https://github.com/rohanthewiz/go_notes.git
+```
+
+Build with
 
 ```
-cd project_root/options
+cd project_root_path/options
 go get # should only need to run once
 go install # build and install our options package
-cd .. # back to project_root
+cd .. # project_root
 go get # should only need to run once
 go build go_notes.go
 ```
@@ -89,16 +98,17 @@ $ ./go_notes -q trash -del
     
     -h -- List available options with defaults
     -db "" -- Sqlite DB path. It will try to create the database 'go_notes.sqlite' in your home directory by default
+    -qg "" -- Query by Tags column only
+    -ql 9 -- Limit the number of notes returned
+    -s Short Listing -- don't show the body
+    -admin="" -- Privileged actions like 'delete_table' (drops the notes table)
 
 Example:
 
 ```
 D:\GoProjs\src\gotut.org\go_notes>go_notes -db "D:\xfr\gn.sqlite" -t "Test New DB Loc" -d "This is a test of the -db option"
+$ gn -q all -s  # list all notes with the short list option. Note that here go_notes is aliased to *gn*
 ```
-    -qg "" -- Query by Tags column only
-    -ql 9 -- Limit the number of notes returned
-    -s Short Listing -- don't show the body
-    -admin="" -- Privileged actions like 'delete_table' (drops the notes table)
 
 ###TODO
 - Import/export (csv, gob) is in the works
