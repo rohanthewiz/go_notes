@@ -6,7 +6,7 @@ No need to wait for a heavy GUI to load, just fire off go_notes with a few comma
 ##Getting Setup
 
 ###Go Workspace Setup Tip
-The environment variable *GOPATH* must point to your Go project workspace. Google how to do that for your operating system.
+The environment variable *GOPATH* must point to your Go project workspace. Google 'environment variable set Windows', for example, to do that for your operating system.
 Your can check your current GOPATH by running the following command
 ```
 go env
@@ -22,16 +22,16 @@ Build with (Make sure Go is downloaded and setup first - http://golang.org/dl/)
 
 ```
 cd project_root/options
-go get // should only need to run once
-go install // build and install our options package
-cd project_root
-go get // should only need to run once
+go get # should only need to run once
+go install # build and install our options package
+cd .. # back to project_root
+go get # should only need to run once
 go build go_notes.go
 ```
 
 ####TIPS
 * gcc is required to compile SQLite. On Windows you can get 64bit MinGW here http://mingw-w64.sourceforge.net/download.php. Install it and make sure to add the bin directory to your path
-* You might be able to alias the executable to gn on your system. Google how to alias commands on your system if neeeded.
+* For less typing, you might want to alias the executable to 'gn' on your system. Google 'command alias' if neeeded.
 
 ##Using GoNotes
 
@@ -93,20 +93,23 @@ $ ./go_notes -q trash -del
 Example:
 
 ```
-D:\> D:\GoProjs\src\gotut.org\go_notes>go_notes -db "D:\xfr\gn.sqlite" -t "Test New DB Loc" -d "This is a test of the -db option"
+D:\GoProjs\src\gotut.org\go_notes>go_notes -db "D:\xfr\gn.sqlite" -t "Test New DB Loc" -d "This is a test of the -db option"
 ```
     -qg "" -- Query by Tags column only
     -ql 9 -- Limit the number of notes returned
     -s Short Listing -- don't show the body
     -admin="" -- Privileged actions like 'delete_table' (drops the notes table)
+
 ###TODO
-Update and delete is now implemented. We now have full CRUD!
+- Import/export (csv, gob) is in the works
+- Synching across a network
+- webserver mode
 
 ###TIPS
 Firefox has a great addon called SQLite Manager which you can use to peek into the database file
 Feel free to create a pull request if you'd like to pitch in.
 
 ###Credits
-- Go -- http://golang.org/  Thanks Google!
+- Go -- http://golang.org/  Thanks Google!!
 - GORM -- https://github.com/jinzhu/gorm  - Who needs sluggish ActiveRecord, or other interpreted code interfacing to your database.
 - SQLite -- http://www.sqlite.org/ - A great place to start. Actually GORM includes all the things needed for SQLite so SQLite gets compiled into GoNotes!
