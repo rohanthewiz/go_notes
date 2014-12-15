@@ -10,12 +10,12 @@ import (
 	"strings"
 	"time"
 	"encoding/csv"
+	"encoding/gob"
 )
 
 const app_name = "GoNotes"
 const version string = "0.8.5"
 const line_separator string = "---------------------------------------------------------"
-const out_csv = "output.csv"
 
 type Note struct {
 	Id          int64
@@ -56,34 +56,44 @@ func main() {
 	// If the table is not existing, AutoMigrate will create the table automatically.
 
 	// CORE PROCESSING
-	if opts_str["q"] == "" && opts_intf["qi"].(int) == 0 && opts_str["qg"] == "" {
-		createNote() // No query options, we must be trying to CREATE
-	} else {
+	if opts_str["t"] != "" { // No query options, we must be trying to CREATE
+		createNote()
+
+	} else if opts_str["q"] != "" || opts_intf["qi"].(int) != 0 || opts_str["qg"] != ""{
 		// QUERY
 		notes := queryNotes()
 
 		// List Notes found
 		listNotes(notes, true)
 
-		// See if we want to export
+		// Options that can go with Query
+		// export
 		if opts_str["exp"] != "" {
 			arr := strings.Split(opts_str["exp"], ".")
 			arr_item_last := len(arr) -1
 			if arr[arr_item_last] == "csv" {
-				exportCsv(notes)
+				exportCsv(notes, opts_str["exp"])
 			}
-//			if arr[arr_item_last] == "gob" {
-//				exportGob(notes)
-//			}
-
-		// See if we want to update
-		} else if opts_intf["upd"].(bool) {
+			if arr[arr_item_last] == "gob" {
+				exportGob(notes, opts_str["exp"])
+			}
+		} else if opts_intf["upd"].(bool) { // update
 			updateNotes(notes)
 
 			// See if we want to delete
 		} else if opts_intf["del"].(bool) {
 			deleteNotes(notes)
 		}
+		// Other options
+	} else if opts_str["imp"] != "" { // import
+			arr := strings.Split(opts_str["imp"], ".")
+			arr_item_last := len(arr) -1
+			if arr[arr_item_last] == "csv" {
+				importCsv(opts_str["imp"])
+			}
+			if arr[arr_item_last] == "gob" {
+				importGob(opts_str["imp"])
+			}
 	}
 }
 
@@ -95,68 +105,38 @@ func createNote() {
 			println("Error: Title", opts_str["t"], "is not unique!")
 			return
 		}
-		print("Creating new note...")
-		note2 := Note{Title: opts_str["t"], Description: opts_str["d"], Body: opts_str["b"], Tag: opts_str["g"]}
-		db.Create(&note2)
-		if !db.NewRecord(note2) {
-			fmt.Println("Record saved:", note2.Title)
-		}
+		do_create( Note{Title: opts_str["t"], Description: opts_str["d"], Body: opts_str["b"], Tag: opts_str["g"]} )
 	} else {
 		println("Title (-t) is required if creating a note. Remember to precede option flags with '-'")
 	}
 }
 
-func queryNotes() []Note {
+// The core create method
+func do_create(note Note) bool {
+	print("Creating new note...")
+	db.Create(&note)
+	if !db.NewRecord(note) { // was it saved?
+		println("Record saved:", note.Title)
+		return true
+	}
+	println("Failed to save:", note.Title)
+	return false
+}
+
+func find_note_by_title(title string) (bool, Note) {
 	var notes []Note
-	if opts_intf["qi"].(int) != 0 {
-		db.Find(&notes, opts_intf["qi"].(int))
-	} else if opts_str["qg"] != "" {
-		db.Where("tag LIKE ?", "%"+opts_str["qg"]+"%").
-			Limit(opts_intf["ql"].(int)).Find(&notes)
-	} else if opts_str["q"] == "all" {
-		db.Find(&notes)
-	} else if opts_str["q"] != "" {
-		db.Where("title LIKE ?", "%"+opts_str["q"]+"%").
-			Or("description LIKE ?", "%"+opts_str["q"]+"%").
-			Or("body LIKE ?", "%"+opts_str["q"]+"%").
-			Or("tag LIKE ?", "%"+opts_str["q"]+"%").
-			Limit(opts_intf["ql"].(int)).
-			Find(&notes)
-	}
-	return notes
-}
-
-func listNotes(notes []Note, show_count bool) {
-	println(line_separator)
-	for _, n := range notes {
-		fmt.Printf("[%d] %s", n.Id, n.Title)
-		if n.Description != "" {
-			fmt.Printf(" - %s", n.Description)
-		}
-		println("")
-		if !opts_intf["s"].(bool) {
-			if n.Body != "" {
-				println(n.Body)
-			}
-			if n.Tag != "" {
-				println("Tags:", n.Tag)
-			}
-		}
-		println(line_separator)
-	}
-	if show_count {
-		var msg string // init'd to ""
-		if len(notes) != 1 {
-			msg = "s"
-		}
-		fmt.Printf("(%d note%s found)\n", len(notes), msg)
+	db.Where("title = ?", title).Limit(1).Find(&notes)
+	if len(notes) == 1 {
+		return true, notes[0]
+	} else {
+		return false, Note{} // yes this is the way you represent an empty Note object/struct
 	}
 }
 
-func exportCsv(notes []Note) {
-	csv_file, err := os.Create(out_csv)
+func exportCsv(notes []Note, out_file string) {
+	csv_file, err := os.Create(out_file)
 	if err != nil { fmt.Println("Error: ", err); return }
-//	defer csv_file.Close()
+	defer csv_file.Close()
 	writer := csv.NewWriter(csv_file)
 
 	for _, n := range notes {
@@ -165,21 +145,59 @@ func exportCsv(notes []Note) {
 		if err != nil { fmt.Println("Error: ", err); return }
 	}
 	writer.Flush()
-	println("Exported to", out_csv)
-
-	csv_file.Close()
-
-	// Base check of importNotes
-	println("Reading the csv back in...")
-	importNotes(out_csv)
+	println("Exported to", out_file)
 }
 
-func importNotes(in_file string) {
-	csvfile, err := os.Open(in_file)
+func exportGob(notes []Note, out_file string) {
+	gob_file, err := os.Create(out_file)
 	if err != nil { fmt.Println("Error: ", err); return }
-	defer csvfile.Close()
+	defer gob_file.Close()
+	gob_encoder := gob.NewEncoder(gob_file)
 
-	reader := csv.NewReader(csvfile)
+	err = gob_encoder.Encode(notes)
+	if err != nil { fmt.Println("Error: ", err); return }
+	println("Exported to", out_file)
+}
+
+func importGob(in_file string) {
+	var notes []Note
+
+	gob_file, err := os.Open(in_file)
+	if err != nil { fmt.Println("Error: ", err); return }
+	defer gob_file.Close()
+
+	decoder := gob.NewDecoder(gob_file)
+	err = decoder.Decode(&notes)
+	if err != nil { fmt.Println("Error: ", err); return }
+	listNotes(notes, false)
+	fmt.Printf("%d note(s) retrieved from %s\n", len(notes), in_file)
+
+	// Update, create or discard?
+	for _, n := range notes {
+		exists, note := find_note_by_title(n.Title)
+		if exists {
+			println("This note already exists: ", note.Title)
+			if n.UpdatedAt.After(note.UpdatedAt) {
+				println("The imported note is newer, updating...")
+				note.Description = n.Description
+				note.Body = n.Body
+				note.Tag = n.Tag
+				db.Save(&note)
+				listNotes([]Note{note}, false) // [:] means all of the slice
+			}	else { println("The imported note is not newer, ignoring...")}
+		} else {
+			do_create( Note{ Title: n.Title, Description: n.Description, Body: n.Body, Tag: n.Tag } )
+			fmt.Printf("Created -->Title: %s - Desc: %s\nBody: %s\nTags: %s\n", n.Title, n.Description, n.Body, n.Tag)
+		}
+	}
+}
+
+func importCsv(in_file string) {
+	csv_file, err := os.Open(in_file)
+	if err != nil { fmt.Println("Error: ", err); return }
+	defer csv_file.Close()
+
+	reader := csv.NewReader(csv_file)
 	reader.FieldsPerRecord = -1 // Todo match this with Note struct
 
 	rawCSVdata, err := reader.ReadAll()
@@ -187,9 +205,16 @@ func importNotes(in_file string) {
 
 	// sanity check, display to standard output
 	for _, f := range rawCSVdata {
-		fmt.Printf("Title : %s - Desc: %s\nBody: %s\nTags: %s\n", f[0], f[1], f[2], f[3])
+		exists, note := find_note_by_title(f[0])
+		if exists {
+			println("This note already exists: ", note.Title)
+			// we could check an 'update on import' option here, set the corresponding fields, then save
+			// or we could decide to update based on last_updated, but the export would have to save updated times - this would be a gob format
+		} else {
+			do_create( Note{Title: f[0], Description: f[1], Body: f[2], Tag: f[3]} )
+			fmt.Printf("Created -->Title: %s - Desc: %s\nBody: %s\nTags: %s\n", f[0], f[1], f[2], f[3])
+		}
 	}
-
 }
 
 func deleteNotes(notes []Note) {
@@ -271,3 +296,51 @@ func updateNotes(notes []Note) {
 		}
 	}
 }
+
+func queryNotes() []Note {
+	var notes []Note
+	if opts_intf["qi"].(int) != 0 {
+		db.Find(&notes, opts_intf["qi"].(int))
+	} else if opts_str["qg"] != "" {
+		db.Where("tag LIKE ?", "%"+opts_str["qg"]+"%").
+		Limit(opts_intf["ql"].(int)).Find(&notes)
+	} else if opts_str["q"] == "all" {
+		db.Find(&notes)
+	} else if opts_str["q"] != "" {
+		db.Where("title LIKE ?", "%"+opts_str["q"]+"%").
+		Or("description LIKE ?", "%"+opts_str["q"]+"%").
+		Or("body LIKE ?", "%"+opts_str["q"]+"%").
+		Or("tag LIKE ?", "%"+opts_str["q"]+"%").
+		Limit(opts_intf["ql"].(int)).
+		Find(&notes)
+	}
+	return notes
+}
+
+func listNotes(notes []Note, show_count bool) {
+	println(line_separator)
+	for _, n := range notes {
+		fmt.Printf("[%d] %s", n.Id, n.Title)
+		if n.Description != "" {
+			fmt.Printf(" - %s", n.Description)
+		}
+		println("")
+		if !opts_intf["s"].(bool) {
+			if n.Body != "" {
+				println(n.Body)
+			}
+			if n.Tag != "" {
+				println("Tags:", n.Tag)
+			}
+		}
+		println(line_separator)
+	}
+	if show_count {
+		var msg string // init'd to ""
+		if len(notes) != 1 {
+			msg = "s"
+		}
+		fmt.Printf("(%d note%s found)\n", len(notes), msg)
+	}
+}
+
