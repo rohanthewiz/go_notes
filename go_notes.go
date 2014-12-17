@@ -244,7 +244,7 @@ func updateNotes(notes []Note) {
 		if input == "y" || input == "Y" {
 			reader := bufio.NewReader(os.Stdin)
 
-			println("\nTitle--> \"" + n.Title + "\"")
+			println("\nTitle-->" + n.Title)
 			fmt.Println("Enter new Title (or '+ blah' to append, or <ENTER> for no change)")
 			tit, _ := reader.ReadString('\n')
 			tit = strings.TrimRight(tit, " \r\n")
@@ -254,7 +254,7 @@ func updateNotes(notes []Note) {
 				n.Title = tit
 			}
 
-			println("Description--> \"" + n.Description + "\"")
+			println("Description-->" + n.Description)
 			fmt.Println("Enter new Description (or '-' to blank, '+ blah' to append, or <ENTER> for no change)")
 			desc, _ := reader.ReadString('\n')
 			desc = strings.TrimRight(desc, " \r\n")
@@ -266,7 +266,7 @@ func updateNotes(notes []Note) {
 				n.Description = desc
 			}
 
-			println("Body--> \"" + n.Body + "\"")
+			println("Body-->" + n.Body)
 			fmt.Println("Enter new Body (or '-' to blank, '+ blah' to append, or <ENTER> for no change)")
 			body, _ := reader.ReadString('\n')
 			body = strings.TrimRight(body, " \r\n ")
@@ -278,7 +278,7 @@ func updateNotes(notes []Note) {
 				n.Body = body
 			}
 
-			println("Tags--> \"" + n.Tag + "\"")
+			println("Tags-->" + n.Tag)
 			fmt.Println("Enter new Tags (or '-' to blank, '+ blah' to append, or <ENTER> for no change)")
 			tag, _ := reader.ReadString('\n')
 			tag = strings.TrimRight(tag, " \r\n ")
