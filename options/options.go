@@ -2,7 +2,7 @@ package options
 import (
 	"os"
 	"flag"
-    "strings"
+  "strings"
 )
 
 //Setup commandline options and other configuration for Go Notes
@@ -18,6 +18,9 @@ func Get() (map[string]string, map[string]interface{}) {
         gPtr := flag.String("g", "", "Comma separated list of Tags for new note")
         adminPtr := flag.String("admin", "", "Privileged actions like 'delete_table'")
         dbPtr := flag.String("db", "", "Sqlite DB path")
+        expPtr := flag.String("exp", "", "Export the notes queried to the format of the file given")
+        impPtr := flag.String("imp", "", "Import the notes queried from the file given")
+
         qiPtr := flag.Int("qi", 0, "Query for notes based on ID")
         qlPtr := flag.Int("ql", 9, "Limit the number of notes returned")
         sPtr := flag.Bool("s", false, "Short Listing - don't show the body")
@@ -34,13 +37,16 @@ func Get() (map[string]string, map[string]interface{}) {
         opts_str["g"] = *gPtr
         opts_str["admin"] = *adminPtr
         opts_str["db"] = *dbPtr
+        opts_str["exp"] = *expPtr
+        opts_str["imp"] = *impPtr
+
         opts_intf["qi"] = *qiPtr
         opts_intf["ql"] = *qlPtr
         opts_intf["s"] =  *sPtr
         opts_intf["v"] =  *vPtr
         opts_intf["del"] = *delPtr
         opts_intf["upd"] = *updPtr
-        
+
         separator := "/"
         if strings.Contains(strings.ToUpper(os.Getenv("OS")), "WINDOWS") {
             separator = "\\"
@@ -63,7 +69,6 @@ func Get() (map[string]string, map[string]interface{}) {
             db_full_path = *dbPtr
         }
         opts_str["db_path"] = db_full_path
-        //println("DEBUG: db_full_path", db_full_path)
-            
+
         return opts_str, opts_intf
 }
