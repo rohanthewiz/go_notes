@@ -14,7 +14,7 @@ import (
 )
 
 const app_name = "GoNotes"
-const version string = "0.8.5"
+const version string = "0.8.6"
 const line_separator string = "---------------------------------------------------------"
 
 type Note struct {
