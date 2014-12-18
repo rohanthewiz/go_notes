@@ -22,7 +22,7 @@ func Get() (map[string]string, map[string]interface{}) {
         impPtr := flag.String("imp", "", "Import the notes queried from the file given")
 
         qiPtr := flag.Int("qi", 0, "Query for notes based on ID")
-        qlPtr := flag.Int("ql", 9, "Limit the number of notes returned")
+        qlPtr := flag.Int("ql", -1, "Limit the number of notes returned")
         sPtr := flag.Bool("s", false, "Short Listing - don't show the body")
         vPtr := flag.Bool("v", false, "Show version")
         delPtr := flag.Bool("del", false, "Delete the notes queried")
