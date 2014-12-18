@@ -29,7 +29,7 @@ type Note struct {
 
 // Get Commandline Options and Flags
 var opts_str, opts_intf = options.Get() //returns map[string]string, map[string]interface{}
-// Init db
+// Init db // Todo - I guess it may be best to not make db static (global to this file)
 var db, err = gorm.Open("sqlite3", opts_str["db_path"])
 
 func main() {
@@ -56,6 +56,7 @@ func main() {
 	// If the table is not existing, AutoMigrate will create the table automatically.
 
 	// CORE PROCESSING
+	println("")  // for UI sake
 	if opts_str["t"] != "" { // No query options, we must be trying to CREATE
 		createNote()
 
