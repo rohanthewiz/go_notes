@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
-	"gotut.org/go_notes/options"
+	"github.com/rohanthewiz/go_notes/options"
 	"os"
 	"strings"
 	"time"
@@ -56,7 +56,6 @@ func main() {
 	// If the table is not existing, AutoMigrate will create the table automatically.
 
 	// CORE PROCESSING
-	println("")  // for UI sake
 	if opts_str["t"] != "" { // No query options, we must be trying to CREATE
 		createNote()
 
@@ -65,6 +64,7 @@ func main() {
 		notes := queryNotes()
 
 		// List Notes found
+		println("")  // for UI sake
 		listNotes(notes, true)
 
 		// Options that can go with Query

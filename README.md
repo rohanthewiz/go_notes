@@ -6,40 +6,31 @@ Learning tip: use git to checkout an early version of go_notes so you can start 
 
 ##Getting Setup
 ###Download
- Get Go for your operating system: http://golang.org/dl/
+ Get Go for your operating system: http://golang.org/dl/ and install
 ###Go Workspace Setup
-(Make sure Go is first downloaded and installed)
 The environment variable *GOPATH* must point to your Go project workspace. Google 'environment variable set Windows', for example, to do that for your operating system.
 Your can check your current GOPATH by running the following command
 ```
 go env
 ```
 
-Your project should live under a folder path of this format:
+Your Go projects should live under a folder path of this format:
 ```
 GOPATH/src/yourdomain.com/your_go_project
 ```
 
-##Building GoNotes
-First clone the repo:
+##Getting and Building GoNotes
 ```
-cd GOPATH/src/yourdomain.com
-git clone https://github.com/rohanthewiz/go_notes.git
-```
-
-Build with
-
-```
-cd project_root_path/options
-go get # should only need to run once
+cd GOPATH/src
+go get github.com/rohanthewiz/go_notes
+cd go_notes/options
 go install # build and install our options package
 cd .. # project_root
-go get # should only need to run once
-go build go_notes.go
+go build go_notes.go # this will produce the executable 'go_notes' in the current directory
 ```
 
 ####TIPS
-* gcc is required to compile SQLite. On Windows you can get 64bit MinGW here http://mingw-w64.sourceforge.net/download.php. Install it and make sure to add the bin directory to your path
+* gcc is required to compile SQLite. On Windows you can get 64bit MinGW here http://mingw-w64.sourceforge.net/download.php. Install it and make sure to add the bin directory to your path (Could not get this to work with Windows 8.1, Windows 7 did work though)
 * For less typing, you might want to alias the executable to 'gn' on your system. Google 'command alias' if neeeded.
 
 ##Using GoNotes
