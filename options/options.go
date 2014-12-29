@@ -27,6 +27,7 @@ func Get() (map[string]string, map[string]interface{}) {
         vPtr := flag.Bool("v", false, "Show version")
         delPtr := flag.Bool("del", false, "Delete the notes queried")
         updPtr := flag.Bool("upd", false, "Update the notes queried")
+        svrPtr := flag.Bool("svr", false, "Web server mode")
 
         flag.Parse()
         opts_str["q"] = *qPtr
@@ -46,6 +47,7 @@ func Get() (map[string]string, map[string]interface{}) {
         opts_intf["v"] =  *vPtr
         opts_intf["del"] = *delPtr
         opts_intf["upd"] = *updPtr
+        opts_intf["svr"] = *svrPtr
 
         separator := "/"
         if strings.Contains(strings.ToUpper(os.Getenv("OS")), "WINDOWS") {

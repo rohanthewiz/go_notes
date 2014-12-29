@@ -3,18 +3,22 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"github.com/jinzhu/gorm"
-	_ "github.com/mattn/go-sqlite3"
-	"github.com/rohanthewiz/go_notes/options"
+	"log"
 	"os"
 	"strings"
 	"time"
 	"encoding/csv"
 	"encoding/gob"
+	"net/http"
+	"github.com/unrolled/render"
+	"github.com/julienschmidt/httprouter"
+	"github.com/jinzhu/gorm"
+	_ "github.com/mattn/go-sqlite3"
+	"github.com/rohanthewiz/go_notes/options"
 )
 
 const app_name = "GoNotes"
-const version string = "0.8.6"
+const version string = "0.8.7"
 const line_separator string = "---------------------------------------------------------"
 
 type Note struct {
@@ -29,11 +33,31 @@ type Note struct {
 
 // Get Commandline Options and Flags
 var opts_str, opts_intf = options.Get() //returns map[string]string, map[string]interface{}
-// Init db // Todo - I guess it may be best to not make db static (global to this file)
-var db, err = gorm.Open("sqlite3", opts_str["db_path"])
+// Init db // Todo - pass db instead of making it static
+var db, db_err = gorm.Open("sqlite3", opts_str["db_path"])
+
+func Index(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+	fmt.Fprint(w, "Welcome!\n")
+}
+
+func Hello(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
+	fmt.Fprintf(w, "Hello, %s!\n", p.ByName("name"))
+}
+
+func Query(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
+	opts_str["q"] = p.ByName("query")  // Overwrite the query param
+	notes := queryNotes(opts_str, opts_intf )
+	r := render.New(render.Options{ IndentJSON: true })
+	for _, note := range notes {
+		// TODO use an HTML template with rice // r.HTML(w, 200, "index", note)
+		r.JSON(w, 200, note) // Nice!
+		// Wow! XML works! // r.XML(w, 200, note)
+		// scrap: fmt.Fprintf(w, "QUERY, %s!\n%v\n", p.ByName("query"), queryNotes(opts_str, opts_intf ))
+	}
+}
 
 func main() {
-	if err != nil { // Can't err chk db conn outside method, so do it here
+	if db_err != nil { // Can't err chk db conn outside method, so do it here
 		println("There was an error connecting to the DB")
 		println("DBPath: " + opts_str["db_path"])
 		os.Exit(2)
@@ -56,12 +80,20 @@ func main() {
 	// If the table is not existing, AutoMigrate will create the table automatically.
 
 	// CORE PROCESSING
-	if opts_str["t"] != "" { // No query options, we must be trying to CREATE
+	if opts_intf["svr"].(bool) {
+		router := httprouter.New()
+		router.GET("/", Index)
+		router.GET("/hello/:name", Hello)
+		router.GET("/q/:query", Query)
+		println("Server listening on 8080... Ctrl-C to quit")
+		log.Fatal(http.ListenAndServe(":8080", router))
+
+	} else if opts_str["t"] != "" { // No query options, we must be trying to CREATE
 		createNote()
 
 	} else if opts_str["q"] != "" || opts_intf["qi"].(int) != 0 || opts_str["qg"] != ""{
 		// QUERY
-		notes := queryNotes()
+		notes := queryNotes(opts_str, opts_intf)
 
 		// List Notes found
 		println("")  // for UI sake
@@ -298,21 +330,21 @@ func updateNotes(notes []Note) {
 	}
 }
 
-func queryNotes() []Note {
+func queryNotes(str_options map[string]string, intf_options map[string]interface{}) []Note {
 	var notes []Note
-	if opts_intf["qi"].(int) != 0 {
-		db.Find(&notes, opts_intf["qi"].(int))
-	} else if opts_str["qg"] != "" {
-		db.Where("tag LIKE ?", "%"+opts_str["qg"]+"%").
-		Limit(opts_intf["ql"].(int)).Find(&notes)
-	} else if opts_str["q"] == "all" {
+	if intf_options["qi"] !=nil && intf_options["qi"].(int) != 0 { // TODO should we be checking options for nil first?
+		db.Find(&notes, intf_options["qi"].(int))
+	} else if str_options["qg"] != "" {
+		db.Where("tag LIKE ?", "%"+str_options["qg"]+"%").
+		Limit(intf_options["ql"].(int)).Find(&notes)
+	} else if str_options["q"] == "all" {
 		db.Find(&notes)
-	} else if opts_str["q"] != "" {
-		db.Where("title LIKE ?", "%"+opts_str["q"]+"%").
-		Or("description LIKE ?", "%"+opts_str["q"]+"%").
-		Or("body LIKE ?", "%"+opts_str["q"]+"%").
-		Or("tag LIKE ?", "%"+opts_str["q"]+"%").
-		Limit(opts_intf["ql"].(int)).
+	} else if str_options["q"] != "" {
+		db.Where("title LIKE ?", "%"+str_options["q"]+"%").
+		Or("description LIKE ?", "%"+str_options["q"]+"%").
+		Or("body LIKE ?", "%"+str_options["q"]+"%").
+		Or("tag LIKE ?", "%"+str_options["q"]+"%").
+		Limit(intf_options["ql"].(int)).
 		Find(&notes)
 	}
 	return notes
