@@ -36,12 +36,14 @@ type Note struct {
 // Get Commandline Options and Flags
 var opts_str, opts_intf = options.Get() //returns map[string]string, map[string]interface{}
 
+// Would love to get Rice working with Render!
 //var templates, tmplates_err = rice.FindBox("templates")
 //if err != nil { log.Panic(err)}
 
 // Init db // Todo - pass db instead of making it static
 var db, db_err = gorm.Open("sqlite3", opts_str["db_path"])
 
+// Handlers for httprouter
 func Index(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 	fmt.Fprint(w, "Welcome!\n")
 }
@@ -61,11 +63,10 @@ func Query(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 
 	r := render.New(render.Options{ IndentJSON: true })
 	for _, note := range notes {
+		// This is not rendering well with Rice (I am probably missing something) // tmpl.Execute(w, note)
 		r.HTML(w, 200, "note", note)
-		// tmpl.Execute(w, note)
-		// Good // r.JSON(w, 200, note) // Nice!
+		// r.JSON(w, 200, note) // Nice!
 		// Wow! XML works! // r.XML(w, 200, note)
-		// scrap: fmt.Fprintf(w, "QUERY, %s!\n%v\n", p.ByName("query"), queryNotes(opts_str, opts_intf ))
 	}
 }
 
