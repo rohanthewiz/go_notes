@@ -1,0 +1,22 @@
+<%! func RenderQuery(w io.Writer, notes []Note) error %>
+
+<html>
+<head>
+  <style>
+    ul { list-style-type:none; margin: 0; padding: 0;}
+    li:first-child { border-top: 1px solid lightgray }
+    li { width: 40em; border-bottom: 1px solid lightgray; line-height:1.2em; padding-top:0.5em}
+    .title { font-weight: bold; color:darkgreen }
+  </style>
+</head>
+<body>
+<h1>My Notes</h1>
+
+<ul>
+  <% for _, note := range notes { %>
+          <li><span class="title"><%= note.Title %></span> - <%= note.Description %><br>
+          <%= note.Body %></li>
+  <% } %>
+</ul>
+</body>
+</html>

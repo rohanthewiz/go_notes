@@ -9,14 +9,11 @@ import (
 	"time"
 	"encoding/csv"
 	"encoding/gob"
-	// "html/template"
 	"net/http"
-	"github.com/unrolled/render"
 	"github.com/julienschmidt/httprouter"
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/rohanthewiz/go_notes/options"
-	// "github.com/GeertJohan/go.rice"
+	//"github.com/rohanthewiz/go_notes/options"
 )
 
 const app_name = "GoNotes"
@@ -34,10 +31,7 @@ type Note struct {
 }
 
 // Get Commandline Options and Flags
-var opts_str, opts_intf = options.Get() //returns map[string]string, map[string]interface{}
-
-//var templates, tmplates_err = rice.FindBox("templates")
-//if err != nil { log.Panic(err)}
+var opts_str, opts_intf = getOpts() //returns map[string]string, map[string]interface{}
 
 // Init db // Todo - pass db instead of making it static
 var db, db_err = gorm.Open("sqlite3", opts_str["db_path"])
@@ -53,20 +47,7 @@ func Hello(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 func Query(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 	opts_str["q"] = p.ByName("query")  // Overwrite the query param
 	notes := queryNotes(opts_str, opts_intf )
-
-//	t, err := templates.String("note.tmpl")
-//	if err != nil {log.Panic(err)}
-//	tmpl, err := template.New("Note").Parse(t)
-//	if err != nil {log.Panic(err)}
-
-	r := render.New(render.Options{ IndentJSON: true })
-	for _, note := range notes {
-		r.HTML(w, 200, "note", note)
-		// tmpl.Execute(w, note)
-		// Good // r.JSON(w, 200, note) // Nice!
-		// Wow! XML works! // r.XML(w, 200, note)
-		// scrap: fmt.Fprintf(w, "QUERY, %s!\n%v\n", p.ByName("query"), queryNotes(opts_str, opts_intf ))
-	}
+	RenderQuery(w, notes)
 }
 
 func main() {

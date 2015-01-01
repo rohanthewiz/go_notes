@@ -1,5 +1,5 @@
 .idea/*
-# add as a convenience binary # go_notes
-go_notes.exe
 .DS_Store
 *.csv
+go_notes.exe
+ego.go

@@ -1,4 +1,4 @@
-package options
+package main
 import (
 	"os"
 	"flag"
@@ -6,7 +6,7 @@ import (
 )
 
 //Setup commandline options and other configuration for Go Notes
-func Get() (map[string]string, map[string]interface{}) {
+func getOpts() (map[string]string, map[string]interface{}) {
         opts_str := make( map[string]string )
         opts_intf := make( map[string]interface{} )
         
