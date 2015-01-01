@@ -3,6 +3,7 @@
 <html>
 <head>
   <style>
+    body { background-color: #f0efBC }
     ul { list-style-type:none; margin: 0; padding: 0;}
     li:first-child { border-top: 1px solid lightgray }
     li { width: 40em; border-bottom: 1px solid lightgray; line-height:1.2em; padding-top:0.5em}

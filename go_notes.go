@@ -36,6 +36,7 @@ var opts_str, opts_intf = getOpts() //returns map[string]string, map[string]inte
 // Init db // Todo - pass db instead of making it static
 var db, db_err = gorm.Open("sqlite3", opts_str["db_path"])
 
+// Handlers for httprouter
 func Index(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 	fmt.Fprint(w, "Welcome!\n")
 }
