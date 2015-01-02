@@ -13,7 +13,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
-	//"github.com/rohanthewiz/go_notes/options"
 )
 
 const app_name = "GoNotes"
@@ -41,9 +40,9 @@ func Index(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 	fmt.Fprint(w, "Welcome!\n")
 }
 
-func Hello(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
-	fmt.Fprintf(w, "Hello, %s!\n", p.ByName("name"))
-}
+//func Hello(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
+//	fmt.Fprintf(w, "Hello, %s!\n", p.ByName("name"))
+//}
 
 func Query(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 	opts_str["q"] = p.ByName("query")  // Overwrite the query param

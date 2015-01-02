@@ -3,11 +3,13 @@
 <html>
 <head>
   <style>
-    body { background-color: #f0efBC }
-    ul { list-style-type:none; margin: 0; padding: 0;}
-    li:first-child { border-top: 1px solid lightgray }
-    li { width: 40em; border-bottom: 1px solid lightgray; line-height:1.2em; padding-top:0.5em}
+    body { background-color: #faec9a }
+    ul { list-style-type:none; margin: 0; padding: 0; }
+    li:first-child { border-top: 1px solid #a0a0a0}
+    li { border-bottom: 1px solid #a0a0a0; line-height:1.2em; padding: 1.2em, 4em }
+    h1 { font-size: 1.2em; margin-bottom: 0.1em; padding: 0.1em }
     .title { font-weight: bold; color:darkgreen }
+    .note-body { padding-left:1.5em;}
   </style>
 </head>
 <body>
@@ -15,8 +17,14 @@
 
 <ul>
   <% for _, note := range notes { %>
-          <li><span class="title"><%= note.Title %></span> - <%= note.Description %><br>
-          <%= note.Body %></li>
+          <li><span class="title"><%= note.Title %></span>
+          <% if note.Description != "" { %>
+            - <%= note.Description %>
+          <% } %>
+          <% if note.Body != "" { %>
+            <br><span class="note-body"><%= note.Body %></span>
+          <% } %>
+          </li>
   <% } %>
 </ul>
 </body>
