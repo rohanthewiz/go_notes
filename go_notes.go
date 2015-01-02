@@ -77,7 +77,7 @@ func main() {
 	if opts_intf["svr"].(bool) {
 		router := httprouter.New()
 		router.GET("/", Index)
-		router.GET("/hello/:name", Hello)
+		//router.GET("/hello/:name", Hello)
 		router.GET("/q/:query", Query)
 		println("Server listening on 8080... Ctrl-C to quit")
 		log.Fatal(http.ListenAndServe(":8080", router))
