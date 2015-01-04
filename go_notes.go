@@ -9,6 +9,7 @@ import (
 	"time"
 	"encoding/csv"
 	"encoding/gob"
+	"crypto/sha1"
 	"net/http"
 	"github.com/julienschmidt/httprouter"
 	"github.com/jinzhu/gorm"
@@ -16,7 +17,7 @@ import (
 )
 
 const app_name = "GoNotes"
-const version string = "0.8.8"
+const version string = "0.8.10"
 const line_separator string = "---------------------------------------------------------"
 
 type Note struct {
@@ -27,6 +28,22 @@ type Note struct {
 	Tag         string `sql: "size:128"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+}
+const op_create int32 = 1
+const op_update int32 = 2
+const op_delete int32 = 3
+
+// Record note changes so we can replay them on synch
+type NoteChange struct {
+	Id          int64
+	Guid		string `sql: "size:40"`
+	Operation	int32  // 1: Create, 2: Update, 3: Delete
+	Title       string `sql: "size:128"`
+	Description string `sql: "size:255"`
+	Body        string `sql: "type:text"`
+	Tag         string `sql: "size:128"`
+	CreatedAt   time.Time
+	// Never updated //UpdatedAt   time.Time
 }
 
 // Get Commandline Options and Flags
@@ -40,11 +57,8 @@ func Index(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 	fmt.Fprint(w, "Welcome!\n")
 }
 
-//func Hello(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
-//	fmt.Fprintf(w, "Hello, %s!\n", p.ByName("name"))
-//}
-
 func Query(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
+	// messing with sha1 //println(generate_sha1())
 	opts_str["q"] = p.ByName("query")  // Overwrite the query param
 	notes := queryNotes(opts_str, opts_intf )
 	RenderQuery(w, notes)
@@ -69,15 +83,19 @@ func main() {
 	}
 
 	// Create or update the table structure as needed
-	db.AutoMigrate(&Note{}) //According to GORM: Feel free to change your struct, AutoMigrate will keep your database up-to-date.
+	db.AutoMigrate(&Note{}, &NoteChange{})
+	//According to GORM: Feel free to change your struct, AutoMigrate will keep your database up-to-date.
 	// Fyi, AutoMigrate will only *add new columns*, it won't update column's type or delete unused columns, to make sure your data is safe.
 	// If the table is not existing, AutoMigrate will create the table automatically.
 
+	db.Model(&NoteChange{}).AddIndex("idx_note_change_created_at", "created_at")
+	db.Model(&NoteChange{}).AddUniqueIndex("idx_note_change_guid", "guid")
+
 	// CORE PROCESSING
+
 	if opts_intf["svr"].(bool) {
 		router := httprouter.New()
 		router.GET("/", Index)
-		//router.GET("/hello/:name", Hello)
 		router.GET("/q/:query", Query)
 		println("Server listening on 8080... Ctrl-C to quit")
 		log.Fatal(http.ListenAndServe(":8080", router))
@@ -144,10 +162,27 @@ func do_create(note Note) bool {
 	db.Create(&note)
 	if !db.NewRecord(note) { // was it saved?
 		println("Record saved:", note.Title)
+
+		record_note_change(NoteChange{Guid: generate_sha1(), Operation: op_create, Title: opts_str["t"], Description: opts_str["d"], Body: opts_str["b"], Tag: opts_str["g"]} )
 		return true
 	}
 	println("Failed to save:", note.Title)
 	return false
+}
+
+func record_note_change(note_change NoteChange) bool {
+	print("Recording changes...") // TODO - remove this for production
+	db.Create(&note_change)
+	if !db.NewRecord(note_change) { // was it saved?
+		println("Note changes saved:", note_change.Guid)
+		return true
+	}
+	println("Failed to record note changes. Note:", note_change.Title)
+	return false
+}
+
+func generate_sha1() string {
+	return fmt.Sprintf("%x", sha1.Sum([]byte("%$" + time.Now().String() + "e{")))
 }
 
 func find_note_by_title(title string) (bool, Note) {
