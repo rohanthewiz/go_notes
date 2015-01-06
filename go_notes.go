@@ -64,6 +64,19 @@ func Query(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 	RenderQuery(w, notes)
 }
 
+func migrate() {
+	// Create or update the table structure as needed
+	println("Migrating the DB...")
+	db.AutoMigrate(&Note{}, &NoteChange{})
+	//According to GORM: Feel free to change your struct, AutoMigrate will keep your database up-to-date.
+	// Fyi, AutoMigrate will only *add new columns*, it won't update column's type or delete unused columns, to make sure your data is safe.
+	// If the table is not existing, AutoMigrate will create the table automatically.
+
+	db.Model(&NoteChange{}).AddIndex("idx_note_change_created_at", "created_at")
+	db.Model(&NoteChange{}).AddUniqueIndex("idx_note_change_guid", "guid")
+	println("Migration complete")
+}
+
 func main() {
 	if db_err != nil { // Can't err chk db conn outside method, so do it here
 		println("There was an error connecting to the DB")
@@ -82,15 +95,6 @@ func main() {
 		return
 	}
 
-	// Create or update the table structure as needed
-	db.AutoMigrate(&Note{}, &NoteChange{})
-	//According to GORM: Feel free to change your struct, AutoMigrate will keep your database up-to-date.
-	// Fyi, AutoMigrate will only *add new columns*, it won't update column's type or delete unused columns, to make sure your data is safe.
-	// If the table is not existing, AutoMigrate will create the table automatically.
-
-	db.Model(&NoteChange{}).AddIndex("idx_note_change_created_at", "created_at")
-	db.Model(&NoteChange{}).AddUniqueIndex("idx_note_change_guid", "guid")
-
 	// CORE PROCESSING
 
 	if opts_intf["svr"].(bool) {
@@ -102,6 +106,9 @@ func main() {
 
 	} else if opts_str["t"] != "" { // No query options, we must be trying to CREATE
 		createNote()
+
+	} else if opts_intf["setup_db"].(bool) { // Migrate the DB
+		migrate()
 
 	} else if opts_str["q"] != "" || opts_intf["qi"].(int) != 0 || opts_str["qg"] != ""{
 		// QUERY

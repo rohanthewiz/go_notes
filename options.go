@@ -25,6 +25,7 @@ func getOpts() (map[string]string, map[string]interface{}) {
         qlPtr := flag.Int("ql", -1, "Limit the number of notes returned")
         sPtr := flag.Bool("s", false, "Short Listing - don't show the body")
         vPtr := flag.Bool("v", false, "Show version")
+        setupDBPtr := flag.Bool("setup_db", false, "Setup the Database")
         delPtr := flag.Bool("del", false, "Delete the notes queried")
         updPtr := flag.Bool("upd", false, "Update the notes queried")
         svrPtr := flag.Bool("svr", false, "Web server mode")
@@ -48,6 +49,7 @@ func getOpts() (map[string]string, map[string]interface{}) {
         opts_intf["del"] = *delPtr
         opts_intf["upd"] = *updPtr
         opts_intf["svr"] = *svrPtr
+        opts_intf["setup_db"] = *setupDBPtr
 
         separator := "/"
         if strings.Contains(strings.ToUpper(os.Getenv("OS")), "WINDOWS") {
