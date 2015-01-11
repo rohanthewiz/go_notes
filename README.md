@@ -21,7 +21,7 @@ GOPATH/src/yourdomain.com/your_project
 ##Getting and Building GoNotes
 ```
 go get github.com/rohanthewiz/go_notes
-cd $GOPATH/src/rohanthewiz/go_notes
+cd $GOPATH/src/github.com/rohanthewiz/go_notes
 go build # this will produce the executable 'go_notes' in the current directory
 ```
 You will require the ego package to make changes to the template
@@ -93,7 +93,7 @@ $ ./go_notes -q trash -del
 Example:
 
 ```
-$ ./go_notes -svr # Query for notes containing todo with localhost:8080/q/todo
+$ ./go_notes -svr # then query for notes containing, for example 'todo' with localhost:8080/q/todo
 ```
 
 ###Other Options
