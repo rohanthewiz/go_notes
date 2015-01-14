@@ -29,6 +29,8 @@ func getOpts() (map[string]string, map[string]interface{}) {
         delPtr := flag.Bool("del", false, "Delete the notes queried")
         updPtr := flag.Bool("upd", false, "Update the notes queried")
         svrPtr := flag.Bool("svr", false, "Web server mode")
+        synchServerPtr := flag.Bool("synch_server", false, "Synch server mode")
+        synchClientPtr := flag.Bool("synch_client", false, "Synch client mode")
 
         flag.Parse()
         opts_str["q"] = *qPtr
@@ -49,6 +51,8 @@ func getOpts() (map[string]string, map[string]interface{}) {
         opts_intf["del"] = *delPtr
         opts_intf["upd"] = *updPtr
         opts_intf["svr"] = *svrPtr
+        opts_intf["synch_server"] = *synchServerPtr
+        opts_intf["synch_client"] = *synchClientPtr
         opts_intf["setup_db"] = *setupDBPtr
 
         separator := "/"

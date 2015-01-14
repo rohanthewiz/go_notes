@@ -4,12 +4,14 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	// "io/ioutil"
 	"os"
 	"strings"
 	"time"
 	"encoding/csv"
 	"encoding/gob"
 	"crypto/sha1"
+	"net"
 	"net/http"
 	"github.com/julienschmidt/httprouter"
 	"github.com/jinzhu/gorm"
@@ -46,6 +48,24 @@ type NoteChange struct {
 	// Never updated //UpdatedAt   time.Time
 }
 
+type OurDB struct {
+	Id 			int64
+	Guid		string `sql: "size:40"`
+	Name		string `sql: "size:64"`
+	CreatedAt	time.Time
+	UpdatedAt	time.Time
+}
+
+type PeerDB struct {
+	Id			int64
+	Guid		string `sql: "size:40"`
+	Name		string `sql: "size:64"`
+	CreatedAt 	time.Time
+	UpdatedAt	time.Time
+}
+
+const SYNCH_PORT  string = "8080"
+
 // Get Commandline Options and Flags
 var opts_str, opts_intf = getOpts() //returns map[string]string, map[string]interface{}
 
@@ -61,21 +81,73 @@ func Query(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 	// messing with sha1 //println(generate_sha1())
 	opts_str["q"] = p.ByName("query")  // Overwrite the query param
 	notes := queryNotes(opts_str, opts_intf )
-	RenderQuery(w, notes)
+	RenderQuery(w, notes) //call Ego generated method
 }
 
 func migrate() {
 	// Create or update the table structure as needed
 	println("Migrating the DB...")
-	db.AutoMigrate(&Note{}, &NoteChange{})
+	db.AutoMigrate(&Note{}, &NoteChange{}, &OurDB{}, &PeerDB{})
 	//According to GORM: Feel free to change your struct, AutoMigrate will keep your database up-to-date.
 	// Fyi, AutoMigrate will only *add new columns*, it won't update column's type or delete unused columns, to make sure your data is safe.
 	// If the table is not existing, AutoMigrate will create the table automatically.
 
 	db.Model(&NoteChange{}).AddIndex("idx_note_change_created_at", "created_at")
 	db.Model(&NoteChange{}).AddUniqueIndex("idx_note_change_guid", "guid")
+
+	// TODO - Initialize OurDB with a SHA1 signature
+
 	println("Migration complete")
 }
+
+/*
+    Synch philosophy
+    - Do you have it?
+        - Retrieve note_changes by created_at desc
+        - Iterate from newest to oldest
+            - Do you have it? then retrieve the next newer one and send it over for merge
+                - rinse, repeat
+            - If at end - never synched - send from first one
+    - Do above from the other side
+
+    - Apply changes
+        - Perform the operation on our DB
+        - Mark as synched - add the note_change to NoteChanges
+*/
+
+func synch_server() { // WIP
+	fmt.Println("Server listening on port: " + SYNCH_PORT + " - CTRL-C to quit")
+	ln, err := net.Listen("tcp", ":" + SYNCH_PORT) // counterpart of net.Dial
+	if err != nil {	println("TODO - handle TCP error") }
+
+	for {
+		conn, err := ln.Accept() // this blocks until connection or error
+		if err != nil { continue }
+		go handleConnection(conn)
+	}
+}
+
+func handleConnection(conn net.Conn) {
+	decoder_conn := gob.NewDecoder(conn)
+	note := &Note{} // init to empty struct
+	decoder_conn.Decode(note)
+	fmt.Printf("Received: %+v", note)
+}
+
+func synch_client() {
+	fmt.Println("Synch Client")
+	conn, err := net.Dial("tcp", "localhost:" + SYNCH_PORT)
+	if err != nil {
+		log.Fatal("Connection error", err)
+	}
+	encoder_conn := gob.NewEncoder(conn)
+	note := &Note{Title: "Synch this!", Description: "Just a test"}  // create a struct
+	encoder_conn.Encode(note)
+
+	conn.Close()
+	fmt.Println("done")
+}
+
 
 func main() {
 	if db_err != nil { // Can't err chk db conn outside method, so do it here
@@ -84,6 +156,9 @@ func main() {
 		os.Exit(2)
 	}
 
+	//Do we need to migrate?
+	if ! db.HasTable(&NoteChange{}) { migrate() }
+
 	if opts_intf["v"].(bool) {
 		println(app_name, version)
 		return
@@ -91,6 +166,8 @@ func main() {
 
 	if opts_str["admin"] == "delete_table" {
 		db.DropTableIfExists(&Note{})
+		db.DropTableIfExists(&NoteChange{})
+
 		println("notes table deleted")
 		return
 	}
@@ -106,6 +183,12 @@ func main() {
 
 	} else if opts_str["t"] != "" { // No query options, we must be trying to CREATE
 		createNote()
+
+	} else if opts_intf["synch_client"].(bool) { // client to test synching
+		synch_client()
+
+	} else if opts_intf["synch_server"].(bool) { // server to test synching
+		synch_server()
 
 	} else if opts_intf["setup_db"].(bool) { // Migrate the DB
 		migrate()
