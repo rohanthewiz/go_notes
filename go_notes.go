@@ -24,6 +24,7 @@ const line_separator string = "-------------------------------------------------
 
 type Note struct {
 	Id          int64
+	Guid		string `sql: "size:40"` //Guid of the note
 	Title       string `sql: "size:128"`
 	Description string `sql: "size:255"`
 	Body        string `sql: "type:text"`
@@ -38,7 +39,7 @@ const op_delete int32 = 3
 // Record note changes so we can replay them on synch
 type NoteChange struct {
 	Id          int64
-	Guid		string `sql: "size:40"`
+	Guid		string `sql: "size:40"` //Guid of the note
 	Operation	int32  // 1: Create, 2: Update, 3: Delete
 	Title       string `sql: "size:128"`
 	Description string `sql: "size:255"`
@@ -87,7 +88,7 @@ func Query(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 func migrate() {
 	// Create or update the table structure as needed
 	println("Migrating the DB...")
-	db.AutoMigrate(&Note{}, &NoteChange{}, &OurDB{}, &PeerDB{})
+	db.AutoMigrate(&Note{}, &NoteChange{}, &Us{}, &Peer{})
 	//According to GORM: Feel free to change your struct, AutoMigrate will keep your database up-to-date.
 	// Fyi, AutoMigrate will only *add new columns*, it won't update column's type or delete unused columns, to make sure your data is safe.
 	// If the table is not existing, AutoMigrate will create the table automatically.
@@ -102,17 +103,31 @@ func migrate() {
 
 /*
     Synch philosophy
-    - Do you have it?
-        - Retrieve note_changes by created_at desc
-        - Iterate from newest to oldest
-            - Do you have it? then retrieve the next newer one and send it over for merge
-                - rinse, repeat
-            - If at end - never synched - send from first one
-    - Do above from the other side
 
-    - Apply changes
-        - Perform the operation on our DB
-        - Mark as synched - add the note_change to NoteChanges
+    	- Have we met before? - Do I have you as a peer stored in my peer DB?
+    	- Do you have it? - Are we in synch? - Does your latest change = my latest change?
+    		Else let's synch
+    		- If we have met before we should have matching synch points
+    			If not then synch point is 0
+
+    			Actual synching
+    			- From the synch point get client's first change item
+    				- Is the note of this change in the completed array? Then skip (continue)
+    				- Are there any older items (earliest limited by the synch point) affecting the same note?
+    					- Notes are determined same if they have the same Guid
+    				- Apply changes to the same note in order
+    				- An approach to the two preceding points could be to
+    				 	- get all changes (from both sides) involving the note in our first change
+    				 	- mark each change with its owner
+    					- sort and apply by created_at asc
+    						- apply change unless I own it
+    							- maintain the guid of the change, but it is recreated so new created_at on applyee
+    				- For this session, mark this note as done by pushing its guid into a 'completed' array
+    			- loop to next change item
+			- We need to save our current synch point
+				- get all changes (no filter on note - just all changes)
+				- sort by created_at
+				- save the latest notes guid in our peer db and the same guid in their peer db
 */
 
 func synch_server() { // WIP
@@ -262,7 +277,7 @@ func do_create(note Note) bool {
 
 func record_note_change(note_change NoteChange) bool {
 	print("Recording changes...") // TODO - remove this for production
-	db.Create(&note_change)
+	db.Create(&note_change) // A note change is never altered once created
 	if !db.NewRecord(note_change) { // was it saved?
 		println("Note changes saved:", note_change.Guid)
 		return true
