@@ -49,18 +49,17 @@ type NoteChange struct {
 	// Never updated //UpdatedAt   time.Time
 }
 
-type OurDB struct {
+type LocalSig struct {
 	Id 			int64
 	Guid		string `sql: "size:40"`
-	Name		string `sql: "size:64"`
 	CreatedAt	time.Time
-	UpdatedAt	time.Time
 }
 
-type PeerDB struct {
+type Peer struct {
 	Id			int64
 	Guid		string `sql: "size:40"`
 	Name		string `sql: "size:64"`
+	SynchPos	string `sql: "size:40"` // Last changeset applied
 	CreatedAt 	time.Time
 	UpdatedAt	time.Time
 }
@@ -88,7 +87,7 @@ func Query(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 func migrate() {
 	// Create or update the table structure as needed
 	println("Migrating the DB...")
-	db.AutoMigrate(&Note{}, &NoteChange{}, &Us{}, &Peer{})
+	db.AutoMigrate(&Note{}, &NoteChange{}, &LocalSig{}, &Peer{})
 	//According to GORM: Feel free to change your struct, AutoMigrate will keep your database up-to-date.
 	// Fyi, AutoMigrate will only *add new columns*, it won't update column's type or delete unused columns, to make sure your data is safe.
 	// If the table is not existing, AutoMigrate will create the table automatically.
@@ -96,9 +95,30 @@ func migrate() {
 	db.Model(&NoteChange{}).AddIndex("idx_note_change_created_at", "created_at")
 	db.Model(&NoteChange{}).AddUniqueIndex("idx_note_change_guid", "guid")
 
-	// TODO - Initialize OurDB with a SHA1 signature
+	// TODO - Initialize local with a SHA1 signature if it doesn't already have one
+	ensureLocalSig()
 
 	println("Migration complete")
+}
+
+func ensureLocalSig() {
+	var local_sigs []LocalSig
+	db.Find(&local_sigs)
+
+	if len(local_sigs) == 1 && len(local_sigs[0].Guid) == 40 { return } // all is good
+
+	if len(local_sigs) == 0 { // create the signature
+		db.Create(&LocalSig{Guid: generate_sha1()})
+		if db.Find(&local_sigs); len(local_sigs) == 1 && len(local_sigs[0].Guid) == 40 { // was it saved?
+			println("Local signature created")
+		}
+	} else {
+		panic("Error in the 'local_sigs' table. There should be only one good row")
+	}
+
+	//we will also update this row with a pointer to the last changeset - NO! -
+	//The latest changeset will be in NoteChanges. We do that for peers
+	//at the end of synchg
 }
 
 /*
@@ -255,7 +275,7 @@ func createNote() {
 			println("Error: Title", opts_str["t"], "is not unique!")
 			return
 		}
-		do_create( Note{Title: opts_str["t"], Description: opts_str["d"], Body: opts_str["b"], Tag: opts_str["g"]} )
+		do_create( Note{Guid: generate_sha1(), Title: opts_str["t"], Description: opts_str["d"], Body: opts_str["b"], Tag: opts_str["g"]} )
 	} else {
 		println("Title (-t) is required if creating a note. Remember to precede option flags with '-'")
 	}
