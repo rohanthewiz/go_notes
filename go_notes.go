@@ -22,6 +22,10 @@ const app_name = "GoNotes"
 const version string = "0.8.10"
 const line_separator string = "---------------------------------------------------------"
 
+const op_create int32 = 1
+const op_update int32 = 2
+const op_delete int32 = 3
+
 type Note struct {
 	Id          int64
 	Guid		string `sql: "size:40"` //Guid of the note
@@ -32,9 +36,6 @@ type Note struct {
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
-const op_create int32 = 1
-const op_update int32 = 2
-const op_delete int32 = 3
 
 // Record note changes so we can replay them on synch
 type NoteChange struct {
@@ -62,6 +63,12 @@ type Peer struct {
 	SynchPos	string `sql: "size:40"` // Last changeset applied
 	CreatedAt 	time.Time
 	UpdatedAt	time.Time
+}
+
+type Message struct {
+	Type		string
+	Param		string
+	NoteChg		NoteChange
 }
 
 const SYNCH_PORT  string = "8080"
@@ -95,13 +102,11 @@ func migrate() {
 	db.Model(&NoteChange{}).AddIndex("idx_note_change_created_at", "created_at")
 	db.Model(&NoteChange{}).AddUniqueIndex("idx_note_change_guid", "guid")
 
-	// TODO - Initialize local with a SHA1 signature if it doesn't already have one
-	ensureLocalSig()
-
+	ensureDBSig() // Initialize local with a SHA1 signature if it doesn't already have one
 	println("Migration complete")
 }
 
-func ensureLocalSig() {
+func ensureDBSig() {
 	var local_sigs []LocalSig
 	db.Find(&local_sigs)
 
@@ -122,34 +127,38 @@ func ensureLocalSig() {
 }
 
 /*
-    Synch philosophy
+    Synch philosophy - From the Perspective of the Client
 
     	- Have we met before? - Do I have you as a peer stored in my peer DB?
-    	- Do you have it? - Are we in synch? - Does your latest change = my latest change?
+    		- Yes: Pull up the last synch point - Changeset from our Peer db
+    			(the server should have a matching synch point for us)
+    		- Else: Synch point will be 0 index of changesets sorted by created at ASC
+    	- Are we in synch? - Does your latest change = my latest change?
     		Else let's synch
-    		- If we have met before we should have matching synch points
-    			If not then synch point is 0
 
-    			Actual synching
-    			- From the synch point get client's first change item
-    				- Is the note of this change in the completed array? Then skip (continue)
-    				- Are there any older items (earliest limited by the synch point) affecting the same note?
-    					- Notes are determined same if they have the same Guid
-    				- Apply changes to the same note in order
-    				- An approach to the two preceding points could be to
-    				 	- get all changes (from both sides) involving the note in our first change
-    				 	- mark each change with its owner
-    					- sort and apply by created_at asc
-    						- apply change unless I own it
-    							- maintain the guid of the change, but it is recreated so new created_at on applyee
-    				- For this session, mark this note as done by pushing its guid into a 'completed' array
-    			- loop to next change item
+			Actual synching
+			- From the synch point
+				- Get all changesets from both sides more recent than the synch point
+				- mark each change with a boolean 'local'
+				- store in arr_unsynched_changes --> arr_uc
+				- Sort by note guid, then by date asc
+					- apply by desired algorithm
+						(Thoughts)
+						- apply by created_at asc?
+						- don't apply changes I don't own
+						- maintain the guid of the change, but it is recreated so new created_at on applyee
+						(More Thoughts)
+						- Apply update changes in date order however
+							- Delete - Ends applying of changesets for that note
+							- Create cannot follow Create or Update
+							- In the DB make sure GUIDs are unique - so shouldn't have to check for create, update
+
 			- We need to save our current synch point
-				- get all changes (no filter on note - just all changes)
-				- sort by created_at
-				- save the latest notes guid in our peer db and the same guid in their peer db
+				- sort the unsynched changes array by created_at
+				- save the latest changeset guid in our peer db and the same guid in server's peer db
 */
 
+// GOB client server
 func synch_server() { // WIP
 	fmt.Println("Server listening on port: " + SYNCH_PORT + " - CTRL-C to quit")
 	ln, err := net.Listen("tcp", ":" + SYNCH_PORT) // counterpart of net.Dial
@@ -163,10 +172,15 @@ func synch_server() { // WIP
 }
 
 func handleConnection(conn net.Conn) {
-	decoder_conn := gob.NewDecoder(conn)
-	note := &Note{} // init to empty struct
-	decoder_conn.Decode(note)
-	fmt.Printf("Received: %+v", note)
+	msg := Message{} // init to empty struct
+	gob.NewDecoder(conn).Decode(&msg)
+	fmt.Printf("Received: %+v", msg)
+	msg.Type = "Response"
+	gob.NewEncoder(conn).Encode(&msg)
+	gob.NewDecoder(conn).Decode(&msg)
+	fmt.Printf("Received: %+v", msg)
+	msg.Type = "Response"
+	gob.NewEncoder(conn).Encode(&msg)
 }
 
 func synch_client() {
@@ -175,11 +189,19 @@ func synch_client() {
 	if err != nil {
 		log.Fatal("Connection error", err)
 	}
-	encoder_conn := gob.NewEncoder(conn)
-	note := &Note{Title: "Synch this!", Description: "Just a test"}  // create a struct
-	encoder_conn.Encode(note)
+	encoder := gob.NewEncoder(conn)
+	decoder := gob.NewDecoder(conn)
+	encoder.Encode(Message{Type: "GetSynchPoint", Param: "", NoteChg: NoteChange{Title: "Synch this!", Description: "Just a test"} })
+	msg := Message{} // init to empty struct
+	decoder.Decode(&msg)
+	fmt.Printf("Received: %+v", msg)
+	time.Sleep(2)
+	println("A second message...")
+	encoder.Encode(Message{Type: "ReturnChangeset", Param: "", NoteChg: NoteChange{Title: "We are really talking now", Description: "Just a test"} })
+	decoder.Decode(&msg)
+	fmt.Printf("Received: %+v", msg)
 
-	conn.Close()
+	defer conn.Close()
 	fmt.Println("done")
 }
 
