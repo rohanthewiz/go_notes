@@ -11,7 +11,6 @@ import (
 	"encoding/csv"
 	"encoding/gob"
 	"crypto/sha1"
-	"net"
 	"net/http"
 	"github.com/julienschmidt/httprouter"
 	"github.com/jinzhu/gorm"
@@ -157,53 +156,6 @@ func ensureDBSig() {
 				- sort the unsynched changes array by created_at
 				- save the latest changeset guid in our peer db and the same guid in server's peer db
 */
-
-// GOB client server
-func synch_server() { // WIP
-	fmt.Println("Server listening on port: " + SYNCH_PORT + " - CTRL-C to quit")
-	ln, err := net.Listen("tcp", ":" + SYNCH_PORT) // counterpart of net.Dial
-	if err != nil {	println("TODO - handle TCP error") }
-
-	for {
-		conn, err := ln.Accept() // this blocks until connection or error
-		if err != nil { continue }
-		go handleConnection(conn)
-	}
-}
-
-func handleConnection(conn net.Conn) {
-	msg := Message{} // init to empty struct
-	gob.NewDecoder(conn).Decode(&msg)
-	fmt.Printf("Received: %+v", msg)
-	msg.Type = "Response"
-	gob.NewEncoder(conn).Encode(&msg)
-	gob.NewDecoder(conn).Decode(&msg)
-	fmt.Printf("Received: %+v", msg)
-	msg.Type = "Response"
-	gob.NewEncoder(conn).Encode(&msg)
-}
-
-func synch_client() {
-	fmt.Println("Synch Client")
-	conn, err := net.Dial("tcp", "localhost:" + SYNCH_PORT)
-	if err != nil {
-		log.Fatal("Connection error", err)
-	}
-	encoder := gob.NewEncoder(conn)
-	decoder := gob.NewDecoder(conn)
-	encoder.Encode(Message{Type: "GetSynchPoint", Param: "", NoteChg: NoteChange{Title: "Synch this!", Description: "Just a test"} })
-	msg := Message{} // init to empty struct
-	decoder.Decode(&msg)
-	fmt.Printf("Received: %+v", msg)
-	time.Sleep(2)
-	println("A second message...")
-	encoder.Encode(Message{Type: "ReturnChangeset", Param: "", NoteChg: NoteChange{Title: "We are really talking now", Description: "Just a test"} })
-	decoder.Decode(&msg)
-	fmt.Printf("Received: %+v", msg)
-
-	defer conn.Close()
-	fmt.Println("done")
-}
 
 
 func main() {
