@@ -5,8 +5,7 @@ import(
 	"net"
 	"encoding/gob"
 	"fmt"
-	"time"
-	"log"
+	//"time"
 )
 
 func synch_server() { // WIP
@@ -23,39 +22,34 @@ func synch_server() { // WIP
 
 func handleConnection(conn net.Conn) {
 	msg := Message{} // empty struct (think object)
+	defer conn.Close()
 	enc := gob.NewEncoder(conn)
 	dec := gob.NewDecoder(conn)
-//	fmt.Printf("encoder is a type of: %v\n", reflect.TypeOf(encoder))
-//	fmt.Printf("decoder is a type of: %v\n", reflect.TypeOf(decoder))
 	for {
 		rcxMsg(dec, &msg)
 		if msg.Type == "Hangup" {
-			printHangupMsg(conn); conn.Close(); break
+			printHangupMsg(conn); break
 		}
-		time.Sleep(10) //nano sec
-		msg.Type = "Server Response"
+
+		if msg.Type == "WhoAreYou" {
+			msg.Param = whoAmI()	//"A server what else?"
+			msg.Type = "WhoIAm"
+		}
+
 		sendMsg(enc, msg)
-		println("Delaying for a bit so you can see the interaction..."); time.Sleep(2 * time.Second)
+
+		msg = Message{}
 	}
 	println("Connection closed")
 }
 
-func synch_client() {
-	fmt.Println("Synch Client\n-------------")
-	conn, err := net.Dial("tcp", "localhost:" + SYNCH_PORT)
-	if err != nil {log.Fatal("Connection error", err)}
-	defer conn.Close()
-	msg := Message{} // init to empty struct
-	enc := gob.NewEncoder(conn)
-	dec := gob.NewDecoder(conn)
-	// Send a message
-	sendMsg(enc, Message{Type: "GetSynchPoint", Param: "", NoteChg: NoteChange{Title: "Synch this!", Description: "Just a test"}})
-	rcxMsg(dec, &msg) // Decode the response
-	sendMsg(enc, Message{Type: "ReturnChangeset", Param: "", NoteChg: NoteChange{Title: "We are really talking now", Description: "Just a test"}})
-	rcxMsg(dec, &msg)
-	//Send Hangup
-	sendMsg(enc, Message{Type: "Hangup", Param: "", NoteChg: NoteChange{}})
-	fmt.Println("Client done")
+func whoAmI() string {
+	var sig []LocalSig
+	db.Find(&sig)
+	if len(sig) > 0 {
+		return sig[0].Guid
+	}
+	return ""
 }
 
 func sendMsg(encoder *gob.Encoder, msg Message) {
@@ -77,4 +71,8 @@ func printMsg(msg Message, rcx bool) {
 	}
 	fmt.Printf("%+v\n----------------------------------------------\n", msg)
 }
+
+// CODE_SCRAP
+//	fmt.Printf("encoder is a type of: %v\n", reflect.TypeOf(encoder))
+//	fmt.Printf("decoder is a type of: %v\n", reflect.TypeOf(decoder))
 

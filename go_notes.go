@@ -166,7 +166,7 @@ func main() {
 	}
 
 	//Do we need to migrate?
-	if ! db.HasTable(&NoteChange{}) { migrate() }
+	if ! db.HasTable(&Peer{}) { migrate() }
 
 	if opts_intf["v"].(bool) {
 		println(app_name, version)
