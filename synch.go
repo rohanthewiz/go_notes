@@ -12,12 +12,17 @@ func synch_client() {
 	msg := Message{} // init to empty struct
 	enc := gob.NewEncoder(conn)
 	dec := gob.NewDecoder(conn)
+    
 	// Send a message
 	sendMsg(enc, Message{Type: "WhoAreYou", Param: "", NoteChg: NoteChange{}})
 	rcxMsg(dec, &msg) // Decode the response
 
-	peer_id := msg.Param
-	println("The server id is", peer_id)
+    if msg.Type == "WhoIAm" {
+        peer_id := msg.Param
+        println("The server's database id is", peer_id)
+    } else {
+        println("Peer does not respond to request for database id"); return
+    }
 
 //	sendMsg(enc, Message{Type: "ReturnChangeset", Param: "", NoteChg: NoteChange{Title: "We are really talking now", Description: "Just a test"}})
 //	rcxMsg(dec, &msg)
