@@ -20,6 +20,7 @@ func getOpts() (map[string]string, map[string]interface{}) {
         dbPtr := flag.String("db", "", "Sqlite DB path")
         expPtr := flag.String("exp", "", "Export the notes queried to the format of the file given")
         impPtr := flag.String("imp", "", "Import the notes queried from the file given")
+        synchClientPtr := flag.String("synch_client", "", "Synch client mode")
 
         qiPtr := flag.Int("qi", 0, "Query for notes based on ID")
         qlPtr := flag.Int("ql", -1, "Limit the number of notes returned")
@@ -30,9 +31,10 @@ func getOpts() (map[string]string, map[string]interface{}) {
         updPtr := flag.Bool("upd", false, "Update the notes queried")
         svrPtr := flag.Bool("svr", false, "Web server mode")
         synchServerPtr := flag.Bool("synch_server", false, "Synch server mode")
-        synchClientPtr := flag.Bool("synch_client", false, "Synch client mode")
 
         flag.Parse()
+
+        // Store options in a couple of maps
         opts_str["q"] = *qPtr
         opts_str["qg"] = *qgPtr
         opts_str["t"] = *tPtr
@@ -43,6 +45,7 @@ func getOpts() (map[string]string, map[string]interface{}) {
         opts_str["db"] = *dbPtr
         opts_str["exp"] = *expPtr
         opts_str["imp"] = *impPtr
+        opts_str["synch_client"] = *synchClientPtr
 
         opts_intf["qi"] = *qiPtr
         opts_intf["ql"] = *qlPtr
@@ -52,7 +55,6 @@ func getOpts() (map[string]string, map[string]interface{}) {
         opts_intf["upd"] = *updPtr
         opts_intf["svr"] = *svrPtr
         opts_intf["synch_server"] = *synchServerPtr
-        opts_intf["synch_client"] = *synchClientPtr
         opts_intf["setup_db"] = *setupDBPtr
 
         separator := "/"

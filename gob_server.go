@@ -5,7 +5,7 @@ import(
 	"net"
 	"encoding/gob"
 	"fmt"
-	//"time"
+	"time"
 )
 
 func synch_server() { // WIP
@@ -21,26 +21,45 @@ func synch_server() { // WIP
 }
 
 func handleConnection(conn net.Conn) {
-	msg := Message{} // empty struct (think object)
+	msg := Message{}
 	defer conn.Close()
 	enc := gob.NewEncoder(conn)
 	dec := gob.NewDecoder(conn)
 	for {
-		rcxMsg(dec, &msg)
-		if msg.Type == "Hangup" {
-			printHangupMsg(conn); break
-		}
-
-		if msg.Type == "WhoAreYou" {
-			msg.Param = whoAmI()	//"A server what else?"
-			msg.Type = "WhoIAm"
-		}
-
-		sendMsg(enc, msg)
-
 		msg = Message{}
+		rcxMsg(dec, &msg)
+
+		switch msg.Type {
+		case "Hangup":
+			printHangupMsg(conn); return
+		case "WhoAreYou":
+			msg.Param = whoAmI()
+			msg.Type = "WhoIAm"
+			sendMsg(enc, msg)
+		case "NumberOfChanges":
+			msg.Param = "2"
+			sendMsg(enc, msg)
+		case "SendChanges":
+			msg.Type = "NoteChange"
+			msg.Param = ""
+			msg.NoteChg = NoteChange{Guid: generate_sha1(), Operation: 1, Title: "Synch Note 1",
+				Description: "Description for Synch Note 1", Body: "Body for Synch Note 1",
+				Tag: "tag_synch_1" }
+			sendMsg(enc, msg)
+			msg.NoteChg = NoteChange{Guid: generate_sha1(), Operation: 1, Title: "Synch Note 2",
+				Description: "Description for Synch Note 2", Body: "Body for Synch Note 2",
+				Tag: "tag_synch_2" }
+			sendMsg(enc, msg)
+
+			msg.NoteChg = NoteChange{Guid: generate_sha1(), Operation: 1, Title: "Synch Note 3",
+				Description: "Description for Synch Note 3", Body: "Body for Synch Note 3",
+				Tag: "tag_synch_3" }
+			sendMsg(enc, msg)
+
+					default:
+			println("Unknown message type received")
+		}
 	}
-	println("Connection closed")
 }
 
 func whoAmI() string {
@@ -54,9 +73,11 @@ func whoAmI() string {
 
 func sendMsg(encoder *gob.Encoder, msg Message) {
 	encoder.Encode(msg); printMsg(msg, false)
+	time.Sleep(10)
 }
 
 func rcxMsg(decoder *gob.Decoder, msg *Message) {
+	time.Sleep(10)
 	decoder.Decode(&msg); printMsg(*msg, true)
 }
 

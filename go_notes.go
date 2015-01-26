@@ -193,8 +193,8 @@ func main() {
 	} else if opts_str["t"] != "" { // No query options, we must be trying to CREATE
 		createNote()
 
-	} else if opts_intf["synch_client"].(bool) { // client to test synching
-		synch_client()
+	} else if opts_str["synch_client"] != "" { // client to test synching
+		synch_client(opts_str["synch_client"])
 
 	} else if opts_intf["synch_server"].(bool) { // server to test synching
 		synch_server()
