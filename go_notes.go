@@ -49,6 +49,18 @@ type NoteChange struct {
 	// Never updated //UpdatedAt   time.Time
 }
 
+type byCreatedAt []NoteChange
+
+func (ncs byCreatedAt) Len() int {
+	return len(ncs)
+}
+func (ncs byCreatedAt) Less(i int, j int) bool {
+	return ncs[i].CreatedAt.Before(ncs[j].CreatedAt)
+}
+func (ncs byCreatedAt) Swap(i int, j int) {
+	ncs[i], ncs[j] = ncs[j], ncs[i]
+}
+
 type LocalSig struct {
 	Id 			int64
 	Guid		string `sql: "size:40"`

@@ -37,26 +37,26 @@ func handleConnection(conn net.Conn) {
 			msg.Type = "WhoIAm"
 			sendMsg(enc, msg)
 		case "NumberOfChanges":
-			msg.Param = "2"
+			msg.Param = "3"
 			sendMsg(enc, msg)
 		case "SendChanges":
 			msg.Type = "NoteChange"
 			msg.Param = ""
 			msg.NoteChg = NoteChange{Guid: generate_sha1(), Operation: 1, Title: "Synch Note 1",
 				Description: "Description for Synch Note 1", Body: "Body for Synch Note 1",
-				Tag: "tag_synch_1" }
+				Tag: "tag_synch_1", CreatedAt: time.Now() }
 			sendMsg(enc, msg)
 			msg.NoteChg = NoteChange{Guid: generate_sha1(), Operation: 1, Title: "Synch Note 2",
 				Description: "Description for Synch Note 2", Body: "Body for Synch Note 2",
-				Tag: "tag_synch_2" }
+				Tag: "tag_synch_2", CreatedAt: time.Now().Add(time.Second) }
 			sendMsg(enc, msg)
 
 			msg.NoteChg = NoteChange{Guid: generate_sha1(), Operation: 1, Title: "Synch Note 3",
 				Description: "Description for Synch Note 3", Body: "Body for Synch Note 3",
-				Tag: "tag_synch_3" }
+				Tag: "tag_synch_3", CreatedAt: time.Now().Add(time.Millisecond) }
 			sendMsg(enc, msg)
 
-					default:
+		default:
 			println("Unknown message type received")
 		}
 	}
@@ -95,5 +95,4 @@ func printMsg(msg Message, rcx bool) {
 
 // CODE_SCRAP
 //	fmt.Printf("encoder is a type of: %v\n", reflect.TypeOf(encoder))
-//	fmt.Printf("decoder is a type of: %v\n", reflect.TypeOf(decoder))
 

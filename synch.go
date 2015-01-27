@@ -4,7 +4,9 @@ import(
 	"log"
 	"strconv"
 	"net"
+	"sort"
 	"encoding/gob"
+	"errors"
 )
 
 func synch_client(host string) {
@@ -51,13 +53,14 @@ func synch_client(host string) {
 			peer_changes[i] = msg.NoteChg
 		}
 
-		fmt.Println("\nPeer changes received:\n")
+		sort.Sort(byCreatedAt(peer_changes)) // sort changes
+		// Apply Changes
+		fmt.Printf("\n%d peer changes received:\n", numChanges)
 		for _, item := range(peer_changes) {
-			fmt.Printf("Title: %s, Guid: %s\n", item.Title, item.Guid)
+			applyChange(item)
 		}
 
-		// Todo: Synch in changes in asc date order
-		
+
 	} else {
         println("Peer does not respond to request for database id\nRun peer with -setup_db option or make sure peer version is >= 0.9")
 		return
@@ -66,4 +69,48 @@ func synch_client(host string) {
 	// Send Hangup
 	sendMsg(enc, Message{Type: "Hangup", Param: "", NoteChg: NoteChange{}})
 	println("Client done")
+}
+
+func applyChange(nc NoteChange) bool {
+	fmt.Printf("Title: %s, Operation: %d, CreatedAt: %s, Guid: %s\n", nc.Title, nc.Operation, nc.CreatedAt, nc.Guid)
+	switch nc.Operation {
+	case op_create:
+		if _, err := getNote(nc.Guid); err != nil {
+			createFromNoteChange(nc) // Should not exist for create
+			// This operation should also update the local NoteChange model
+		} else { return false }
+	case op_update:
+		if note, err := getNote(nc.Guid); err != nil {
+			return false
+		} else { updateFromNoteChange(nc, note) }
+	case op_delete:
+		if _, err := getNote(nc.Guid); err != nil {
+			return false
+		} else { deleteFromNoteChange(nc.Guid) }
+	default:
+		return false
+	}
+	return true
+}
+
+func getNote(guid string) (Note, error) {
+	var notes []Note
+	db.Where("guid = ?", guid).Limit(1).Find(&notes)
+	if len(notes) == 1 && notes[0].Guid == guid {
+		return notes[0], nil
+	} else {
+		return Note{}, errors.New("Note not found")
+	}
+}
+
+func createFromNoteChange(nc NoteChange) {
+	println("We would create the note", nc.Title, nc.Guid)
+}
+
+func updateFromNoteChange(nc NoteChange, note Note) {
+	println("We would update the note", note.Title)
+}
+
+func deleteFromNoteChange(guid string) {
+	println("We would delete the note with Guid", guid)
 }
