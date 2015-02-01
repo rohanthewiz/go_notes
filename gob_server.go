@@ -42,18 +42,34 @@ func handleConnection(conn net.Conn) {
 		case "SendChanges":
 			msg.Type = "NoteChange"
 			msg.Param = ""
-			msg.NoteChg = NoteChange{Guid: generate_sha1(), Operation: 1, Title: "Synch Note 1",
-				Description: "Description for Synch Note 1", Body: "Body for Synch Note 1",
-				Tag: "tag_synch_1", CreatedAt: time.Now() }
+			// Send a Create Change
+			msg.NoteChg = NoteChange{
+				Guid: generate_sha1(), Operation: 1,
+				Note: Note{
+					Guid: generate_sha1(), Title: "Synch Note 1",
+					Description: "Description for Synch Note 1", Body: "Body for Synch Note 1",
+					Tag: "tag_synch_1", CreatedAt: time.Now()},
+				NoteFragment: NoteFragment{},
+			}
 			sendMsg(enc, msg)
-			msg.NoteChg = NoteChange{Guid: generate_sha1(), Operation: 1, Title: "Synch Note 2",
-				Description: "Description for Synch Note 2", Body: "Body for Synch Note 2",
-				Tag: "tag_synch_2", CreatedAt: time.Now().Add(time.Second) }
+			// Send another Create Change
+			msg.NoteChg = NoteChange{
+				Guid: generate_sha1(), Operation: 1,
+				Note: Note{
+					Guid: generate_sha1(), Title: "Synch Note 2",
+					Description: "Description for Synch Note 2", Body: "Body for Synch Note 2",
+					Tag: "tag_synch_2", CreatedAt: time.Now().Add(time.Second)},
+				NoteFragment: NoteFragment{},
+			}
+			second_note_guid := msg.NoteChg.Note.Guid
 			sendMsg(enc, msg)
-
-			msg.NoteChg = NoteChange{Guid: generate_sha1(), Operation: 1, Title: "Synch Note 3",
-				Description: "Description for Synch Note 3", Body: "Body for Synch Note 3",
-				Tag: "tag_synch_3", CreatedAt: time.Now().Add(time.Millisecond) }
+			// Send an update operation
+			msg.NoteChg = NoteChange{
+				Guid: generate_sha1(), Operation: 2,
+				Note: Note{},
+				NoteFragment: NoteFragment{Guid: second_note_guid, Bitmask: 0xC, Title: "Synch Note 2 - Updated",
+						Description: "Updated!"},
+			}
 			sendMsg(enc, msg)
 
 		default:

@@ -7,6 +7,7 @@ import(
 	"sort"
 	"encoding/gob"
 	"errors"
+	//"time"
 )
 
 func synch_client(host string) {
@@ -60,7 +61,6 @@ func synch_client(host string) {
 			applyChange(item)
 		}
 
-
 	} else {
         println("Peer does not respond to request for database id\nRun peer with -setup_db option or make sure peer version is >= 0.9")
 		return
@@ -72,17 +72,36 @@ func synch_client(host string) {
 }
 
 func applyChange(nc NoteChange) bool {
-	fmt.Printf("Title: %s, Operation: %d, CreatedAt: %s, Guid: %s\n", nc.Title, nc.Operation, nc.CreatedAt, nc.Guid)
+	fmt.Printf("Title: %s, Operation: %d, CreatedAt: %s, Guid: %s\n", nc.Note.Title, nc.Operation, nc.CreatedAt, nc.Guid)
 	switch nc.Operation {
 	case op_create:
-		if _, err := getNote(nc.Guid); err != nil {
-			createFromNoteChange(nc) // Should not exist for create
-			// This operation should also update the local NoteChange model
-		} else { return false }
-	case op_update:
-		if note, err := getNote(nc.Guid); err != nil {
+		if _, err := getNote(nc.Guid); err == nil {
+			println("Note - Title", nc.Note.Title, "Guid:", nc.Note.Guid, "already exists locally")
 			return false
-		} else { updateFromNoteChange(nc, note) }
+		}
+	case op_update:
+		note, err := getNote(nc.NoteFragment.Guid)
+		if err != nil {
+			println("Cannot update a non-existent note:", nc.Guid)
+			return false
+		}
+		// shouldn't need this // nc.Note = Note{} // Force no create
+		if nc.NoteFragment.Bitmask & 0x8 == 8 {
+			note.Title = nc.NoteFragment.Title
+		}
+		if nc.NoteFragment.Bitmask & 0x4 == 4 {
+			note.Description = nc.NoteFragment.Description
+		}
+		if nc.NoteFragment.Bitmask & 0x2 == 2 {
+			note.Body = nc.NoteFragment.Body
+		}
+		if nc.NoteFragment.Bitmask & 0x1 == 1 {
+			note.Tag = nc.NoteFragment.Tag
+		}
+		fmt.Printf("NoteFragment.Bitmask: %v", nc.NoteFragment.Bitmask)
+		fmt.Printf("NoteFragment.Bitmask & 0x8: %v", nc.NoteFragment.Bitmask & 0x8)
+		fmt.Printf("Updated note: %v", note)
+		db.Save(&note)
 	case op_delete:
 		if _, err := getNote(nc.Guid); err != nil {
 			return false
@@ -90,6 +109,7 @@ func applyChange(nc NoteChange) bool {
 	default:
 		return false
 	}
+	createNoteChange(nc) // Save the change locally
 	return true
 }
 
@@ -103,8 +123,22 @@ func getNote(guid string) (Note, error) {
 	}
 }
 
-func createFromNoteChange(nc NoteChange) {
-	println("We would create the note", nc.Title, nc.Guid)
+func createFromNoteChange(nc NoteChange) bool {
+	println("Creating new note from NoteChange", nc.Note.Title, "-", nc.Guid)
+//	nc.Note = Note{}
+//	note := nc.Note // Note{Guid: nc.Guid, Title: nc.Title, Description: nc.Description, Body: nc.Body, Tag: nc.Tag}
+	// db.Create(&note)
+	createNoteChange(nc)
+//	if !db.NewRecord(note) { // was it saved?
+//		println("Record saved:", note.Title)
+		// Save the NoteChange on this machine. Maintain the same Guid
+		//nc.CreatedAt = time.Now()  // Not necessary // Todo verify
+		//createNoteChange(NoteChange{Guid: nc.Guid, Operation: op_create, Title: opts_str["t"], Description: opts_str["d"], Body: opts_str["b"], Tag: opts_str["g"]} )
+//		return true
+//	}
+//	println("Failed to save:", note.Title)
+	return true
+//	return false
 }
 
 func updateFromNoteChange(nc NoteChange, note Note) {

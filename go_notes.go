@@ -18,7 +18,7 @@ import (
 )
 
 const app_name = "GoNotes"
-const version string = "0.8.10"
+const version string = "0.8.11"
 const line_separator string = "---------------------------------------------------------"
 
 const op_create int32 = 1
@@ -41,12 +41,21 @@ type NoteChange struct {
 	Id          int64
 	Guid		string `sql: "size:40"` //Guid of the note
 	Operation	int32  // 1: Create, 2: Update, 3: Delete
+	Note Note
+	NoteId int64
+	NoteFragment NoteFragment
+	NoteFragmentId int64
+	CreatedAt   time.Time // A note change is never altered once created
+}
+
+type NoteFragment struct {
+	Id          int64
+	Guid		string `sql: "size:40"` //Guid of the note
+	Bitmask		int16
 	Title       string `sql: "size:128"`
 	Description string `sql: "size:255"`
 	Body        string `sql: "type:text"`
 	Tag         string `sql: "size:128"`
-	CreatedAt   time.Time
-	// Never updated //UpdatedAt   time.Time
 }
 
 type byCreatedAt []NoteChange
@@ -105,11 +114,13 @@ func Query(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 func migrate() {
 	// Create or update the table structure as needed
 	println("Migrating the DB...")
-	db.AutoMigrate(&Note{}, &NoteChange{}, &LocalSig{}, &Peer{})
+	db.AutoMigrate(&Note{}, &NoteChange{}, &NoteFragment{}, &LocalSig{}, &Peer{})
 	//According to GORM: Feel free to change your struct, AutoMigrate will keep your database up-to-date.
 	// Fyi, AutoMigrate will only *add new columns*, it won't update column's type or delete unused columns, to make sure your data is safe.
 	// If the table is not existing, AutoMigrate will create the table automatically.
 
+	db.Model(&Note{}).AddUniqueIndex("idx_note_guid", "guid")
+	db.Model(&Note{}).AddUniqueIndex("idx_note_title", "title")
 	db.Model(&NoteChange{}).AddIndex("idx_note_change_created_at", "created_at")
 	db.Model(&NoteChange{}).AddUniqueIndex("idx_note_change_guid", "guid")
 
@@ -178,7 +189,7 @@ func main() {
 	}
 
 	//Do we need to migrate?
-	if ! db.HasTable(&Peer{}) { migrate() }
+	if ! db.HasTable(&Peer{}) || ! db.HasTable(&NoteChange{}) { migrate() }
 
 	if opts_intf["v"].(bool) {
 		println(app_name, version)
@@ -270,25 +281,25 @@ func createNote() {
 // The core create method
 func do_create(note Note) bool {
 	print("Creating new note...")
-	db.Create(&note)
-	if !db.NewRecord(note) { // was it saved?
-		println("Record saved:", note.Title)
-
-		record_note_change(NoteChange{Guid: generate_sha1(), Operation: op_create, Title: opts_str["t"], Description: opts_str["d"], Body: opts_str["b"], Tag: opts_str["g"]} )
-		return true
-	}
-	println("Failed to save:", note.Title)
-	return false
+	createNoteChange(
+		NoteChange{
+			Guid: generate_sha1(), Operation: 1,
+			Note: note,
+			NoteFragment: NoteFragment{},
+	})
+	println("Record saved:", note.Title)
+	return true
 }
 
-func record_note_change(note_change NoteChange) bool {
-	print("Recording changes...") // TODO - remove this for production
-	db.Create(&note_change) // A note change is never altered once created
+func createNoteChange(note_change NoteChange) bool {
+	print("Saving change object...") // TODO - remove this for production
+	db.Create(&note_change) // will auto create contained objects too
 	if !db.NewRecord(note_change) { // was it saved?
 		println("Note changes saved:", note_change.Guid)
 		return true
 	}
-	println("Failed to record note changes. Note:", note_change.Title)
+	println("Failed to record note changes.", note_change.Note.Title, "Changed note Guid:",
+		note_change.Note.Guid, "NoteChange Guid:", note_change.Guid)
 	return false
 }
 
