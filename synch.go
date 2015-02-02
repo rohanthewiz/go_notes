@@ -59,6 +59,24 @@ func synch_client(host string) {
 		fmt.Printf("\n%d peer changes received:\n", numChanges)
 		for _, item := range(peer_changes) {
 			applyChange(item)
+			retrievedChange, err := retrieveNoteChange(item)
+			if err != nil {
+				println("Error retrieving the note change")
+			} else {
+				//fmt.Printf("Change applied locally:\n%v\n", retrievedChange)
+				retrievedNote, err := retrieveChangedNote(retrievedChange)
+				if err != nil {
+					println("Error retrieving the note changed")
+				} else {
+					fmt.Printf("Note created:\n%v\n", retrievedNote)
+				}
+				retrievedFrag, err := retrieveNoteFrag(retrievedChange)
+				if err != nil {
+					println("Error retrieving the note fragment")
+				} else {
+					fmt.Printf("Note Fragment created:\n%v\n", retrievedFrag)
+				}
+			}
 		}
 
 	} else {
@@ -69,6 +87,36 @@ func synch_client(host string) {
 	// Send Hangup
 	sendMsg(enc, Message{Type: "Hangup", Param: "", NoteChg: NoteChange{}})
 	println("Client done")
+}
+
+func retrieveNoteChange(nc NoteChange) (NoteChange, error) {
+	var noteChanges []NoteChange
+	db.Where("guid = ?", nc.Guid).Limit(1).Find(&noteChanges)
+	if len(noteChanges) == 1 {
+		return noteChanges[0], nil
+	} else {
+		return NoteChange{}, errors.New("Note not found")
+	}
+}
+
+func retrieveChangedNote(nc NoteChange) (Note, error) {
+	var note Note
+	db.Model(&nc).Related(&note)
+	if note.Id > 0 {
+		return note, nil
+	} else {
+		return Note{}, errors.New("Note not found")
+	}
+}
+
+func retrieveNoteFrag(nc NoteChange) (NoteFragment, error) {
+	var noteFrag NoteFragment
+	db.Model(&nc).Related(&noteFrag)
+	if noteFrag.Id > 0 {
+		return noteFrag, nil
+	} else {
+		return NoteFragment{}, errors.New("NoteFragment not found")
+	}
 }
 
 func applyChange(nc NoteChange) bool {
@@ -98,9 +146,9 @@ func applyChange(nc NoteChange) bool {
 		if nc.NoteFragment.Bitmask & 0x1 == 1 {
 			note.Tag = nc.NoteFragment.Tag
 		}
-		fmt.Printf("NoteFragment.Bitmask: %v", nc.NoteFragment.Bitmask)
-		fmt.Printf("NoteFragment.Bitmask & 0x8: %v", nc.NoteFragment.Bitmask & 0x8)
-		fmt.Printf("Updated note: %v", note)
+//		fmt.Printf("NoteFragment.Bitmask: %v", nc.NoteFragment.Bitmask)
+//		fmt.Printf("NoteFragment.Bitmask & 0x8: %v", nc.NoteFragment.Bitmask & 0x8)
+//		fmt.Printf("Updated note: %v", note)
 		db.Save(&note)
 	case op_delete:
 		if _, err := getNote(nc.Guid); err != nil {
@@ -116,7 +164,7 @@ func applyChange(nc NoteChange) bool {
 func getNote(guid string) (Note, error) {
 	var notes []Note
 	db.Where("guid = ?", guid).Limit(1).Find(&notes)
-	if len(notes) == 1 && notes[0].Guid == guid {
+	if len(notes) == 1 {
 		return notes[0], nil
 	} else {
 		return Note{}, errors.New("Note not found")
