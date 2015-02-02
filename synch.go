@@ -80,7 +80,7 @@ func applyChange(nc NoteChange) bool {
 			return false
 		}
 	case op_update:
-		note, err := getNote(nc.NoteFragment.Guid)
+		note, err := getNote(nc.NoteFragment.NoteGuid)
 		if err != nil {
 			println("Cannot update a non-existent note:", nc.Guid)
 			return false

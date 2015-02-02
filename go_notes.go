@@ -50,8 +50,9 @@ type NoteChange struct {
 
 type NoteFragment struct {
 	Id          int64
-	Guid		string `sql: "size:40"` //Guid of the note
-	Bitmask		int16
+	NoteGuid		string `sql: "size:40"` // Guid of the note
+	Bitmask		int16	// Indicate Active fields (allows for empty string update)
+						// 0x8 - Title, 0x4 - Description, 0x2 - Body, 0x1 - Tag
 	Title       string `sql: "size:128"`
 	Description string `sql: "size:255"`
 	Body        string `sql: "type:text"`

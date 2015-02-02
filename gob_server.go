@@ -67,7 +67,7 @@ func handleConnection(conn net.Conn) {
 			msg.NoteChg = NoteChange{
 				Guid: generate_sha1(), Operation: 2,
 				Note: Note{},
-				NoteFragment: NoteFragment{Guid: second_note_guid, Bitmask: 0xC, Title: "Synch Note 2 - Updated",
+				NoteFragment: NoteFragment{NoteGuid: second_note_guid, Bitmask: 0xC, Title: "Synch Note 2 - Updated",
 						Description: "Updated!"},
 			}
 			sendMsg(enc, msg)
