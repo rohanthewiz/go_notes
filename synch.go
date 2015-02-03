@@ -53,13 +53,30 @@ func synch_client(host string) {
 			rcxMsg(dec, &msg)
 			peer_changes[i] = msg.NoteChg
 		}
-
 		sort.Sort(byCreatedAt(peer_changes)) // sort changes
+
+		// Get local changes from Synch point and later so we can intelligently apply changes
+		synch_point = ""  // hardwire for now
+		// Get NC of the given synch point(a NoteChange Guid)
+		last_synched_change, err := retrieveNoteChangeByGuid(synch_point)		// Get all NCs later than the above NC
+		if err != nil { println("Error retrieving the latest synched change") }
+		fmt.Printf("First NoteChange from synch point: %v\n", last_synched_change)
+
+		// Start with the note of the earliest NC
+		// If it's not in the completed array
+			// Get The latest change for the note in the local changeset
+				// If latest change is a delete op - skip synching this note
+				// Otherwise apply synched changes in order (mostly updates)
+
+		// When done push this note Guid to the completed array
+
 		// Apply Changes
 		fmt.Printf("\n%d peer changes received:\n", numChanges)
 		for _, item := range(peer_changes) {
 			applyChange(item)
-			retrievedChange, err := retrieveNoteChange(item)
+
+			// Verify
+			retrievedChange, err := retrieveNoteChangeByObject(item)
 			if err != nil {
 				println("Error retrieving the note change")
 			} else {
@@ -89,13 +106,29 @@ func synch_client(host string) {
 	println("Client done")
 }
 
-func retrieveNoteChange(nc NoteChange) (NoteChange, error) {
+func retrieveNoteChangeByObject(nc NoteChange) (NoteChange, error) {
 	var noteChanges []NoteChange
 	db.Where("guid = ?", nc.Guid).Limit(1).Find(&noteChanges)
 	if len(noteChanges) == 1 {
 		return noteChanges[0], nil
 	} else {
 		return NoteChange{}, errors.New("Note not found")
+	}
+}
+
+func retrieveNoteChangeByGuid(guid string) (NoteChange, error) {
+	var noteChanges []NoteChange
+	db.Where("guid = ?", guid).Find(&noteChanges) // There should be only one
+	// db.Where("guid = ?", nc.Guid).Limit(1).Find(&noteChanges)
+	if len(noteChanges) == 1 {
+		return noteChanges[0], nil
+	}
+	// Then just return the first NC
+	db.First(&noteChanges).Order("created_at, asc")
+	if len(noteChanges) == 1 {
+		return noteChanges[0], nil
+	} else {
+		return NoteChange{}, errors.New("Local NoteChange not found")
 	}
 }
 
