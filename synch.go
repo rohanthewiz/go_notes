@@ -55,45 +55,38 @@ func synch_client(host string) {
 		}
 		sort.Sort(byCreatedAt(peer_changes)) // sort changes
 
-		// Get local changes from Synch point and later so we can intelligently apply changes
-		synch_point = ""  // hardwire for now
-		// Get NC of the given synch point(a NoteChange Guid)
-		last_synched_change, err := retrieveNoteChangeByGuid(synch_point)		// Get all NCs later than the above NC
-		if err != nil { println("Error retrieving the latest synched change") }
-		fmt.Printf("First NoteChange from synch point: %v\n", last_synched_change)
-
-		// Start with the note of the earliest NC
-		// If it's not in the completed array
-			// Get The latest change for the note in the local changeset
-				// If latest change is a delete op - skip synching this note
-				// Otherwise apply synched changes in order (mostly updates)
-
-		// When done push this note Guid to the completed array
-
-		// Apply Changes
 		fmt.Printf("\n%d peer changes received:\n", numChanges)
-		for _, item := range(peer_changes) {
-			applyChange(item)
 
-			// Verify
-			retrievedChange, err := retrieveNoteChangeByObject(item)
+		var note_guid string
+		for i, change := range(peer_changes) {
+			note_guid = peer_changes[i].NoteGuid
+			// continue if note_guid contained in completed array
+
+			// Get local changes from Synch point and later so we can intelligently apply changes
+			synch_point = ""  // hardwire for now // This is the last synched NoteChange // Todo set after synch
+
+			// Get latest local unsynched change for the current note
+			last_note_change, err := retrieveLastNoteChangeForNote(synch_point, note_guid)
 			if err != nil {
-				println("Error retrieving the note change")
-			} else {
-				//fmt.Printf("Change applied locally:\n%v\n", retrievedChange)
-				retrievedNote, err := retrieveChangedNote(retrievedChange)
-				if err != nil {
-					println("Error retrieving the note changed")
-				} else {
-					fmt.Printf("Note created:\n%v\n", retrievedNote)
-				}
-				retrievedFrag, err := retrieveNoteFrag(retrievedChange)
-				if err != nil {
-					println("Error retrieving the note fragment")
-				} else {
-					fmt.Printf("Note Fragment created:\n%v\n", retrievedFrag)
-				}
+				println("Error retrieving the latest synched change")
+				return
 			}
+			fmt.Printf("Last local NoteChange for current note: %v\n", last_note_change)
+
+			// Start with the note of the earliest NC received
+			// If it's not in the completed array
+			// Get The latest change for the note in the local changeset
+
+			// If latest change is a delete op - skip synching this note
+			// Otherwise apply synched changes in order (mostly updates)
+
+			// When done push this note Guid to the completed array
+
+			// Apply Changes
+			//for _, change := range (peer_changes) {
+				performNoteChange(change)
+				verifyNoteChangeApplied(change)
+			//}
 		}
 
 	} else {
@@ -106,6 +99,124 @@ func synch_client(host string) {
 	println("Client done")
 }
 
+// Return last noteChange For a note
+func retrieveLastNoteChangeForNote(note_guid string) (NoteChange, error) {
+	var noteChange NoteChange
+	db.Where("note_guid = ?", note_guid).Order("created_at, desc").Limit(1).Find(&noteChange)
+	if noteChange.Id == 0 {
+		return NoteChange{}, errors.New("Note not found")
+	}
+	return noteChange, nil
+}
+
+// Get all local NCs later than the synchPoint
+func retrieveLocalNoteChangesFromSynchPoint(synch_guid string) ([]NoteChange) {
+	var noteChange NoteChange
+	var noteChanges []NoteChange
+
+	db.Where("guid = ?", synch_guid).First(&noteChange) // There should be only one
+	if noteChange.Id == 0 {
+		db.Find(&noteChanges).Order("created_at, asc")
+	} else {
+		db.Where("created_at > " + noteChange.CreatedAt).Find(&noteChanges).Order("created_at, asc")
+	}
+	return noteChanges
+}
+
+func performNoteChange(nc NoteChange) bool {
+	fmt.Printf("Applying NoteChange: %v\n", nc)
+	//fmt.Printf("Title: %s, Operation: %d, CreatedAt: %s, Guid: %s\n", nc.Note.Title, nc.Operation, nc.CreatedAt, nc.Guid)
+	switch nc.Operation {
+
+	case op_create:
+		if _, err := getNote(nc.NoteGuid); err == nil {
+			println("Note - Title", nc.Note.Title, "Guid:", nc.NoteGuid, "already exists locally")
+			return false
+		}
+		saveNoteChange(nc)
+
+	case op_update:
+		note, err := getNote(nc.NoteGuid)
+		if err != nil {
+			println("Cannot update a non-existent note:", nc.NoteGuid)
+			return false
+		}
+		// Update bitmask allowed fields - this allows us to set a field to ""  // Updates are stored as note fragments
+		if nc.NoteFragment.Bitmask & 0x8 == 8 {
+			note.Title = nc.NoteFragment.Title
+		}
+		if nc.NoteFragment.Bitmask & 0x4 == 4 {
+			note.Description = nc.NoteFragment.Description
+		}
+		if nc.NoteFragment.Bitmask & 0x2 == 2 {
+			note.Body = nc.NoteFragment.Body
+		}
+		if nc.NoteFragment.Bitmask & 0x1 == 1 {
+			note.Tag = nc.NoteFragment.Tag
+		}
+//		fmt.Printf("NoteFragment.Bitmask: %v", nc.NoteFragment.Bitmask)
+//		fmt.Printf("NoteFragment.Bitmask & 0x8: %v", nc.NoteFragment.Bitmask & 0x8)
+		db.Save(&note)
+
+	case op_delete:
+		if note, err := getNote(nc.NoteGuid); err != nil {
+			return false
+		} else {
+			db.Delete(&note)
+		}
+
+	default:
+		return false
+	}
+
+	return true
+}
+
+// Save the change object which will create a Note on CreateOp or a NoteFragment on UpdateOp
+func saveNoteChange(note_change NoteChange) bool {
+	print("Saving change object...") // TODO - remove this for production
+	db.Create(&note_change) // will auto create contained objects too :-)
+	if !db.NewRecord(note_change) { // was it saved?
+		println("Note change saved:", note_change.Guid, ", Operation:", note_change.Operation)
+		return true
+	}
+	println("Failed to record note changes.", note_change.Note.Title, "Changed note Guid:",
+		note_change.NoteGuid, "NoteChange Guid:", note_change.Guid)
+	return false
+}
+
+func getNote(guid string) (Note, error) {
+	var note Note
+	db.Where("guid = ?", guid).First(&note)
+	if note.Id != 0 {
+		return note, nil
+	} else {
+		return note, errors.New("Note not found")
+	}
+}
+
+func verifyNoteChangeApplied(nc NoteChange) {
+	// Verify
+	retrievedChange, err := retrieveNoteChangeByObject(nc)
+	if err != nil {
+		println("Error retrieving the note change")
+	} else {
+		//fmt.Printf("Change applied locally:\n%v\n", retrievedChange)
+		retrievedNote, err := retrieveChangedNote(retrievedChange)
+		if err != nil {
+			println("Error retrieving the note changed")
+		} else {
+			fmt.Printf("Note created:\n%v\n", retrievedNote)
+		}
+		retrievedFrag, err := retrieveNoteFrag(retrievedChange)
+		if err != nil {
+			println("Error retrieving the note fragment")
+		} else {
+			fmt.Printf("Note Fragment created:\n%v\n", retrievedFrag)
+		}
+	}
+}
+
 func retrieveNoteChangeByObject(nc NoteChange) (NoteChange, error) {
 	var noteChanges []NoteChange
 	db.Where("guid = ?", nc.Guid).Limit(1).Find(&noteChanges)
@@ -113,22 +224,6 @@ func retrieveNoteChangeByObject(nc NoteChange) (NoteChange, error) {
 		return noteChanges[0], nil
 	} else {
 		return NoteChange{}, errors.New("Note not found")
-	}
-}
-
-func retrieveNoteChangeByGuid(guid string) (NoteChange, error) {
-	var noteChanges []NoteChange
-	db.Where("guid = ?", guid).Find(&noteChanges) // There should be only one
-	// db.Where("guid = ?", nc.Guid).Limit(1).Find(&noteChanges)
-	if len(noteChanges) == 1 {
-		return noteChanges[0], nil
-	}
-	// Then just return the first NC
-	db.First(&noteChanges).Order("created_at, asc")
-	if len(noteChanges) == 1 {
-		return noteChanges[0], nil
-	} else {
-		return NoteChange{}, errors.New("Local NoteChange not found")
 	}
 }
 
@@ -150,82 +245,4 @@ func retrieveNoteFrag(nc NoteChange) (NoteFragment, error) {
 	} else {
 		return NoteFragment{}, errors.New("NoteFragment not found")
 	}
-}
-
-func applyChange(nc NoteChange) bool {
-	fmt.Printf("Title: %s, Operation: %d, CreatedAt: %s, Guid: %s\n", nc.Note.Title, nc.Operation, nc.CreatedAt, nc.Guid)
-	switch nc.Operation {
-	case op_create:
-		if _, err := getNote(nc.Guid); err == nil {
-			println("Note - Title", nc.Note.Title, "Guid:", nc.Note.Guid, "already exists locally")
-			return false
-		}
-	case op_update:
-		note, err := getNote(nc.NoteFragment.NoteGuid)
-		if err != nil {
-			println("Cannot update a non-existent note:", nc.Guid)
-			return false
-		}
-		// shouldn't need this // nc.Note = Note{} // Force no create
-		if nc.NoteFragment.Bitmask & 0x8 == 8 {
-			note.Title = nc.NoteFragment.Title
-		}
-		if nc.NoteFragment.Bitmask & 0x4 == 4 {
-			note.Description = nc.NoteFragment.Description
-		}
-		if nc.NoteFragment.Bitmask & 0x2 == 2 {
-			note.Body = nc.NoteFragment.Body
-		}
-		if nc.NoteFragment.Bitmask & 0x1 == 1 {
-			note.Tag = nc.NoteFragment.Tag
-		}
-//		fmt.Printf("NoteFragment.Bitmask: %v", nc.NoteFragment.Bitmask)
-//		fmt.Printf("NoteFragment.Bitmask & 0x8: %v", nc.NoteFragment.Bitmask & 0x8)
-//		fmt.Printf("Updated note: %v", note)
-		db.Save(&note)
-	case op_delete:
-		if _, err := getNote(nc.Guid); err != nil {
-			return false
-		} else { deleteFromNoteChange(nc.Guid) }
-	default:
-		return false
-	}
-	createNoteChange(nc) // Save the change locally
-	return true
-}
-
-func getNote(guid string) (Note, error) {
-	var notes []Note
-	db.Where("guid = ?", guid).Limit(1).Find(&notes)
-	if len(notes) == 1 {
-		return notes[0], nil
-	} else {
-		return Note{}, errors.New("Note not found")
-	}
-}
-
-func createFromNoteChange(nc NoteChange) bool {
-	println("Creating new note from NoteChange", nc.Note.Title, "-", nc.Guid)
-//	nc.Note = Note{}
-//	note := nc.Note // Note{Guid: nc.Guid, Title: nc.Title, Description: nc.Description, Body: nc.Body, Tag: nc.Tag}
-	// db.Create(&note)
-	createNoteChange(nc)
-//	if !db.NewRecord(note) { // was it saved?
-//		println("Record saved:", note.Title)
-		// Save the NoteChange on this machine. Maintain the same Guid
-		//nc.CreatedAt = time.Now()  // Not necessary // Todo verify
-		//createNoteChange(NoteChange{Guid: nc.Guid, Operation: op_create, Title: opts_str["t"], Description: opts_str["d"], Body: opts_str["b"], Tag: opts_str["g"]} )
-//		return true
-//	}
-//	println("Failed to save:", note.Title)
-	return true
-//	return false
-}
-
-func updateFromNoteChange(nc NoteChange, note Note) {
-	println("We would update the note", note.Title)
-}
-
-func deleteFromNoteChange(guid string) {
-	println("We would delete the note with Guid", guid)
 }

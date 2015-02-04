@@ -18,7 +18,7 @@ import (
 )
 
 const app_name = "GoNotes"
-const version string = "0.8.11"
+const version string = "0.8.13"
 const line_separator string = "---------------------------------------------------------"
 
 const op_create int32 = 1
@@ -39,7 +39,8 @@ type Note struct {
 // Record note changes so we can replay them on synch
 type NoteChange struct {
 	Id          int64
-	Guid		string `sql: "size:40"` //Guid of the note
+	Guid		string `sql: "size:40"` //Guid of the change
+	NoteGuid		string `sql: "size:40"` // Guid of the note
 	Operation	int32  // 1: Create, 2: Update, 3: Delete
 	Note Note
 	NoteId int64
@@ -282,26 +283,15 @@ func createNote() {
 // The core create method
 func do_create(note Note) bool {
 	print("Creating new note...")
-	createNoteChange(
+	performNoteChange(
 		NoteChange{
 			Guid: generate_sha1(), Operation: 1,
+			NoteGuid: note.Guid,
 			Note: note,
 			NoteFragment: NoteFragment{},
 	})
 	println("Record saved:", note.Title)
 	return true
-}
-
-func createNoteChange(note_change NoteChange) bool {
-	print("Saving change object...") // TODO - remove this for production
-	db.Create(&note_change) // will auto create contained objects too
-	if !db.NewRecord(note_change) { // was it saved?
-		println("Note changes saved:", note_change.Guid)
-		return true
-	}
-	println("Failed to record note changes.", note_change.Note.Title, "Changed note Guid:",
-		note_change.Note.Guid, "NoteChange Guid:", note_change.Guid)
-	return false
 }
 
 func generate_sha1() string {
