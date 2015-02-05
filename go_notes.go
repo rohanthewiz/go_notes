@@ -10,7 +10,6 @@ import (
 	"time"
 	"encoding/csv"
 	"encoding/gob"
-	"crypto/sha1"
 	"net/http"
 	"github.com/julienschmidt/httprouter"
 	"github.com/jinzhu/gorm"
@@ -101,6 +100,8 @@ var opts_str, opts_intf = getOpts() //returns map[string]string, map[string]inte
 // Init db // Todo - pass db instead of making it static
 var db, db_err = gorm.Open("sqlite3", opts_str["db_path"])
 
+var pf = fmt.Printf
+
 // Handlers for httprouter
 func Index(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 	fmt.Fprint(w, "Welcome!\n")
@@ -184,6 +185,7 @@ func ensureDBSig() {
 
 
 func main() {
+
 	if db_err != nil { // Can't err chk db conn outside method, so do it here
 		println("There was an error connecting to the DB")
 		println("DBPath: " + opts_str["db_path"])
@@ -292,10 +294,6 @@ func do_create(note Note) bool {
 	})
 	println("Record saved:", note.Title)
 	return true
-}
-
-func generate_sha1() string {
-	return fmt.Sprintf("%x", sha1.Sum([]byte("%$" + time.Now().String() + "e{")))
 }
 
 func find_note_by_title(title string) (bool, Note) {

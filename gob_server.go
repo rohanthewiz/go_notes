@@ -44,9 +44,10 @@ func handleConnection(conn net.Conn) {
 			msg.Param = ""
 
 			// Send a Create Change
-			noteGuid := generate_sha1()
+			noteGuid := generate_sha1() // we use the note guid in two places (a little denormalization)
 			msg.NoteChg = NoteChange{
-				Guid: generate_sha1(), Operation: 1,
+				Operation: 1,
+				Guid: generate_sha1(),
 				NoteGuid: noteGuid,
 				Note: Note{
 					Guid: noteGuid, Title: "Synch Note 1",
@@ -57,25 +58,25 @@ func handleConnection(conn net.Conn) {
 			sendMsg(enc, msg)
 
 			// Send another Create Change
-			noteGuid := generate_sha1()
+			noteGuid = generate_sha1()
 			msg.NoteChg = NoteChange{
-				Guid: generate_sha1(),
-				NoteGuid: generate_sha1(),
 				Operation: 1,
+				Guid: generate_sha1(),
+				NoteGuid: noteGuid,
 				Note: Note{
-					Guid: generate_sha1(), Title: "Synch Note 2",
+					Guid: noteGuid, Title: "Synch Note 2",
 					Description: "Description for Synch Note 2", Body: "Body for Synch Note 2",
 					Tag: "tag_synch_2", CreatedAt: time.Now().Add(time.Second)},
 				NoteFragment: NoteFragment{},
 			}
-			second_note_guid := msg.NoteChg.Note.Guid // save for use in update op
+			second_note_guid := msg.NoteChg.NoteGuid // save for use in update op
 			sendMsg(enc, msg)
 
 			// Send an update operation
 			msg.NoteChg = NoteChange{
+				Operation: 2,
 				Guid: generate_sha1(),
 				NoteGuid: second_note_guid,
-				Operation: 2,
 				Note: Note{},
 				NoteFragment: NoteFragment{
 						Bitmask: 0xC, Title: "Synch Note 2 - Updated",
