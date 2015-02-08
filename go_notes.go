@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"log"
-	// "io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -126,6 +125,7 @@ func migrate() {
 	db.Model(&Note{}).AddUniqueIndex("idx_note_title", "title")
 	db.Model(&NoteChange{}).AddIndex("idx_note_change_created_at", "created_at")
 	db.Model(&NoteChange{}).AddUniqueIndex("idx_note_change_guid", "guid")
+	db.Model(&NoteChange{}).AddUniqueIndex("idx_note_change_note_guid", "note_guid")
 
 	ensureDBSig() // Initialize local with a SHA1 signature if it doesn't already have one
 	println("Migration complete")
@@ -143,7 +143,7 @@ func ensureDBSig() {
 			println("Local signature created")
 		}
 	} else {
-		panic("Error in the 'local_sigs' table. There should be only one good row")
+		panic("Error in the 'local_sigs' table. There should be only one and only one good row")
 	}
 
 	//we will also update this row with a pointer to the last changeset - NO! -

@@ -9,9 +9,12 @@ import(
 )
 
 func synch_server() { // WIP
-	fmt.Println("Server listening on port: " + SYNCH_PORT + " - CTRL-C to quit")
 	ln, err := net.Listen("tcp", ":" + SYNCH_PORT) // counterpart of net.Dial
-	if err != nil {	println("TODO - handle TCP error") }
+	if err != nil {
+		println("Error setting up server listen on port", SYNCH_PORT)
+		return
+	}
+	fmt.Println("Server listening on port: " + SYNCH_PORT + " - CTRL-C to quit")
 
 	for {
 		conn, err := ln.Accept() // this blocks until connection or error
@@ -37,7 +40,8 @@ func handleConnection(conn net.Conn) {
 			msg.Type = "WhoIAm"
 			sendMsg(enc, msg)
 		case "NumberOfChanges":
-			msg.Param = "3"
+			// msg.Param will include the synch_point, so send # changes since synch point
+			msg.Param = "4"
 			sendMsg(enc, msg)
 		case "SendChanges":
 			msg.Type = "NoteChange"
@@ -45,6 +49,7 @@ func handleConnection(conn net.Conn) {
 
 			// Send a Create Change
 			noteGuid := generate_sha1() // we use the note guid in two places (a little denormalization)
+			note1Guid := noteGuid
 			msg.NoteChg = NoteChange{
 				Operation: 1,
 				Guid: generate_sha1(),
@@ -81,6 +86,16 @@ func handleConnection(conn net.Conn) {
 				NoteFragment: NoteFragment{
 						Bitmask: 0xC, Title: "Synch Note 2 - Updated",
 						Description: "Updated!"},
+			}
+			sendMsg(enc, msg)
+
+			// Send a Delete Change
+			msg.NoteChg = NoteChange{
+				Operation: 3,
+				Guid: generate_sha1(),
+				NoteGuid: note1Guid,
+				Note: Note{},
+				NoteFragment: NoteFragment{},
 			}
 			sendMsg(enc, msg)
 
