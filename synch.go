@@ -23,7 +23,7 @@ func synch_client(host string) {
 	rcxMsg(dec, &msg) // Decode the response
 	if msg.Type == "WhoIAm" {
 		peer_id := msg.Param
-		println("The server's database id is", peer_id)
+		println("The server's id is", peer_id)
 
 		//Do we have a point of last synchronization with this peer?
 		var synch_point string  // defaults to empty
@@ -73,10 +73,23 @@ func synch_client(host string) {
 			// When done push this note Guid to the completed array
 		}
 
-		// lastSynchPoint := ""
+		var lastSynchPoint string
+		if ln := len(peer_changes); ln > 0 {
+			lastSynchPoint = peer_changes[ln - 1].Guid
+		}
 		// Save the last synch point
-		if peer.Id != 0 {
-//			TODO - Save last synch point
+		if peer.Id > 0 {
+			peer.SynchPos = lastSynchPoint
+			db.Save(&peer)
+		} else {
+			db.Create(&Peer{Guid: peer_id, SynchPos: lastSynchPoint})
+		}
+		db.Where("guid = ?", peer_id).First(&peer)
+		if peer.SynchPos == lastSynchPoint {
+			println("Peer Synch Point saved:", lastSynchPoint)
+		} else {
+			println("Warning! Could not save a synch point for peer:", peer_id[:9],
+					"Future synchs with this peer may be unreliable")
 		}
 
 	} else {
