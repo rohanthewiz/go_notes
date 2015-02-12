@@ -191,10 +191,10 @@ func retrieveLocalNoteChangesFromSynchPoint(synch_guid string) ([]NoteChange) {
 	var noteChanges []NoteChange
 
 	db.Where("guid = ?", synch_guid).First(&noteChange) // There should be only one
-	if noteChange.Id == 0 {
-		db.Find(&noteChanges).Order("created_at, asc")
+	if noteChange.Id < 1 {
+		db.Find(&noteChanges).Order("created_at, asc") // Can't find the synch point so send them all
 	} else {
-		db.Where("created_at > " + noteChange.CreatedAt.String()).Find(&noteChanges).Order("created_at, asc")
+		db.Where("created_at > " + noteChange.CreatedAt.String()).Find(&noteChanges).Order("created_at asc")
 	}
 	return noteChanges
 }
