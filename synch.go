@@ -17,13 +17,14 @@ func synch_client(host string) {
 	msg := Message{} // init to empty struct
 	enc := gob.NewEncoder(conn)
 	dec := gob.NewDecoder(conn)
-    
+	defer sendMsg(enc, Message{Type: "Hangup", Param: "", NoteChg: NoteChange{}})
+
 	// Send handshake
 	sendMsg(enc, Message{Type: "WhoAreYou"})
 	rcxMsg(dec, &msg) // Decode the response
 	if msg.Type == "WhoIAm" {
 		peer_id := msg.Param
-		println("The server's id is", peer_id)
+		println("The server's id is", short_sha(peer_id))
 
 		//Do we have a point of last synchronization with this peer?
 		var synch_point string  // defaults to empty
@@ -33,13 +34,10 @@ func synch_client(host string) {
 			// If we are already in synch, abort
 			last_change := retrieveLatestChange()
 			if last_change.Id > 0 && last_change.Guid == peer.SynchPos {
-				println("We are already in synch with this peer (Guid: %s) at (Last Change: %s)", last_change.Guid )
-				return
-			} else {
-				synch_point = peer.SynchPos
+				synch_point = peer.SynchPos // otherwize synch_point will be ""
 			}
 		}
-		println("Synch position is ", synch_point)
+		pf("Last known Synch position is \"%s\"\n", short_sha(synch_point))
 		sendMsg(enc, Message{Type: "NumberOfChanges", Param: synch_point})
 		rcxMsg(dec, &msg) // Decode the response
 		numChanges, err := strconv.Atoi(msg.Param)
@@ -55,7 +53,6 @@ func synch_client(host string) {
 		}
 		pf("\n%d peer changes received:\n", numChanges)
 
-		defer sendMsg(enc, Message{Type: "Hangup", Param: "", NoteChg: NoteChange{}})
 
 		//PROCESS CHANGES
 
@@ -73,11 +70,11 @@ func synch_client(host string) {
 			// When done push this note Guid to the completed array
 		}
 
+		// Save the last synch point - //TODO - How does success above influence the last synch point?
 		var lastSynchPoint string
 		if ln := len(peer_changes); ln > 0 {
 			lastSynchPoint = peer_changes[ln - 1].Guid
 		}
-		// Save the last synch point
 		if peer.Id > 0 {
 			peer.SynchPos = lastSynchPoint
 			db.Save(&peer)
@@ -86,9 +83,9 @@ func synch_client(host string) {
 		}
 		db.Where("guid = ?", peer_id).First(&peer)
 		if peer.SynchPos == lastSynchPoint {
-			println("Peer Synch Point saved:", lastSynchPoint)
+			println("Peer Synch Point saved:", short_sha(lastSynchPoint))
 		} else {
-			println("Warning! Could not save a synch point for peer:", peer_id[:9],
+			println("Warning! Could not save a synch point for peer:", short_sha(peer_id),
 					"Future synchs with this peer may be unreliable")
 		}
 
@@ -114,26 +111,28 @@ func retrieveLatestChange() (NoteChange) {
 
 func performNoteChange(nc NoteChange) bool {
 	fmt.Printf("Operation: %d, Title: %s, Guid: %s, NoteGuid: %s, CreatedAt: %s\n",
-			nc.Operation, nc.Note.Title, nc.Guid[:9], nc.NoteGuid[:9], nc.CreatedAt)
+			nc.Operation, nc.Note.Title, short_sha(nc.Guid), short_sha(nc.NoteGuid), nc.CreatedAt)
 	// Get The latest change for the current note in the local changeset
 	last_nc := retrieveLastChangeForNote(nc.NoteGuid)
 
 	switch nc.Operation {
 	case op_create:
 		if last_nc.Id > 0 {
-			println("Note - Title", last_nc.Note.Title, "Guid:", last_nc.NoteGuid[:9], "already exists locally - cannot create")
+			println("Note - Title", last_nc.Note.Title, "Guid:", short_sha(last_nc.NoteGuid), "already exists locally - cannot create")
 			return false
 		}
+		nc.Note.Id = 0 // A non-zero Id will not be created
 	case op_update:
 		note, err := getNote(nc.NoteGuid)
 		if err != nil {
-			println("Cannot update a non-existent note:", nc.NoteGuid[:9])
+			println("Cannot update a non-existent note:", short_sha(nc.NoteGuid))
 			return false
 		}
 		updateNote(note, nc)
+		nc.NoteFragment.Id = 0 // So the fragment can be created locally
 	case op_delete:
 		if last_nc.Id < 1 {
-			fmt.Printf("Cannot delete a non-existent note (Guid:%s)", nc.NoteGuid[:9])
+			fmt.Printf("Cannot delete a non-existent note (Guid:%s)", short_sha(nc.NoteGuid))
 			return false
 		} else {
 			db.Where("guid = ?", last_nc.NoteGuid).Delete(Note{})
@@ -167,11 +166,11 @@ func saveNoteChange(note_change NoteChange) bool {
 	fmt.Printf("Saving change object...\n%v", note_change) // TODO - remove this for production
 	db.Create(&note_change) // will auto create contained objects too and it's smart - 'nil' children will not be created :-)
 	if !db.NewRecord(note_change) { // was it saved?
-		println("Note change saved:", note_change.Guid, ", Operation:", note_change.Operation)
+		println("Note change saved:", short_sha(note_change.Guid), ", Operation:", note_change.Operation)
 		return true
 	}
 	println("Failed to record note changes.", note_change.Note.Title, "Changed note Guid:",
-			note_change.NoteGuid[:9], "NoteChange Guid:", note_change.Guid[:9])
+			short_sha(note_change.NoteGuid), "NoteChange Guid:", short_sha(note_change.Guid))
 	return false
 }
 
@@ -192,9 +191,10 @@ func retrieveLocalNoteChangesFromSynchPoint(synch_guid string) ([]NoteChange) {
 
 	db.Where("guid = ?", synch_guid).First(&noteChange) // There should be only one
 	if noteChange.Id < 1 {
+		println("Can't find synch point locally", short_sha(synch_guid))
 		db.Find(&noteChanges).Order("created_at, asc") // Can't find the synch point so send them all
 	} else {
-		db.Where("created_at > " + noteChange.CreatedAt.String()).Find(&noteChanges).Order("created_at asc")
+		db.Where("created_at > '" + noteChange.CreatedAt.String() + "'").Find(&noteChanges).Order("created_at asc")
 	}
 	return noteChanges
 }

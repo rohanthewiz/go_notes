@@ -43,20 +43,75 @@ func handleConnection(conn net.Conn) {
 			msg.Type = "WhoIAm"
 			sendMsg(enc, msg)
 		case "NumberOfChanges":
-			// msg.Param will include the synch_point, so send # changes since synch point
-			note_changes :=	retrieveLocalNoteChangesFromSynchPoint(msg.Param)
+			// msg.Param will include the synch_point, so send num of changes since synch point
+			note_changes = retrieveLocalNoteChangesFromSynchPoint(msg.Param)
 			msg.Param = strconv.Itoa(len(note_changes))
 //			fmt.Sprintf(msg.Param, "%d", len(note_changes))
 			sendMsg(enc, msg)
 		case "SendChanges":
 			msg.Type = "NoteChange"
 			msg.Param = ""
-
+			var note Note
+			var note_frag NoteFragment
 			for _, change := range(note_changes) {
+				note = Note{}
+				note_frag = NoteFragment{}
+				// We have the change but now we need the NoteFragment or Note depending on the operation type
+				if change.Operation == 1 {
+					db.Where("id = ?", change.NoteId).First(&note)
+					note.Id = 0
+					change.Note = note
+				}
+				if change.Operation == 2 {
+					db.Where("id = ?", change.NoteFragmentId).First(&note_frag)
+					change.NoteFragment = note_frag
+				}
 				msg.NoteChg = change
-				pf("NoteChg is %v", msg.NoteChg)
+				pf("NoteChg is %v\n", msg.NoteChg)
 				sendMsg(enc, msg)
 			}
+
+		default:
+			println("Unknown message type received", msg.Type)
+			printHangupMsg(conn); return
+		}
+	}
+}
+
+func whoAmI() string {
+	var sig []LocalSig
+	db.Find(&sig)
+	if len(sig) > 0 {
+		return sig[0].Guid
+	}
+	return ""
+}
+
+func sendMsg(encoder *gob.Encoder, msg Message) {
+	encoder.Encode(msg); printMsg(msg, false)
+	time.Sleep(10)
+}
+
+func rcxMsg(decoder *gob.Decoder, msg *Message) {
+	time.Sleep(10)
+	decoder.Decode(&msg); printMsg(*msg, true)
+}
+
+func printHangupMsg(conn net.Conn) {
+	fmt.Printf("Closing connection: %+v...\n----------------------------------------------\n", conn)
+}
+
+func printMsg(msg Message, rcx bool) {
+	if rcx { print("Received: ")
+	} else {
+		print("Sent: ")
+	}
+	fmt.Printf("%+v\n----------------------------------------------\n", msg)
+}
+
+// CODE_SCRAP
+//	fmt.Printf("encoder is a type of: %v\n", reflect.TypeOf(encoder))
+
 //			// Send a Create Change
 //			noteGuid := generate_sha1() // we use the note guid in two places (a little denormalization)
 //			note1Guid := noteGuid
@@ -108,44 +163,3 @@ func handleConnection(conn net.Conn) {
 //				NoteFragment: NoteFragment{},
 //			}
 //			sendMsg(enc, msg)
-
-		default:
-			println("Unknown message type received")
-		}
-	}
-}
-
-func whoAmI() string {
-	var sig []LocalSig
-	db.Find(&sig)
-	if len(sig) > 0 {
-		return sig[0].Guid
-	}
-	return ""
-}
-
-func sendMsg(encoder *gob.Encoder, msg Message) {
-	encoder.Encode(msg); printMsg(msg, false)
-	time.Sleep(10)
-}
-
-func rcxMsg(decoder *gob.Decoder, msg *Message) {
-	time.Sleep(10)
-	decoder.Decode(&msg); printMsg(*msg, true)
-}
-
-func printHangupMsg(conn net.Conn) {
-	fmt.Printf("Closing connection: %+v...\n----------------------------------------------\n", conn)
-}
-
-func printMsg(msg Message, rcx bool) {
-	if rcx { print("Received: ")
-	} else {
-		print("Sent: ")
-	}
-	fmt.Printf("%+v\n----------------------------------------------\n", msg)
-}
-
-// CODE_SCRAP
-//	fmt.Printf("encoder is a type of: %v\n", reflect.TypeOf(encoder))
-

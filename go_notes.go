@@ -49,7 +49,6 @@ type NoteChange struct {
 
 type NoteFragment struct {
 	Id          int64
-	NoteGuid		string `sql: "size:40"` // Guid of the note
 	Bitmask		int16	// Indicate Active fields (allows for empty string update)
 						// 0x8 - Title, 0x4 - Description, 0x2 - Body, 0x1 - Tag
 	Title       string `sql: "size:128"`
@@ -123,9 +122,9 @@ func migrate() {
 
 	db.Model(&Note{}).AddUniqueIndex("idx_note_guid", "guid")
 	db.Model(&Note{}).AddUniqueIndex("idx_note_title", "title")
-	db.Model(&NoteChange{}).AddIndex("idx_note_change_created_at", "created_at")
 	db.Model(&NoteChange{}).AddUniqueIndex("idx_note_change_guid", "guid")
-	db.Model(&NoteChange{}).AddUniqueIndex("idx_note_change_note_guid", "note_guid")
+	db.Model(&NoteChange{}).AddIndex("idx_note_change_note_guid", "note_guid")
+	db.Model(&NoteChange{}).AddIndex("idx_note_change_created_at", "created_at")
 
 	ensureDBSig() // Initialize local with a SHA1 signature if it doesn't already have one
 	println("Migration complete")
@@ -416,54 +415,85 @@ func updateNotes(notes []Note) {
 		fmt.Scanln(&input) // Get keyboard input
 		if input == "y" || input == "Y" {
 			reader := bufio.NewReader(os.Stdin)
+			var nf NoteFragment = NoteFragment{}
 
 			println("\nTitle-->" + n.Title)
 			fmt.Println("Enter new Title (or '+ blah' to append, or <ENTER> for no change)")
 			tit, _ := reader.ReadString('\n')
 			tit = strings.TrimRight(tit, " \r\n")
+
+			orig_title := n.Title
 			if len(tit) > 1 && tit[0:1] == "+" {
-				n.Title = n.Title + tit[1:]
+				n.Title += tit[1:]
 			} else if len(tit) > 0 {
 				n.Title = tit
+			}
+			if orig_title != n.Title { //Build NoteFragment
+				nf.Title = n.Title
+				nf.Bitmask |= 8
 			}
 
 			println("Description-->" + n.Description)
 			fmt.Println("Enter new Description (or '-' to blank, '+ blah' to append, or <ENTER> for no change)")
 			desc, _ := reader.ReadString('\n')
 			desc = strings.TrimRight(desc, " \r\n")
+
+			orig_desc := n.Description
 			if desc == "-" {
 				n.Description = ""
 			} else if len(desc) > 1 && desc[0:1] == "+" {
-				n.Description = n.Description + desc[1:]
+				n.Description += desc[1:]
 			} else if len(desc) > 0 {
 				n.Description = desc
+			}
+			if orig_desc != n.Description { //Build NoteFragment
+				nf.Description = n.Description
+				nf.Bitmask |= 4
 			}
 
 			println("Body-->" + n.Body)
 			fmt.Println("Enter new Body (or '-' to blank, '+ blah' to append, or <ENTER> for no change)")
 			body, _ := reader.ReadString('\n')
 			body = strings.TrimRight(body, " \r\n ")
+
+			orig_body := n.Body
 			if body == "-" {
 				n.Body = ""
 			} else if len(body) > 1 && body[0:1] == "+" {
-				n.Body = n.Body + body[1:]
+				n.Body += body[1:]
 			} else if len(body) > 0 {
 				n.Body = body
+			}
+			if orig_body != n.Body { //Build NoteFragment
+				nf.Body = n.Body
+				nf.Bitmask |= 2
 			}
 
 			println("Tags-->" + n.Tag)
 			fmt.Println("Enter new Tags (or '-' to blank, '+ blah' to append, or <ENTER> for no change)")
 			tag, _ := reader.ReadString('\n')
 			tag = strings.TrimRight(tag, " \r\n ")
+
+			orig_tag := n.Tag
 			if tag == "-" {
 				n.Tag = ""
 			} else if len(tag) > 1 && tag[0:1] == "+" {
-				n.Tag = n.Tag + tag[1:]
+				n.Tag += tag[1:]
 			} else if len(tag) > 0 {
 				n.Tag = tag
 			}
+			if orig_tag != n.Tag { //Build NoteFragment
+				nf.Tag = n.Tag
+				nf.Bitmask |= 1
+			}
 
 			db.Save(&n)
+			nc := NoteChange{ Guid: generate_sha1(), NoteGuid: n.Guid, Operation: op_update, NoteFragment: nf }
+			db.Save(&nc)
+			if nc.Id > 0 {
+				pf("NoteChange (%s) created successfully\n", short_sha(nc.Guid))
+			}
+
 			curr_note[0] = n
 			listNotes(curr_note[:], false) // [:] means all of the slice
 		}
