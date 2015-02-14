@@ -121,7 +121,6 @@ func performNoteChange(nc NoteChange) bool {
 			println("Note - Title", last_nc.Note.Title, "Guid:", short_sha(last_nc.NoteGuid), "already exists locally - cannot create")
 			return false
 		}
-		nc.Note.Id = 0 // A non-zero Id will not be created
 	case op_update:
 		note, err := getNote(nc.NoteGuid)
 		if err != nil {
@@ -129,7 +128,6 @@ func performNoteChange(nc NoteChange) bool {
 			return false
 		}
 		updateNote(note, nc)
-		nc.NoteFragment.Id = 0 // So the fragment can be created locally
 	case op_delete:
 		if last_nc.Id < 1 {
 			fmt.Printf("Cannot delete a non-existent note (Guid:%s)", short_sha(nc.NoteGuid))
@@ -137,7 +135,6 @@ func performNoteChange(nc NoteChange) bool {
 		} else {
 			db.Where("guid = ?", last_nc.NoteGuid).Delete(Note{})
 		}
-
 	default:
 		return false
 	}
@@ -162,15 +159,18 @@ func updateNote(note Note, nc NoteChange) {
 }
 
 // Save the change object which will create a Note on CreateOp or a NoteFragment on UpdateOp
-func saveNoteChange(note_change NoteChange) bool {
-	fmt.Printf("Saving change object...\n%v", note_change) // TODO - remove this for production
-	db.Create(&note_change) // will auto create contained objects too and it's smart - 'nil' children will not be created :-)
-	if !db.NewRecord(note_change) { // was it saved?
-		println("Note change saved:", short_sha(note_change.Guid), ", Operation:", note_change.Operation)
+func saveNoteChange(nc NoteChange) bool {
+	fmt.Printf("Saving change object...\n%s", short_sha(nc.Guid))
+	// Make sure all ids are zeroed - A non-zero Id will not be created
+	nc.Id = 0; nc.Note.Id = 0; nc.NoteFragment.Id = 0
+
+	db.Create(&nc) // will auto create contained objects too and it's smart - 'nil' children will not be created :-)
+	if !db.NewRecord(nc) { // was it saved?
+		println("Note change saved:", short_sha(nc.Guid), ", Operation:", nc.Operation)
 		return true
 	}
-	println("Failed to record note changes.", note_change.Note.Title, "Changed note Guid:",
-			short_sha(note_change.NoteGuid), "NoteChange Guid:", short_sha(note_change.Guid))
+	println("Failed to record note changes.", nc.Note.Title, "Changed note Guid:",
+			short_sha(nc.NoteGuid), "NoteChange Guid:", short_sha(nc.Guid))
 	return false
 }
 
