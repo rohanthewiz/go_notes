@@ -399,9 +399,18 @@ func deleteNotes(notes []Note) {
 		var input string
 		fmt.Scanln(&input) // Get keyboard input
 		if input == "y" || input == "Y" {
-			db.Delete(&n)
-			println("Note", save_id, "deleted")
+			doDelete(n)
+			println("Note [", save_id, "] deleted")
 		}
+	}
+}
+
+func doDelete(note Note) {
+	db.Delete(&note)
+	nc := NoteChange{ Guid: generate_sha1(), NoteGuid: note.Guid, Operation: op_delete }
+	db.Save(&nc)
+	if nc.Id > 0 { // Hopefully nc was reloaded
+		pf("NoteChange (%s) created successfully\n", short_sha(nc.Guid))
 	}
 }
 
