@@ -121,6 +121,7 @@ func performNoteChange(nc NoteChange) bool {
 			println("Note - Title", last_nc.Note.Title, "Guid:", short_sha(last_nc.NoteGuid), "already exists locally - cannot create")
 			return false
 		}
+		nc.Note.Id = 0  // Make sure the embedded note object has a zero id for creation
 	case op_update:
 		note, err := getNote(nc.NoteGuid)
 		if err != nil {
@@ -128,6 +129,7 @@ func performNoteChange(nc NoteChange) bool {
 			return false
 		}
 		updateNote(note, nc)
+		nc.NoteFragment.Id = 0 // Make sure the embedded note_fragment has a zero id for creation
 	case op_delete:
 		if last_nc.Id < 1 {
 			fmt.Printf("Cannot delete a non-existent note (Guid:%s)", short_sha(nc.NoteGuid))
@@ -162,7 +164,7 @@ func updateNote(note Note, nc NoteChange) {
 func saveNoteChange(nc NoteChange) bool {
 	fmt.Printf("Saving change object...\n%s", short_sha(nc.Guid))
 	// Make sure all ids are zeroed - A non-zero Id will not be created
-	nc.Id = 0; nc.Note.Id = 0; nc.NoteFragment.Id = 0
+	nc.Id = 0
 
 	db.Create(&nc) // will auto create contained objects too and it's smart - 'nil' children will not be created :-)
 	if !db.NewRecord(nc) { // was it saved?
@@ -172,16 +174,6 @@ func saveNoteChange(nc NoteChange) bool {
 	println("Failed to record note changes.", nc.Note.Title, "Changed note Guid:",
 			short_sha(nc.NoteGuid), "NoteChange Guid:", short_sha(nc.Guid))
 	return false
-}
-
-func getNote(guid string) (Note, error) {
-	var note Note
-	db.Where("guid = ?", guid).First(&note)
-	if note.Id != 0 {
-		return note, nil
-	} else {
-		return note, errors.New("Note not found")
-	}
 }
 
 // Currently unused // Get all local NCs later than the synchPoint
@@ -230,7 +222,7 @@ func retrieveNoteChangeByObject(nc NoteChange) (NoteChange, error) {
 	if len(noteChanges) == 1 {
 		return noteChanges[0], nil
 	} else {
-		return NoteChange{}, errors.New("Note not found")
+		return NoteChange{}, errors.New("NoteChange not found")
 	}
 }
 
@@ -252,4 +244,11 @@ func retrieveNoteFrag(nc NoteChange) (NoteFragment, error) {
 	} else {
 		return NoteFragment{}, errors.New("NoteFragment not found")
 	}
+}
+
+func printNoteChange(nc NoteChange) {
+	pf("NoteChange: {Id: %d, Guid: %s, NoteGuid: %s, Oper: %d\nNote: {Id: %d, Guid: %s, Title: %s}\nNoteFragment: {Id: %d, Bitmask: %d, Title: %s, Description: %s, Body: %s, Tag: %s}}\n",
+		nc.Id, short_sha(nc.Guid), short_sha(nc.NoteGuid), nc.Operation, nc.NoteId, short_sha(nc.Note.Guid), nc.Note.Title,
+		nc.NoteFragment.Id, nc.NoteFragment.Bitmask, nc.NoteFragment.Title, nc.NoteFragment.Description, nc.NoteFragment.Body, nc.NoteFragment.Tag,
+	)
 }

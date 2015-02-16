@@ -46,7 +46,6 @@ func handleConnection(conn net.Conn) {
 			// msg.Param will include the synch_point, so send num of changes since synch point
 			note_changes = retrieveLocalNoteChangesFromSynchPoint(msg.Param)
 			msg.Param = strconv.Itoa(len(note_changes))
-//			fmt.Sprintf(msg.Param, "%d", len(note_changes))
 			sendMsg(enc, msg)
 		case "SendChanges":
 			msg.Type = "NoteChange"
@@ -67,7 +66,7 @@ func handleConnection(conn net.Conn) {
 					change.NoteFragment = note_frag
 				}
 				msg.NoteChg = change
-				pf("NoteChg is %v\n", msg.NoteChg)
+				printNoteChange(msg.NoteChg)
 				sendMsg(enc, msg)
 			}
 
@@ -98,15 +97,17 @@ func rcxMsg(decoder *gob.Decoder, msg *Message) {
 }
 
 func printHangupMsg(conn net.Conn) {
-	fmt.Printf("Closing connection: %+v...\n----------------------------------------------\n", conn)
+	fmt.Printf("Closing connection: %+v\n----------------------------------------------\n", conn)
 }
 
 func printMsg(msg Message, rcx bool) {
+	println("\n----------------------------------------------")
 	if rcx { print("Received: ")
 	} else {
 		print("Sent: ")
 	}
-	fmt.Printf("%+v\n----------------------------------------------\n", msg)
+	println("Msg Type:", msg.Type, " Msg Param:", short_sha(msg.Param))
+	printNoteChange(msg.NoteChg)
 }
 
 // CODE_SCRAP

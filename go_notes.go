@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"errors"
 	"encoding/csv"
 	"encoding/gob"
 	"net/http"
@@ -293,6 +294,16 @@ func do_create(note Note) bool {
 	})
 	println("Record saved:", note.Title)
 	return true
+}
+
+func getNote(guid string) (Note, error) {
+	var note Note
+	db.Where("guid = ?", guid).First(&note)
+	if note.Id != 0 {
+		return note, nil
+	} else {
+		return note, errors.New("Note not found")
+	}
 }
 
 func find_note_by_title(title string) (bool, Note) {
