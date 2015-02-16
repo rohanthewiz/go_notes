@@ -369,8 +369,8 @@ func importGob(in_file string) {
 				listNotes([]Note{note}, false) // [:] means all of the slice
 			}	else { println("The imported note is not newer, ignoring...")}
 		} else {
-			do_create( Note{ Title: n.Title, Description: n.Description, Body: n.Body, Tag: n.Tag } )
-			fmt.Printf("Created -->Title: %s - Desc: %s\nBody: %s\nTags: %s\n", n.Title, n.Description, n.Body, n.Tag)
+			do_create( Note{ Guid: generate_sha1(), Title: n.Title, Description: n.Description, Body: n.Body, Tag: n.Tag } )
+			fmt.Printf("Created -->Guid: %s, Title: %s - Desc: %s\nBody: %s\nTags: %s\n", short_sha(n.Guid), n.Title, n.Description, n.Body, n.Tag)
 		}
 	}
 }
@@ -394,7 +394,7 @@ func importCsv(in_file string) {
 			// we could check an 'update on import' option here, set the corresponding fields, then save
 			// or we could decide to update based on last_updated, but the export would have to save updated times - this would be a gob format
 		} else {
-			do_create( Note{Title: f[0], Description: f[1], Body: f[2], Tag: f[3]} )
+			do_create( Note{Guid: generate_sha1(), Title: f[0], Description: f[1], Body: f[2], Tag: f[3]} )
 			fmt.Printf("Created -->Title: %s - Desc: %s\nBody: %s\nTags: %s\n", f[0], f[1], f[2], f[3])
 		}
 	}
