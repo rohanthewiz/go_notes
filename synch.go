@@ -6,9 +6,31 @@ import(
 	"net"
 	"sort"
 	"encoding/gob"
-	"errors"
-	//"time"
+	"time"
 )
+
+type LocalSig struct {
+	Id 			int64
+	Guid		string `sql: "size:40"`
+	CreatedAt	time.Time
+}
+
+type Peer struct {
+	Id			int64
+	Guid		string `sql: "size:40"`
+	Name		string `sql: "size:64"`
+	SynchPos	string `sql: "size:40"` // Last changeset applied
+	CreatedAt 	time.Time
+	UpdatedAt	time.Time
+}
+
+type Message struct {
+	Type		string
+	Param		string
+	NoteChg		NoteChange
+}
+
+const SYNCH_PORT  string = "8080"
 
 func synch_client(host string) {
 	conn, err := net.Dial("tcp", host + ":" + SYNCH_PORT)
@@ -214,41 +236,4 @@ func verifyNoteChangeApplied(nc NoteChange) {
 			fmt.Printf("Note Fragment created:\n%v\n", retrievedFrag)
 		}
 	}
-}
-
-func retrieveNoteChangeByObject(nc NoteChange) (NoteChange, error) {
-	var noteChanges []NoteChange
-	db.Where("guid = ?", nc.Guid).Limit(1).Find(&noteChanges)
-	if len(noteChanges) == 1 {
-		return noteChanges[0], nil
-	} else {
-		return NoteChange{}, errors.New("NoteChange not found")
-	}
-}
-
-func retrieveChangedNote(nc NoteChange) (Note, error) {
-	var note Note
-	db.Model(&nc).Related(&note)
-	if note.Id > 0 {
-		return note, nil
-	} else {
-		return Note{}, errors.New("Note not found")
-	}
-}
-
-func retrieveNoteFrag(nc NoteChange) (NoteFragment, error) {
-	var noteFrag NoteFragment
-	db.Model(&nc).Related(&noteFrag)
-	if noteFrag.Id > 0 {
-		return noteFrag, nil
-	} else {
-		return NoteFragment{}, errors.New("NoteFragment not found")
-	}
-}
-
-func printNoteChange(nc NoteChange) {
-	pf("NoteChange: {Id: %d, Guid: %s, NoteGuid: %s, Oper: %d\nNote: {Id: %d, Guid: %s, Title: %s}\nNoteFragment: {Id: %d, Bitmask: %d, Title: %s, Description: %s, Body: %s, Tag: %s}}\n",
-		nc.Id, short_sha(nc.Guid), short_sha(nc.NoteGuid), nc.Operation, nc.NoteId, short_sha(nc.Note.Guid), nc.Note.Title,
-		nc.NoteFragment.Id, nc.NoteFragment.Bitmask, nc.NoteFragment.Title, nc.NoteFragment.Description, nc.NoteFragment.Body, nc.NoteFragment.Tag,
-	)
 }

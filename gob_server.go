@@ -110,7 +110,8 @@ func printMsg(msg Message, rcx bool) {
 	printNoteChange(msg.NoteChg)
 }
 
-// CODE_SCRAP
+
+// CODE_SCRAP // Yes. A compiled language allows us to do this without any runtime penalty
 //	fmt.Printf("encoder is a type of: %v\n", reflect.TypeOf(encoder))
 
 //			// Send a Create Change
