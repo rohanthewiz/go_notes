@@ -6,6 +6,8 @@ import(
 	"crypto/sha1"
 )
 
+var pf = fmt.Printf
+
 func generate_sha1() string {
 	return fmt.Sprintf("%x", sha1.Sum([]byte("%$" + time.Now().String() + "e{")))
 }

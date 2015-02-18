@@ -75,7 +75,6 @@ func synch_client(host string) {
 		}
 		pf("\n%d peer changes received:\n", numChanges)
 
-
 		//PROCESS CHANGES
 
 		sort.Sort(byCreatedAt(peer_changes)) // we will apply in created order
@@ -132,8 +131,7 @@ func retrieveLatestChange() (NoteChange) {
 }
 
 func performNoteChange(nc NoteChange) bool {
-	fmt.Printf("Operation: %d, Title: %s, Guid: %s, NoteGuid: %s, CreatedAt: %s\n",
-			nc.Operation, nc.Note.Title, short_sha(nc.Guid), short_sha(nc.NoteGuid), nc.CreatedAt)
+	printNoteChange(nc)
 	// Get The latest change for the current note in the local changeset
 	last_nc := retrieveLastChangeForNote(nc.NoteGuid)
 
