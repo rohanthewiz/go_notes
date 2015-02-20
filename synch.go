@@ -41,8 +41,20 @@ func synch_client(host string) {
 	dec := gob.NewDecoder(conn)
 	defer sendMsg(enc, Message{Type: "Hangup", Param: "", NoteChg: NoteChange{}})
 
+	// Get local DB signature
+	var local_sig LocalSig
+	db.First(&local_sig)
+	if local_sig.Id < 1 {
+		migrate()
+		db.First(&local_sig)
+		if local_sig.Id < 1 {
+			println("Could not locate or create local database signature.\nYou should back up your notes, delete the local database, import your notes then try again")
+		}
+	}
+
 	// Send handshake
-	sendMsg(enc, Message{Type: "WhoAreYou"})
+
+	sendMsg(enc, Message{Type: "WhoAreYou", Param: local_sig.Guid})
 	rcxMsg(dec, &msg) // Decode the response
 	if msg.Type == "WhoIAm" {
 		peer_id := msg.Param
@@ -75,8 +87,15 @@ func synch_client(host string) {
 		}
 		pf("\n%d peer changes received:\n", numChanges)
 
-		//PROCESS CHANGES
+		// Now receive my changes - We should use a goroutine here
+		// WIP // WIP // WIP
+//		sendMsg(enc, Message{Type: "NumberOfClientChanges", Param: synch_point})
+//		rcxMsg(dec, &msg)
+//		if msg.Type == "SendChanges" {
+//			// Send local changes since synch point across here
+//		}
 
+		//PROCESS CHANGES
 		sort.Sort(byCreatedAt(peer_changes)) // we will apply in created order
 
 		for _, change := range(peer_changes) {
@@ -235,3 +254,36 @@ func verifyNoteChangeApplied(nc NoteChange) {
 		}
 	}
 }
+
+/*	We did not follow some of the below
+    Synch philosophy - From the Perspective of the Client
+
+    	- Have we met before? - Do I have you as a peer stored in my peer DB?
+    		- Yes: Pull up the last synch point - Changeset from our Peer db
+    			(the server should have a matching synch point for us)
+    		- Else: Synch point will be 0 index of changesets sorted by created at ASC
+    	- Are we in synch? - Does your latest change = my latest change?
+    		Else let's synch
+
+			Actual synching
+			- From the synch point
+				- Get all changesets from both sides more recent than the synch point
+				- mark each change with a boolean 'local'
+				- store in arr_unsynched_changes --> arr_uc
+				- Sort by note guid, then by date asc
+					- apply by desired algorithm
+						(Thoughts)
+						- apply by created_at asc?
+						- don't apply changes I don't own
+						- maintain the guid of the change, but it is recreated so new created_at on applyee
+						(More Thoughts)
+						- Apply update changes in date order however
+							- Delete - Ends applying of changesets for that note
+							- Create cannot follow Create or Update
+							- In the DB make sure GUIDs are unique - so shouldn't have to check for create, update
+
+			- We need to save our current synch point
+				- sort the unsynched changes array by created_at
+				- save the latest changeset guid in our peer db and the same guid in server's peer db
+*/
+

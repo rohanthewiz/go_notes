@@ -2,10 +2,11 @@
 package main
 import(
 	//"reflect"
+	"os"
 	"net"
 	"encoding/gob"
 	"fmt"
-	"time"
+	//"time"
 	"strconv"
 )
 
@@ -38,6 +39,8 @@ func handleConnection(conn net.Conn) {
 		switch msg.Type {
 		case "Hangup":
 			printHangupMsg(conn); return
+		case "Quit":
+			println("Quit message received. Exiting..."); os.Exit(1)
 		case "WhoAreYou":
 			msg.Param = whoAmI()
 			msg.Type = "WhoIAm"
@@ -88,11 +91,11 @@ func whoAmI() string {
 
 func sendMsg(encoder *gob.Encoder, msg Message) {
 	encoder.Encode(msg); printMsg(msg, false)
-	time.Sleep(10)
+	//time.Sleep(10)
 }
 
 func rcxMsg(decoder *gob.Decoder, msg *Message) {
-	time.Sleep(10)
+	//time.Sleep(10)
 	decoder.Decode(&msg); printMsg(*msg, true)
 }
 
