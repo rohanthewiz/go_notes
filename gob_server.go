@@ -69,7 +69,7 @@ func handleConnection(conn net.Conn) {
 					change.NoteFragment = note_frag
 				}
 				msg.NoteChg = change
-				printNoteChange(msg.NoteChg)
+				msg.NoteChg.Print()
 				sendMsg(enc, msg)
 			}
 
@@ -110,7 +110,7 @@ func printMsg(msg Message, rcx bool) {
 		print("Sent: ")
 	}
 	println("Msg Type:", msg.Type, " Msg Param:", short_sha(msg.Param))
-	printNoteChange(msg.NoteChg)
+	msg.NoteChg.Print()
 }
 
 

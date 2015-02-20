@@ -150,7 +150,7 @@ func retrieveLatestChange() (NoteChange) {
 }
 
 func performNoteChange(nc NoteChange) bool {
-	printNoteChange(nc)
+	nc.Print()
 	// Get The latest change for the current note in the local changeset
 	last_nc := retrieveLastChangeForNote(nc.NoteGuid)
 
@@ -233,20 +233,20 @@ func retrieveLocalNoteChangesFromSynchPoint(synch_guid string) ([]NoteChange) {
 // VERIFICATION
 
 func verifyNoteChangeApplied(nc NoteChange) {
-	// Verify
 	println("----------------------------------")
-	retrievedChange, err := retrieveNoteChangeByObject(nc)
+	retrievedChange, err := nc.Retrieve()
 	if err != nil {
 		println("Error retrieving the note change")
 	} else if nc.Operation == 1 {
-		retrievedNote, err := retrieveChangedNote(retrievedChange)
+		retrievedNote, err := retrievedChange.RetrieveNote()
+        pf("retrievedNote: %s\n", retrievedNote)
 		if err != nil {
 			println("Error retrieving the note changed")
 		} else {
 			fmt.Printf("Note created:\n%v\n", retrievedNote)
 		}
 	} else if nc.Operation == 2 {
-		retrievedFrag, err := retrieveNoteFrag(retrievedChange)
+		retrievedFrag, err := retrievedChange.RetrieveNoteFrag()
 		if err != nil {
 			println("Error retrieving the note fragment")
 		} else {

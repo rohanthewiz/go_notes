@@ -7,15 +7,15 @@ import (
 
 // Record note changes so we can replay them on synch
 type NoteChange struct {
-Id          int64
-Guid		string `sql: "size:40"` //Guid of the change
-NoteGuid		string `sql: "size:40"` // Guid of the note
-Operation	int32  // 1: Create, 2: Update, 3: Delete
-Note Note
-NoteId int64
-NoteFragment NoteFragment
-NoteFragmentId int64
-CreatedAt   time.Time // A note change is never altered once created
+    Id          int64
+    Guid		string `sql: "size:40"` //Guid of the change
+    NoteGuid		string `sql: "size:40"` // Guid of the note
+    Operation	int32  // 1: Create, 2: Update, 3: Delete
+    Note Note
+    NoteId int64
+    NoteFragment NoteFragment
+    NoteFragmentId int64
+    CreatedAt   time.Time // A note change is never altered once created
 }
 
 const op_create int32 = 1
@@ -44,8 +44,7 @@ func (ncs byCreatedAt) Swap(i int, j int) {
 	ncs[i], ncs[j] = ncs[j], ncs[i]
 }
 
-
-func retrieveNoteChangeByObject(nc NoteChange) (NoteChange, error) {
+func (nc *NoteChange) Retrieve() (NoteChange, error) {
 	var noteChanges []NoteChange
 	db.Where("guid = ?", nc.Guid).Limit(1).Find(&noteChanges)
 	if len(noteChanges) == 1 {
@@ -55,9 +54,9 @@ func retrieveNoteChangeByObject(nc NoteChange) (NoteChange, error) {
 	}
 }
 
-func retrieveChangedNote(nc NoteChange) (Note, error) {
+func (nc *NoteChange) RetrieveNote() (Note, error) {
 	var note Note
-	db.Model(&nc).Related(&note)
+	db.Model(nc).Related(&note)
 	if note.Id > 0 {
 		return note, nil
 	} else {
@@ -65,9 +64,9 @@ func retrieveChangedNote(nc NoteChange) (Note, error) {
 	}
 }
 
-func retrieveNoteFrag(nc NoteChange) (NoteFragment, error) {
+func (nc *NoteChange) RetrieveNoteFrag() (NoteFragment, error) {
 	var noteFrag NoteFragment
-	db.Model(&nc).Related(&noteFrag)
+	db.Model(nc).Related(&noteFrag)
 	if noteFrag.Id > 0 {
 		return noteFrag, nil
 	} else {
@@ -75,7 +74,7 @@ func retrieveNoteFrag(nc NoteChange) (NoteFragment, error) {
 	}
 }
 
-func printNoteChange(nc NoteChange) {
+func (nc *NoteChange) Print() {
 	pf("NoteChange: {Id: %d, Guid: %s, NoteGuid: %s, Oper: %d\nNote: {Id: %d, Guid: %s, Title: %s}\nNoteFragment: {Id: %d, Bitmask: %d, Title: %s, Description: %s, Body: %s, Tag: %s}}\n",
 		nc.Id, short_sha(nc.Guid), short_sha(nc.NoteGuid), nc.Operation, nc.NoteId, short_sha(nc.Note.Guid), nc.Note.Title,
 		nc.NoteFragment.Id, nc.NoteFragment.Bitmask, nc.NoteFragment.Title, nc.NoteFragment.Description, nc.NoteFragment.Body, nc.NoteFragment.Tag,
