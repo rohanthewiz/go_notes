@@ -53,25 +53,26 @@ func synch_client(host string) {
 	}
 
 	// Send handshake
-
 	sendMsg(enc, Message{Type: "WhoAreYou", Param: local_sig.Guid})
 	rcxMsg(dec, &msg) // Decode the response
 	if msg.Type == "WhoIAm" {
 		peer_id := msg.Param
 		println("The server's id is", short_sha(peer_id))
 
-		//Do we have a point of last synchronization with this peer?
-		var synch_point string  // defaults to empty
+		var synch_point string
 		var peer Peer
-		db.Where("guid = ?", peer_id).First(&peer)
-		if peer.Id > 0 && peer.SynchPos != "" {
-			// If we are already in synch, abort
+		db.Where("guid = ?", peer_id).First(&peer) // Do we know of this peer?
+		if peer.Id > 0 && peer.SynchPos != "" { // Do we have a point of last synch with this peer?
 			last_change := retrieveLatestChange()
 			if last_change.Id > 0 && last_change.Guid == peer.SynchPos {
-				synch_point = peer.SynchPos // otherwize synch_point will be ""
+				pf("We are already in synch with peer: %s at note_change: %s\n",
+						short_sha(peer_id), short_sha(last_change.Guid))
+				return
 			}
 		}
 		pf("Last known Synch position is \"%s\"\n", short_sha(synch_point))
+
+		// Get Server Changes
 		sendMsg(enc, Message{Type: "NumberOfChanges", Param: synch_point})
 		rcxMsg(dec, &msg) // Decode the response
 		numChanges, err := strconv.Atoi(msg.Param)
@@ -87,46 +88,33 @@ func synch_client(host string) {
 		}
 		pf("\n%d peer changes received:\n", numChanges)
 
-		// Now receive my changes - We should use a goroutine here
-		// WIP // WIP // WIP
-//		sendMsg(enc, Message{Type: "NumberOfClientChanges", Param: synch_point})
-//		rcxMsg(dec, &msg)
-//		if msg.Type == "SendChanges" {
-//			// Send local changes since synch point across here
-//		}
-
-		//PROCESS CHANGES
-		sort.Sort(byCreatedAt(peer_changes)) // we will apply in created order
-
-		for _, change := range(peer_changes) {
-			println("____________________________________________________________________")
-			// If we already have this NoteChange locally then skip
-			var local_change NoteChange
-			db.Where("guid = ?", change.Guid).First(&local_change)
-			if local_change.Id > 1 { continue } // we already have that NC
-			// Apply Changes
-			performNoteChange(change)
-			verifyNoteChangeApplied(change)
-			// When done push this note Guid to the completed array
-		}
-
-		// Save the last synch point - //TODO - How does success above influence the last synch point?
-		var lastSynchPoint string
-		if ln := len(peer_changes); ln > 0 {
-			lastSynchPoint = peer_changes[ln - 1].Guid
-		}
-		if peer.Id > 0 {
-			peer.SynchPos = lastSynchPoint
-			db.Save(&peer)
-		} else {
-			db.Create(&Peer{Guid: peer_id, SynchPos: lastSynchPoint})
-		}
-		db.Where("guid = ?", peer_id).First(&peer)
-		if peer.SynchPos == lastSynchPoint {
-			println("Peer Synch Point saved:", short_sha(lastSynchPoint))
-		} else {
-			println("Warning! Could not save a synch point for peer:", short_sha(peer_id),
-					"Future synchs with this peer may be unreliable")
+		// Push local changes to server
+		note_changes := retrieveLocalNoteChangesFromSynchPoint(synch_point)
+		go processChanges(peer, &peer_changes) // safe to process peer changes now
+		sendMsg(enc, Message{Type: "NumberOfClientChanges", Param: strconv.Itoa(len(note_changes))})
+		rcxMsg(dec, &msg)
+		if msg.Type == "SendChanges" {
+			msg.Type = "NoteChange"
+			msg.Param = ""
+			var note Note
+			var note_frag NoteFragment
+			for _, change := range (note_changes) {
+				note = Note{}
+				note_frag = NoteFragment{}
+				// We have the change but now we need the NoteFragment or Note depending on the operation type
+				if change.Operation == 1 {
+					db.Where("id = ?", change.NoteId).First(&note)
+					note.Id = 0
+					change.Note = note
+				}
+				if change.Operation == 2 {
+					db.Where("id = ?", change.NoteFragmentId).First(&note_frag)
+					change.NoteFragment = note_frag
+				}
+				msg.NoteChg = change
+				msg.NoteChg.Print()
+				sendMsg(enc, msg)
+			}
 		}
 
 	} else {
@@ -134,7 +122,42 @@ func synch_client(host string) {
 		return
     }
 
-	println("Synch Operation complete")
+	defer println("Synch Operation complete")
+}
+
+func processChanges(peer Peer, peer_changes * []NoteChange) {
+	sort.Sort(byCreatedAt(*peer_changes)) // we will apply in created order
+
+	for _, change := range(*peer_changes) {
+		println("____________________________________________________________________")
+		// If we already have this NoteChange locally then skip
+		var local_change NoteChange
+		db.Where("guid = ?", change.Guid).First(&local_change)
+		if local_change.Id > 1 { continue } // we already have that NC
+		// Apply Changes
+		performNoteChange(change)
+		verifyNoteChangeApplied(change)
+		// When done push this note Guid to the completed array
+	}
+
+	// Save the last synch point - //TODO - How does success above influence the last synch point?
+	var lastSynchPoint string
+	if ln := len(*peer_changes); ln > 0 {
+		lastSynchPoint = (*peer_changes)[ln - 1].Guid
+	}
+	if peer.Id > 0 {
+		peer.SynchPos = lastSynchPoint
+		db.Save(&peer)
+	} else {
+		db.Create(&Peer{Guid: peer.Guid, SynchPos: lastSynchPoint})
+	}
+	db.Where("guid = ?", peer.Guid).First(&peer)
+	if peer.SynchPos == lastSynchPoint {
+		println("Peer Synch Point saved:", short_sha(lastSynchPoint))
+	} else {
+		println("Warning! Could not save a synch point for peer:", short_sha(peer.Guid),
+			"Future synchs with this peer may be unreliable")
+	}
 }
 
 func retrieveLastChangeForNote(note_guid string) (NoteChange) {

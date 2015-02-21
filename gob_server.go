@@ -32,6 +32,9 @@ func handleConnection(conn net.Conn) {
 	dec := gob.NewDecoder(conn)
 
 	var note_changes []NoteChange
+	var peer_id string
+	var peer Peer
+
 	for {
 		msg = Message{}
 		rcxMsg(dec, &msg)
@@ -42,6 +45,7 @@ func handleConnection(conn net.Conn) {
 		case "Quit":
 			println("Quit message received. Exiting..."); os.Exit(1)
 		case "WhoAreYou":
+			peer_id = msg.Param // client db signature
 			msg.Param = whoAmI()
 			msg.Type = "WhoIAm"
 			sendMsg(enc, msg)
@@ -72,7 +76,21 @@ func handleConnection(conn net.Conn) {
 				msg.NoteChg.Print()
 				sendMsg(enc, msg)
 			}
+		case "NumberOfClientChanges":
+			numChanges, err := strconv.Atoi(msg.Param)
+			if err != nil { println("Could not decode the number of change messages"); return }
+			println(numChanges, "changes")
 
+			peer_changes := make([]NoteChange, numChanges)
+			sendMsg(enc, Message{Type: "SendChanges"})
+			for i := 0; i < numChanges; i++ {
+				msg = Message{}
+				rcxMsg(dec, &msg)
+				peer_changes[i] = msg.NoteChg
+			}
+			pf("\n%d peer changes received:\n", numChanges)
+			// TODO - go processChanges(peer, &peer_changes)
+			db.Where("guid = ?", peer_id).First(&peer) // Do we know of this peer?
 		default:
 			println("Unknown message type received", msg.Type)
 			printHangupMsg(conn); return
