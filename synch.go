@@ -58,11 +58,19 @@ func synch_client(host string) {
 	if msg.Type == "WhoIAm" {
 		peer_id := msg.Param
 		println("The server's id is", short_sha(peer_id))
-
+		if len(peer_id) != 40 {
+			println("The server's id is invalid. Run the server once with the -setup_db option")
+			return
+		}
 		var synch_point string
 		var peer Peer
 		db.Where("guid = ?", peer_id).First(&peer) // Do we know of this peer?
-		if peer.Id > 0 && peer.SynchPos != "" { // Do we have a point of last synch with this peer?
+		if peer.Id < 1 {
+			println("Creating new peer:", peer_id)
+			db.Create(&Peer{Guid: peer_id})
+		}
+
+		if peer.SynchPos != "" { // Do we have a point of last synch with this peer?
 			last_change := retrieveLatestChange()
 			if last_change.Id > 0 && last_change.Guid == peer.SynchPos {
 				pf("We are already in synch with peer: %s at note_change: %s\n",
@@ -87,11 +95,13 @@ func synch_client(host string) {
 			peer_changes[i] = msg.NoteChg
 		}
 		pf("\n%d peer changes received:\n", numChanges)
-
-		// Push local changes to server
+		// Get Local Changes
 		note_changes := retrieveLocalNoteChangesFromSynchPoint(synch_point)
+		// Concurrently process remote changes received
 		go processChanges(peer, &peer_changes) // safe to process peer changes now
-		sendMsg(enc, Message{Type: "NumberOfClientChanges", Param: strconv.Itoa(len(note_changes))})
+		// Push local changes to server
+		sendMsg(enc, Message{Type: "NumberOfClientChanges",
+				Param: strconv.Itoa(len(note_changes))})
 		rcxMsg(dec, &msg)
 		if msg.Type == "SendChanges" {
 			msg.Type = "NoteChange"
@@ -118,7 +128,9 @@ func synch_client(host string) {
 		}
 
 	} else {
-        println("Peer does not respond to request for database id\nRun peer with -setup_db option or make sure peer version is >= 0.9")
+        println("Peer does not respond to request for database id")
+		println("Make sure both server and client databases have been properly setup(migrated) with the -setup_db option")
+		println("or make sure peer version is >= 0.9")
 		return
     }
 
@@ -127,7 +139,6 @@ func synch_client(host string) {
 
 func processChanges(peer Peer, peer_changes * []NoteChange) {
 	sort.Sort(byCreatedAt(*peer_changes)) // we will apply in created order
-
 	for _, change := range(*peer_changes) {
 		println("____________________________________________________________________")
 		// If we already have this NoteChange locally then skip
@@ -139,18 +150,14 @@ func processChanges(peer Peer, peer_changes * []NoteChange) {
 		verifyNoteChangeApplied(change)
 		// When done push this note Guid to the completed array
 	}
-
 	// Save the last synch point - //TODO - How does success above influence the last synch point?
 	var lastSynchPoint string
 	if ln := len(*peer_changes); ln > 0 {
 		lastSynchPoint = (*peer_changes)[ln - 1].Guid
 	}
-	if peer.Id > 0 {
-		peer.SynchPos = lastSynchPoint
-		db.Save(&peer)
-	} else {
-		db.Create(&Peer{Guid: peer.Guid, SynchPos: lastSynchPoint})
-	}
+	peer.SynchPos = lastSynchPoint
+	db.Save(&peer)
+	// Verify synch point saved
 	db.Where("guid = ?", peer.Guid).First(&peer)
 	if peer.SynchPos == lastSynchPoint {
 		println("Peer Synch Point saved:", short_sha(lastSynchPoint))
@@ -224,7 +231,7 @@ func updateNote(note Note, nc NoteChange) {
 
 // Save the change object which will create a Note on CreateOp or a NoteFragment on UpdateOp
 func saveNoteChange(nc NoteChange) bool {
-	fmt.Printf("Saving change object...\n%s", short_sha(nc.Guid))
+	pf("Saving change object...%s\n", short_sha(nc.Guid))
 	// Make sure all ids are zeroed - A non-zero Id will not be created
 	nc.Id = 0
 

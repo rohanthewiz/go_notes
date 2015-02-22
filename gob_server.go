@@ -46,8 +46,12 @@ func handleConnection(conn net.Conn) {
 			println("Quit message received. Exiting..."); os.Exit(1)
 		case "WhoAreYou":
 			peer_id = msg.Param // client db signature
-			msg.Param = whoAmI()
-			msg.Type = "WhoIAm"
+			if len(peer_id) == 40 {
+				msg.Param = whoAmI()
+				msg.Type = "WhoIAm"
+			} else {
+				msg.Type = "InvalidPeerId"
+			}
 			sendMsg(enc, msg)
 		case "NumberOfChanges":
 			// msg.Param will include the synch_point, so send num of changes since synch point
@@ -78,19 +82,26 @@ func handleConnection(conn net.Conn) {
 			}
 		case "NumberOfClientChanges":
 			numChanges, err := strconv.Atoi(msg.Param)
-			if err != nil { println("Could not decode the number of change messages"); return }
+			if err != nil {
+				println("Could not decode the number of change messages"); return
+			}
+			if numChanges < 1 { println("No remote changes."); return }
 			println(numChanges, "changes")
-
 			peer_changes := make([]NoteChange, numChanges)
-			sendMsg(enc, Message{Type: "SendChanges"})
+			sendMsg(enc, Message{Type: "SendChanges"}) // Send the actual changes
+			// Receive changes, extract the NoteChanges, save into peer_changes
 			for i := 0; i < numChanges; i++ {
 				msg = Message{}
 				rcxMsg(dec, &msg)
 				peer_changes[i] = msg.NoteChg
 			}
 			pf("\n%d peer changes received:\n", numChanges)
-			// TODO - go processChanges(peer, &peer_changes)
 			db.Where("guid = ?", peer_id).First(&peer) // Do we know of this peer?
+			if peer.Id < 1 {
+				println("Creating new peer:", peer_id)
+				db.Create(&Peer{Guid: peer_id})
+			}
+			processChanges(peer, &peer_changes)
 		default:
 			println("Unknown message type received", msg.Type)
 			printHangupMsg(conn); return
