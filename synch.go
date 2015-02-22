@@ -95,10 +95,9 @@ func synch_client(host string) {
 			peer_changes[i] = msg.NoteChg
 		}
 		pf("\n%d peer changes received:\n", numChanges)
-		// Get Local Changes
+		
+        // Get Local Changes
 		note_changes := retrieveLocalNoteChangesFromSynchPoint(synch_point)
-		// Concurrently process remote changes received
-		go processChanges(peer, &peer_changes) // safe to process peer changes now
 		// Push local changes to server
 		sendMsg(enc, Message{Type: "NumberOfClientChanges",
 				Param: strconv.Itoa(len(note_changes))})
@@ -126,6 +125,8 @@ func synch_client(host string) {
 				sendMsg(enc, msg)
 			}
 		}
+		// Process remote changes received
+		processChanges(peer, &peer_changes) // safe to process peer changes now
 
 	} else {
         println("Peer does not respond to request for database id")
