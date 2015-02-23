@@ -10,7 +10,7 @@ type NoteChange struct {
     Id          int64
     Guid		string `sql: "size:40"` //Guid of the change
     NoteGuid		string `sql: "size:40"` // Guid of the note
-    Operation	int32  // 1: Create, 2: Update, 3: Delete
+    Operation	int32  // 1: Create, 2: Update, 3: Delete, 9: Synch
     Note Note
     NoteId int64
     NoteFragment NoteFragment

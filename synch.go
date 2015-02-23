@@ -41,47 +41,39 @@ func synch_client(host string) {
 	dec := gob.NewDecoder(conn)
 	defer sendMsg(enc, Message{Type: "Hangup", Param: "", NoteChg: NoteChange{}})
 
-	// Get local DB signature
-	var local_sig LocalSig
-	db.First(&local_sig)
-	if local_sig.Id < 1 {
-		migrate()
-		db.First(&local_sig)
-		if local_sig.Id < 1 {
-			println("Could not locate or create local database signature.\nYou should back up your notes, delete the local database, import your notes then try again")
-		}
-	}
-
 	// Send handshake
-	sendMsg(enc, Message{Type: "WhoAreYou", Param: local_sig.Guid})
+	sendMsg(enc, Message{Type: "WhoAreYou", Param: whoAmI()})
 	rcxMsg(dec, &msg) // Decode the response
 	if msg.Type == "WhoIAm" {
-		peer_id := msg.Param
+		peer_id := msg.Param  // retrieve the server's guid
 		println("The server's id is", short_sha(peer_id))
 		if len(peer_id) != 40 {
 			println("The server's id is invalid. Run the server once with the -setup_db option")
 			return
 		}
-		var synch_point string
-		var peer Peer
-		db.Where("guid = ?", peer_id).First(&peer) // Do we know of this peer?
-		if peer.Id < 1 {
-			println("Creating new peer:", peer_id)
-			db.Create(&Peer{Guid: peer_id})
-		}
+		peer, err := getOrCreatePeer(peer_id)
+		if err != nil { println("Error retrieving peer object"); return }
 
+		// Do we need to Synch?
 		if peer.SynchPos != "" { // Do we have a point of last synch with this peer?
 			last_change := retrieveLatestChange()
 			if last_change.Id > 0 && last_change.Guid == peer.SynchPos {
-				pf("We are already in synch with peer: %s at note_change: %s\n",
+				// Get server last change
+				msg.Type = "LatestChange"
+				sendMsg(enc, msg)
+				msg = Message{}
+				rcxMsg(dec, &msg)
+				if msg.NoteChg.Id > 0 && msg.NoteChg.Guid == peer.SynchPos {
+					pf("We are already in synch with peer: %s at note_change: %s\n",
 						short_sha(peer_id), short_sha(last_change.Guid))
-				return
+					return
+				}
 			}
 		}
-		pf("Last known Synch position is \"%s\"\n", short_sha(synch_point))
+		pf("Last known Synch position is \"%s\"\n", short_sha(peer.SynchPos))
 
 		// Get Server Changes
-		sendMsg(enc, Message{Type: "NumberOfChanges", Param: synch_point})
+		sendMsg(enc, Message{Type: "NumberOfChanges", Param: peer.SynchPos})
 		rcxMsg(dec, &msg) // Decode the response
 		numChanges, err := strconv.Atoi(msg.Param)
 		if err != nil { println("Could not decode the number of change messages"); return }
@@ -94,45 +86,64 @@ func synch_client(host string) {
 			rcxMsg(dec, &msg)
 			peer_changes[i] = msg.NoteChg
 		}
-		pf("\n%d peer changes received:\n", numChanges)
+		pf("\n%d server changes received:\n", numChanges)
 		
-        // Get Local Changes
-		note_changes := retrieveLocalNoteChangesFromSynchPoint(synch_point)
+    // Get Local Changes
+		note_changes := retrieveLocalNoteChangesFromSynchPoint(peer.SynchPos)
+		pf("%d local changes after synch point found\n", len(note_changes))
 		// Push local changes to server
-		sendMsg(enc, Message{Type: "NumberOfClientChanges",
+		if len(note_changes) > 0 {
+			sendMsg(enc, Message{Type: "NumberOfClientChanges",
 				Param: strconv.Itoa(len(note_changes))})
-		rcxMsg(dec, &msg)
-		if msg.Type == "SendChanges" {
-			msg.Type = "NoteChange"
-			msg.Param = ""
-			var note Note
-			var note_frag NoteFragment
-			for _, change := range (note_changes) {
-				note = Note{}
-				note_frag = NoteFragment{}
-				// We have the change but now we need the NoteFragment or Note depending on the operation type
-				if change.Operation == 1 {
-					db.Where("id = ?", change.NoteId).First(&note)
-					note.Id = 0
-					change.Note = note
+			rcxMsg(dec, &msg)
+			if msg.Type == "SendChanges" {
+				msg.Type = "NoteChange"
+				msg.Param = ""
+				var note Note
+				var note_frag NoteFragment
+				for _, change := range (note_changes) {
+					note = Note{}
+					note_frag = NoteFragment{}
+					// We have the change but now we need the NoteFragment or Note depending on the operation type
+					if change.Operation == 1 {
+						db.Where("id = ?", change.NoteId).First(&note)
+						note.Id = 0
+						change.Note = note
+					}
+					if change.Operation == 2 {
+						db.Where("id = ?", change.NoteFragmentId).First(&note_frag)
+						change.NoteFragment = note_frag
+					}
+					msg.NoteChg = change
+					msg.NoteChg.Print()
+					sendMsg(enc, msg)
 				}
-				if change.Operation == 2 {
-					db.Where("id = ?", change.NoteFragmentId).First(&note_frag)
-					change.NoteFragment = note_frag
-				}
-				msg.NoteChg = change
-				msg.NoteChg.Print()
-				sendMsg(enc, msg)
 			}
 		}
+
 		// Process remote changes received
-		processChanges(peer, &peer_changes) // safe to process peer changes now
+		if len(peer_changes) > 0 {
+			processChanges(peer, &peer_changes)
+		}
+
+		// Mark Synch Point with a special NoteChange; Save on client and server
+		if len(peer_changes) > 0 || len(note_changes) > 0 {
+			synch_point := generate_sha1()
+			synch_nc := NoteChange{Guid: synch_point, Operation: 9}
+			db.Save(&synch_nc)
+			peer.SynchPos = synch_nc.Guid
+			db.Save(&peer)
+			// Mark the server with the same NoteChange
+			msg.NoteChg = synch_nc
+			msg.Type = "NewSynchPoint"
+			sendMsg(enc, msg)
+		}
 
 	} else {
-        println("Peer does not respond to request for database id")
-		println("Make sure both server and client databases have been properly setup(migrated) with the -setup_db option")
-		println("or make sure peer version is >= 0.9")
-		return
+			println("Peer does not respond to request for database id")
+			println("Make sure both server and client databases have been properly setup(migrated) with the -setup_db option")
+			println("or make sure peer version is >= 0.9")
+			return
     }
 
 	defer println("Synch Operation complete")
@@ -149,23 +160,23 @@ func processChanges(peer Peer, peer_changes * []NoteChange) {
 		// Apply Changes
 		performNoteChange(change)
 		verifyNoteChangeApplied(change)
-		// When done push this note Guid to the completed array
+		//We may not be using this algo: When done push this note Guid to the completed array
 	}
 	// Save the last synch point - //TODO - How does success above influence the last synch point?
-	var lastSynchPoint string
-	if ln := len(*peer_changes); ln > 0 {
-		lastSynchPoint = (*peer_changes)[ln - 1].Guid
-	}
-	peer.SynchPos = lastSynchPoint
-	db.Save(&peer)
-	// Verify synch point saved
-	db.Where("guid = ?", peer.Guid).First(&peer)
-	if peer.SynchPos == lastSynchPoint {
-		println("Peer Synch Point saved:", short_sha(lastSynchPoint))
-	} else {
-		println("Warning! Could not save a synch point for peer:", short_sha(peer.Guid),
-			"Future synchs with this peer may be unreliable")
-	}
+//	var lastSynchPoint string
+//	if ln := len(*peer_changes); ln > 0 {
+//		lastSynchPoint = (*peer_changes)[ln - 1].Guid
+//	}
+//	peer.SynchPos = lastSynchPoint
+//	db.Save(&peer)
+//	// Verify synch point saved
+//	db.Where("guid = ?", peer.Guid).First(&peer)
+//	if peer.SynchPos == lastSynchPoint {
+//		println("Peer Synch Point saved:", short_sha(lastSynchPoint))
+//	} else {
+//		println("Warning! Could not save a synch point for peer:", short_sha(peer.Guid),
+//			"Future synchs with this peer may be unreliable")
+//	}
 }
 
 func retrieveLastChangeForNote(note_guid string) (NoteChange) {
@@ -246,17 +257,19 @@ func saveNoteChange(nc NoteChange) bool {
 	return false
 }
 
-// Currently unused // Get all local NCs later than the synchPoint
+// Get all local NCs later than the synchPoint
 func retrieveLocalNoteChangesFromSynchPoint(synch_guid string) ([]NoteChange) {
 	var noteChange NoteChange
 	var noteChanges []NoteChange
 
 	db.Where("guid = ?", synch_guid).First(&noteChange) // There should be only one
+	pf("Synch point note change is: %v\n", noteChange)
 	if noteChange.Id < 1 {
-		println("Can't find synch point locally", short_sha(synch_guid))
-		db.Find(&noteChanges).Order("created_at, asc") // Can't find the synch point so send them all
+		println("Can't find synch point locally - retrieving all note_changes", short_sha(synch_guid))
+		db.Find(&noteChanges).Order("created_at, asc")
 	} else {
-		db.Where("created_at > '" + noteChange.CreatedAt.String() + "'").Find(&noteChanges).Order("created_at asc")
+		println("Attempting to retrieve note_changes beyond synch_point")
+		db.Find(&noteChanges, "created_at > ?", noteChange.CreatedAt).Order("created_at asc")
 	}
 	return noteChanges
 }

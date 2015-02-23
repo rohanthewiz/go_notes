@@ -6,6 +6,7 @@ import(
 	"net"
 	"encoding/gob"
 	"fmt"
+	"errors"
 	//"time"
 	"strconv"
 )
@@ -34,6 +35,7 @@ func handleConnection(conn net.Conn) {
 	var note_changes []NoteChange
 	var peer_id string
 	var peer Peer
+	var er error
 
 	for {
 		msg = Message{}
@@ -45,13 +47,18 @@ func handleConnection(conn net.Conn) {
 		case "Quit":
 			println("Quit message received. Exiting..."); os.Exit(1)
 		case "WhoAreYou":
-			peer_id = msg.Param // client db signature
+			peer_id = msg.Param // receive the client db signature here also
 			if len(peer_id) == 40 {
 				msg.Param = whoAmI()
 				msg.Type = "WhoIAm"
+				peer, er = getOrCreatePeer(peer_id)
+				if er != nil { println("Error retrieving peer object"); return }
 			} else {
 				msg.Type = "InvalidPeerId"
 			}
+			sendMsg(enc, msg)
+		case "LatestChange":
+			msg.NoteChg = retrieveLatestChange()
 			sendMsg(enc, msg)
 		case "NumberOfChanges":
 			// msg.Param will include the synch_point, so send num of changes since synch point
@@ -96,12 +103,13 @@ func handleConnection(conn net.Conn) {
 				peer_changes[i] = msg.NoteChg
 			}
 			pf("\n%d peer changes received:\n", numChanges)
-			db.Where("guid = ?", peer_id).First(&peer) // Do we know of this peer?
-			if peer.Id < 1 {
-				println("Creating new peer:", peer_id)
-				db.Create(&Peer{Guid: peer_id})
-			}
 			processChanges(peer, &peer_changes)
+		case "NewSynchPoint": // New synch point at the end of synching
+			synch_nc := msg.NoteChg
+			synch_nc.Id = 0 // so it will save
+			db.Save(&synch_nc)
+			peer.SynchPos = synch_nc.Guid
+			db.Save(&peer)
 		default:
 			println("Unknown message type received", msg.Type)
 			printHangupMsg(conn); return
@@ -109,13 +117,33 @@ func handleConnection(conn net.Conn) {
 	}
 }
 
+// Get local DB signature
 func whoAmI() string {
-	var sig []LocalSig
-	db.Find(&sig)
-	if len(sig) > 0 {
-		return sig[0].Guid
+	var local_sig LocalSig
+	db.First(&local_sig)
+	if local_sig.Id < 1 {
+		ensureDBSig()
+		db.First(&local_sig)
+		if local_sig.Id < 1 {
+			println("Could not locate or create local database signature.\nYou should back up your notes, delete the local database, import your notes then try again")
+			return ""
+		}
 	}
-	return ""
+	return local_sig.Guid
+}
+
+func getOrCreatePeer(peer_id string) (Peer, error) {
+	var peer Peer
+	db.Where("guid = ?", peer_id).First(&peer)
+	if peer.Id < 1 {
+		println("Creating new peer:", peer_id)
+		db.Create(&Peer{Guid: peer_id})
+		db.Where("guid = ?", peer_id).First(&peer)
+		if peer.Id < 1 {
+			return peer, errors.New("Could not create peer")
+		}
+	}
+	return peer, nil
 }
 
 func sendMsg(encoder *gob.Encoder, msg Message) {
