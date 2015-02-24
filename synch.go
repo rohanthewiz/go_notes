@@ -18,6 +18,7 @@ type LocalSig struct {
 type Peer struct {
 	Id			int64
 	Guid		string `sql: "size:40"`
+	Token		string `sql: "size:40"`
 	Name		string `sql: "size:64"`
 	SynchPos	string `sql: "size:40"` // Last changeset applied
 	CreatedAt 	time.Time
@@ -51,8 +52,13 @@ func synch_client(host string) {
 			println("The server's id is invalid. Run the server once with the -setup_db option")
 			return
 		}
-		peer, err := getOrCreatePeer(peer_id)
+		peer, err := getPeer(peer_id)
 		if err != nil { println("Error retrieving peer object"); return }
+		// Auth
+		msg.Type = "AuthMe"
+		msg.Param = peer.Token // This is set for the server(peer) by some access granting mechanism
+		                       // which for right now is manual
+		sendMsg(enc, msg)
 
 		// Do we need to Synch?
 		if peer.SynchPos != "" { // Do we have a point of last synch with this peer?

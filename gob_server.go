@@ -36,6 +36,7 @@ func handleConnection(conn net.Conn) {
 	var peer_id string
 	var peer Peer
 	var er error
+	var authed bool = true // true so things will work while we develop auth
 
 	for {
 		msg = Message{}
@@ -51,13 +52,16 @@ func handleConnection(conn net.Conn) {
 			if len(peer_id) == 40 {
 				msg.Param = whoAmI()
 				msg.Type = "WhoIAm"
-				peer, er = getOrCreatePeer(peer_id)
+				peer, er = getPeer(peer_id)
 				if er != nil { println("Error retrieving peer object"); return }
 			} else {
 				msg.Type = "InvalidPeerId"
 			}
 			sendMsg(enc, msg)
+		case "AuthMe":
+			if peer.Token == msg.Param { authed = true }
 		case "LatestChange":
+			if !authed { println("Authentication failure. Generate authorization token with -synch_auth\nThen store in peer entry on client with -store_synch_auth") }
 			msg.NoteChg = retrieveLatestChange()
 			sendMsg(enc, msg)
 		case "NumberOfChanges":
@@ -132,18 +136,42 @@ func whoAmI() string {
 	return local_sig.Guid
 }
 
-func getOrCreatePeer(peer_id string) (Peer, error) {
+// We no longer create Peer here
+// since peer needs to have been created to have an auth token
+func getPeer(peer_id string) (Peer, error) {
 	var peer Peer
 	db.Where("guid = ?", peer_id).First(&peer)
 	if peer.Id < 1 {
-		println("Creating new peer:", peer_id)
-		db.Create(&Peer{Guid: peer_id})
-		db.Where("guid = ?", peer_id).First(&peer)
-		if peer.Id < 1 {
-			return peer, errors.New("Could not create peer")
-		}
+		return peer, errors.New("Could not create peer")
 	}
 	return peer, nil
+}
+
+// Create Peer entry on server returning peer's auth token
+// This should be called on the server before first synch
+// So the server will know of the peer and the token needed for access ahead of time
+func createPeer(peer_id string) (string, error) {
+	var peer Peer
+	db.Where("guid = ?", peer_id).First(&peer)
+	if peer.Id < 1 {
+		token := generate_sha1()
+		db.Create(&Peer{Guid: peer_id, Token: token})
+		println("Creating new peer entry for:", short_sha(peer_id))
+		db.Where("guid = ?", peer_id).First(&peer) // read it back
+		if peer.Id < 1 {
+			return "", errors.New("Could not create peer entry")
+		} else {
+			return token, nil
+		}
+	  // Peer already exists - make sure it has an auth token
+	} else if len(peer.Token) == 0 {
+		token := generate_sha1()
+		peer.Token = token
+		db.Save(&peer)
+		return token, nil
+	} else {
+		return peer.Token, nil
+	}
 }
 
 func sendMsg(encoder *gob.Encoder, msg Message) {
