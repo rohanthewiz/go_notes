@@ -59,6 +59,11 @@ func synch_client(host string) {
 		msg.Param = peer.Token // This is set for the server(peer) by some access granting mechanism
 		                       // which for right now is manual
 		sendMsg(enc, msg)
+		rcxMsg(dec, &msg)
+		if msg.Param != "Authorized" {
+			println("The server declined the authorization request")
+			return
+		}
 
 		// Do we need to Synch?
 		if peer.SynchPos != "" { // Do we have a point of last synch with this peer?

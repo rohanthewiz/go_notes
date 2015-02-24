@@ -11,6 +11,8 @@ import(
 	"strconv"
 )
 
+const authFailMsg = "Authentication failure. Generate authorization token with -synch_auth\nThen store in peer entry on client with -store_synch_auth"
+
 func synch_server() { // WIP
 	ln, err := net.Listen("tcp", ":" + SYNCH_PORT) // counterpart of net.Dial
 	if err != nil {
@@ -36,7 +38,7 @@ func handleConnection(conn net.Conn) {
 	var peer_id string
 	var peer Peer
 	var er error
-	var authed bool = true // true so things will work while we develop auth
+	var authorized bool = false // true so things will work while we develop auth
 
 	for {
 		msg = Message{}
@@ -59,17 +61,25 @@ func handleConnection(conn net.Conn) {
 			}
 			sendMsg(enc, msg)
 		case "AuthMe":
-			if peer.Token == msg.Param { authed = true }
+			if peer.Token == msg.Param {
+				authorized = true
+				msg.Param = "Authorized"
+			} else {
+				msg.Param = "Declined"
+			}
+			sendMsg(enc, msg)
 		case "LatestChange":
-			if !authed { println("Authentication failure. Generate authorization token with -synch_auth\nThen store in peer entry on client with -store_synch_auth") }
+			if !authorized { println(authFailMsg); return }
 			msg.NoteChg = retrieveLatestChange()
 			sendMsg(enc, msg)
 		case "NumberOfChanges":
+			if !authorized { println(authFailMsg); return }
 			// msg.Param will include the synch_point, so send num of changes since synch point
 			note_changes = retrieveLocalNoteChangesFromSynchPoint(msg.Param)
 			msg.Param = strconv.Itoa(len(note_changes))
 			sendMsg(enc, msg)
 		case "SendChanges":
+			if !authorized { println(authFailMsg); return }
 			msg.Type = "NoteChange"
 			msg.Param = ""
 			var note Note
@@ -92,6 +102,7 @@ func handleConnection(conn net.Conn) {
 				sendMsg(enc, msg)
 			}
 		case "NumberOfClientChanges":
+			if !authorized { println(authFailMsg); return }
 			numChanges, err := strconv.Atoi(msg.Param)
 			if err != nil {
 				println("Could not decode the number of change messages"); return
@@ -109,6 +120,7 @@ func handleConnection(conn net.Conn) {
 			pf("\n%d peer changes received:\n", numChanges)
 			processChanges(peer, &peer_changes)
 		case "NewSynchPoint": // New synch point at the end of synching
+			if !authorized { println(authFailMsg); return }
 			synch_nc := msg.NoteChg
 			synch_nc.Id = 0 // so it will save
 			db.Save(&synch_nc)
