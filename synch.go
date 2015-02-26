@@ -52,7 +52,7 @@ func synch_client(host string) {
 			println("The server's id is invalid. Run the server once with the -setup_db option")
 			return
 		}
-		peer, err := getPeer(peer_id)
+		peer, err := getPeerByGuid(peer_id)
 		if err != nil { println("Error retrieving peer object"); return }
 		// Auth
 		msg.Type = "AuthMe"

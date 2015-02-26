@@ -103,8 +103,29 @@ func main() {
 	if opts_str["admin"] == "delete_table" {
 		db.DropTableIfExists(&Note{})
 		db.DropTableIfExists(&NoteChange{})
+		db.DropTableIfExists(&NoteFragment{})
 
 		println("notes table deleted")
+		return
+	}
+
+	// Client
+	if opts_str["whoami"].(bool) {
+		println(whoAmI())
+		return
+	}
+
+	// Server
+	if opts_str["get_peer_token"] != "" {
+		println("Peer token is:", getPeerToken(opts_str["peer_token"]))
+		return
+	}
+
+	// Client
+	if opts_str["save_peer_token"] != "" {
+		if savePeerToken(opts_str["peer_token"]) {
+			println(short_sha(opts_str["peer_token"]), "saved")
+		}
 		return
 	}
 

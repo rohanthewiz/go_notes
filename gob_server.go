@@ -6,12 +6,8 @@ import(
 	"net"
 	"encoding/gob"
 	"fmt"
-	"errors"
-	//"time"
 	"strconv"
 )
-
-const authFailMsg = "Authentication failure. Generate authorization token with -synch_auth\nThen store in peer entry on client with -store_synch_auth"
 
 func synch_server() { // WIP
 	ln, err := net.Listen("tcp", ":" + SYNCH_PORT) // counterpart of net.Dial
@@ -54,8 +50,13 @@ func handleConnection(conn net.Conn) {
 			if len(peer_id) == 40 {
 				msg.Param = whoAmI()
 				msg.Type = "WhoIAm"
-				peer, er = getPeer(peer_id)
-				if er != nil { println("Error retrieving peer object"); return }
+				peer, er = getPeerByGuid(peer_id)
+				if er != nil {
+					println("Error retrieving peer object");
+					msg.Type = "ERROR"
+					msg.Param = "There is no record for this client on the server."
+					return
+				}
 			} else {
 				msg.Type = "InvalidPeerId"
 			}
@@ -130,59 +131,6 @@ func handleConnection(conn net.Conn) {
 			println("Unknown message type received", msg.Type)
 			printHangupMsg(conn); return
 		}
-	}
-}
-
-// Get local DB signature
-func whoAmI() string {
-	var local_sig LocalSig
-	db.First(&local_sig)
-	if local_sig.Id < 1 {
-		ensureDBSig()
-		db.First(&local_sig)
-		if local_sig.Id < 1 {
-			println("Could not locate or create local database signature.\nYou should back up your notes, delete the local database, import your notes then try again")
-			return ""
-		}
-	}
-	return local_sig.Guid
-}
-
-// We no longer create Peer here
-// since peer needs to have been created to have an auth token
-func getPeer(peer_id string) (Peer, error) {
-	var peer Peer
-	db.Where("guid = ?", peer_id).First(&peer)
-	if peer.Id < 1 {
-		return peer, errors.New("Could not create peer")
-	}
-	return peer, nil
-}
-
-// Create Peer entry on server returning peer's auth token
-// This should be called on the server before first synch
-// So the server will know of the peer and the token needed for access ahead of time
-func createPeer(peer_id string) (string, error) {
-	var peer Peer
-	db.Where("guid = ?", peer_id).First(&peer)
-	if peer.Id < 1 {
-		token := generate_sha1()
-		db.Create(&Peer{Guid: peer_id, Token: token})
-		println("Creating new peer entry for:", short_sha(peer_id))
-		db.Where("guid = ?", peer_id).First(&peer) // read it back
-		if peer.Id < 1 {
-			return "", errors.New("Could not create peer entry")
-		} else {
-			return token, nil
-		}
-	  // Peer already exists - make sure it has an auth token
-	} else if len(peer.Token) == 0 {
-		token := generate_sha1()
-		peer.Token = token
-		db.Save(&peer)
-		return token, nil
-	} else {
-		return peer.Token, nil
 	}
 }
 

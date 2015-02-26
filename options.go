@@ -26,6 +26,7 @@ func getOpts() (map[string]string, map[string]interface{}) {
         qlPtr := flag.Int("ql", -1, "Limit the number of notes returned")
         sPtr := flag.Bool("s", false, "Short Listing - don't show the body")
         vPtr := flag.Bool("v", false, "Show version")
+        whoamiPtr := flag.Bool("whoami", false, "Show Client GUID")
         setupDBPtr := flag.Bool("setup_db", false, "Setup the Database")
         delPtr := flag.Bool("del", false, "Delete the notes queried")
         updPtr := flag.Bool("upd", false, "Update the notes queried")
@@ -51,6 +52,7 @@ func getOpts() (map[string]string, map[string]interface{}) {
         opts_intf["ql"] = *qlPtr
         opts_intf["s"] =  *sPtr
         opts_intf["v"] =  *vPtr
+        opts_intf["whoami"] *whoamiPtr
         opts_intf["del"] = *delPtr
         opts_intf["upd"] = *updPtr
         opts_intf["svr"] = *svrPtr
