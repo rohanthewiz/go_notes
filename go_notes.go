@@ -110,20 +110,23 @@ func main() {
 	}
 
 	// Client
-	if opts_str["whoami"].(bool) {
+	if opts_intf["whoami"].(bool) {
 		println(whoAmI())
 		return
 	}
 
 	// Server
 	if opts_str["get_peer_token"] != "" {
-		println("Peer token is:", getPeerToken(opts_str["peer_token"]))
+		pt, err := getPeerToken(opts_str["get_peer_token"])
+		if err != nil {println("Error retrieving token"); return}
+		println("Peer token is:", pt)
 		return
 	}
 
 	// Client
 	if opts_str["save_peer_token"] != "" {
-		if savePeerToken(opts_str["peer_token"]) {
+		err := savePeerToken(opts_str["peer_token"])
+		if err == nil {
 			println(short_sha(opts_str["peer_token"]), "saved")
 		}
 		return

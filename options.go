@@ -21,6 +21,8 @@ func getOpts() (map[string]string, map[string]interface{}) {
         expPtr := flag.String("exp", "", "Export the notes queried to the format of the file given")
         impPtr := flag.String("imp", "", "Import the notes queried from the file given")
         synchClientPtr := flag.String("synch_client", "", "Synch client mode")
+        getPeerTokenPtr := flag.String("get_peer_token", "", "Get a token for interacting with this as server")
+        setPeerTokenPtr := flag.String("set_peer_token", "", "Save a token for interacting with this as server")
 
         qiPtr := flag.Int("qi", 0, "Query for notes based on ID")
         qlPtr := flag.Int("ql", -1, "Limit the number of notes returned")
@@ -47,12 +49,14 @@ func getOpts() (map[string]string, map[string]interface{}) {
         opts_str["exp"] = *expPtr
         opts_str["imp"] = *impPtr
         opts_str["synch_client"] = *synchClientPtr
+        opts_str["get_peer_token"] = *getPeerTokenPtr
+        opts_str["set_peer_token"] = *setPeerTokenPtr
 
         opts_intf["qi"] = *qiPtr
         opts_intf["ql"] = *qlPtr
         opts_intf["s"] =  *sPtr
         opts_intf["v"] =  *vPtr
-        opts_intf["whoami"] *whoamiPtr
+        opts_intf["whoami"] = *whoamiPtr
         opts_intf["del"] = *delPtr
         opts_intf["upd"] = *updPtr
         opts_intf["svr"] = *svrPtr

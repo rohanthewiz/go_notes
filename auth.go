@@ -2,6 +2,7 @@
 package main
 import(
 	"errors"
+	"strings"
 )
 
 const authFailMsg = "Authentication failure. Generate authorization token with -synch_auth\nThen store in peer entry on client with -store_synch_auth"
@@ -58,7 +59,13 @@ func getPeerToken(peer_id string) (string, error) {
 		return peer.Token, nil
 	}
 }
-func savePeerToken(peer_id string, token string) (string, error) {
+func savePeerToken(compound string) (error) {
+//	var peer_id string
+//	var token string
+	// Split compund string
+	arr := strings.Split(compound, "-")
+	peer_id := arr[0]; token := arr[1]
+
 	var peer Peer
 	db.Where("guid = ?", peer_id).First(&peer)
 	if peer.Id < 1 { // then Create
@@ -67,16 +74,13 @@ func savePeerToken(peer_id string, token string) (string, error) {
 		println("Creating new peer entry for:", short_sha(peer_id))
 		db.Where("guid = ?", peer_id).First(&peer) // read it back
 		if peer.Id < 1 {
-			return "", errors.New("Could not create peer entry")
-		} else {
-			return token, nil
+			return errors.New("Could not create peer entry")
 		}
 	  // Peer already exists - make sure it has an auth token
 	} else if len(peer.Token) == 0 {
 		peer.Token = token
 		db.Save(&peer)
-		return token, nil
-	} else {
-		return peer.Token, nil
 	}
+
+	return nil
 }
