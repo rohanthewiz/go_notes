@@ -101,12 +101,19 @@ func main() {
 		return
 	}
 
-	if opts_str["admin"] == "delete_table" {
-		db.DropTableIfExists(&Note{})
-		db.DropTableIfExists(&NoteChange{})
-		db.DropTableIfExists(&NoteFragment{})
-
-		println("notes table deleted")
+	if opts_str["admin"] == "delete_tables" {
+		fmt.Println("Are you sure you want to delete all data? (N/y)")
+		var input string
+		fmt.Scanln(&input) // Get keyboard input
+		println("input", input)
+		if input == "y" || input == "Y" {
+			db.DropTableIfExists(&Note{})
+			db.DropTableIfExists(&NoteChange{})
+			db.DropTableIfExists(&NoteFragment{})
+			db.DropTableIfExists(&Peer{})
+			db.DropTableIfExists(&LocalSig{})
+			println("Notes tables deleted")
+		}
 		return
 	}
 
