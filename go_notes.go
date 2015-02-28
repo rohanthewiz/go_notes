@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"errors"
 	"encoding/csv"
 	"encoding/gob"
 	"net/http"
@@ -16,11 +17,12 @@ import (
 )
 
 const app_name = "GoNotes"
-const version string = "0.8.8"
+const version string = "0.8.16"
 const line_separator string = "---------------------------------------------------------"
 
 type Note struct {
 	Id          int64
+	Guid		string `sql: "size:40"` //Guid of the note
 	Title       string `sql: "size:128"`
 	Description string `sql: "size:255"`
 	Body        string `sql: "type:text"`
@@ -40,22 +42,59 @@ func Index(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 	fmt.Fprint(w, "Welcome!\n")
 }
 
-//func Hello(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
-//	fmt.Fprintf(w, "Hello, %s!\n", p.ByName("name"))
-//}
-
 func Query(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
+	// messing with sha1 //println(generate_sha1())
 	opts_str["q"] = p.ByName("query")  // Overwrite the query param
 	notes := queryNotes(opts_str, opts_intf )
-	RenderQuery(w, notes)
+	RenderQuery(w, notes) //call Ego generated method
+}
+
+func migrate() {
+	// Create or update the table structure as needed
+	println("Migrating the DB...")
+	db.AutoMigrate(&Note{}, &NoteChange{}, &NoteFragment{}, &LocalSig{}, &Peer{})
+	//According to GORM: Feel free to change your struct, AutoMigrate will keep your database up-to-date.
+	// Fyi, AutoMigrate will only *add new columns*, it won't update column's type or delete unused columns, to make sure your data is safe.
+	// If the table is not existing, AutoMigrate will create the table automatically.
+
+	db.Model(&Note{}).AddUniqueIndex("idx_note_guid", "guid")
+	db.Model(&Note{}).AddUniqueIndex("idx_note_title", "title")
+	db.Model(&NoteChange{}).AddUniqueIndex("idx_note_change_guid", "guid")
+	db.Model(&NoteChange{}).AddIndex("idx_note_change_note_guid", "note_guid")
+	db.Model(&NoteChange{}).AddIndex("idx_note_change_created_at", "created_at")
+
+	ensureDBSig() // Initialize local with a SHA1 signature if it doesn't already have one
+	println("Migration complete")
+}
+
+func ensureDBSig() {
+	var local_sigs []LocalSig
+	db.Find(&local_sigs)
+
+	if len(local_sigs) == 1 && len(local_sigs[0].Guid) == 40 &&
+		len(local_sigs[0].ServerSecret) == 40 { return } // all is good
+
+	if len(local_sigs) == 0 { // create the signature
+		db.Create(&LocalSig{Guid: generate_sha1(), ServerSecret: generate_sha1()})
+		if db.Find(&local_sigs); len(local_sigs) == 1 && len(local_sigs[0].Guid) == 40 { // was it saved?
+			println("Local signature created")
+		}
+	} else {
+		panic("Error in the 'local_sigs' table. There should be only one and only one good row")
+	}
 }
 
 func main() {
+
 	if db_err != nil { // Can't err chk db conn outside method, so do it here
 		println("There was an error connecting to the DB")
 		println("DBPath: " + opts_str["db_path"])
 		os.Exit(2)
 	}
+
+	//Do we need to migrate?
+	if ! db.HasTable(&Peer{}) || ! db.HasTable(&Note{}) || ! db.HasTable(&NoteChange{}) ||
+		! db.HasTable(&NoteFragment{}) || ! db.HasTable(&LocalSig{}) { migrate() }
 
 	if opts_intf["v"].(bool) {
 		println(app_name, version)
@@ -64,26 +103,60 @@ func main() {
 
 	if opts_str["admin"] == "delete_table" {
 		db.DropTableIfExists(&Note{})
+		db.DropTableIfExists(&NoteChange{})
+		db.DropTableIfExists(&NoteFragment{})
+
 		println("notes table deleted")
 		return
 	}
 
-	// Create or update the table structure as needed
-	db.AutoMigrate(&Note{}) //According to GORM: Feel free to change your struct, AutoMigrate will keep your database up-to-date.
-	// Fyi, AutoMigrate will only *add new columns*, it won't update column's type or delete unused columns, to make sure your data is safe.
-	// If the table is not existing, AutoMigrate will create the table automatically.
+	// Client
+	if opts_intf["whoami"].(bool) {
+		println(whoAmI())
+		return
+	}
+
+	// Server
+	if opts_intf["get_server_secret"].(bool) {
+		println(get_server_secret())
+		return
+	}
+
+	// Server
+	if opts_str["get_peer_token"] != "" {
+		pt, err := getPeerToken(opts_str["get_peer_token"])
+		if err != nil {println("Error retrieving token"); return}
+		fmt.Printf("Peer token is: %s-%s\nYou will now need to run the client with 'go_notes -save_peer_token the_token'\n",
+			whoAmI(), pt)
+		return
+	}
+
+	// Client
+	if opts_str["save_peer_token"] != "" {
+		savePeerToken(opts_str["save_peer_token"])
+		return
+	}
 
 	// CORE PROCESSING
+
 	if opts_intf["svr"].(bool) {
 		router := httprouter.New()
 		router.GET("/", Index)
-		//router.GET("/hello/:name", Hello)
 		router.GET("/q/:query", Query)
 		println("Server listening on 8080... Ctrl-C to quit")
 		log.Fatal(http.ListenAndServe(":8080", router))
 
 	} else if opts_str["t"] != "" { // No query options, we must be trying to CREATE
 		createNote()
+
+	} else if opts_str["synch_client"] != "" { // client to test synching
+			synch_client(opts_str["synch_client"], opts_str["server_secret"])
+
+	} else if opts_intf["synch_server"].(bool) { // server to test synching
+		synch_server()
+
+	} else if opts_intf["setup_db"].(bool) { // Migrate the DB
+		migrate()
 
 	} else if opts_str["q"] != "" || opts_intf["qi"].(int) != 0 || opts_str["qg"] != ""{
 		// QUERY
@@ -132,7 +205,7 @@ func createNote() {
 			println("Error: Title", opts_str["t"], "is not unique!")
 			return
 		}
-		do_create( Note{Title: opts_str["t"], Description: opts_str["d"], Body: opts_str["b"], Tag: opts_str["g"]} )
+		do_create( Note{Guid: generate_sha1(), Title: opts_str["t"], Description: opts_str["d"], Body: opts_str["b"], Tag: opts_str["g"]} )
 	} else {
 		println("Title (-t) is required if creating a note. Remember to precede option flags with '-'")
 	}
@@ -141,13 +214,25 @@ func createNote() {
 // The core create method
 func do_create(note Note) bool {
 	print("Creating new note...")
-	db.Create(&note)
-	if !db.NewRecord(note) { // was it saved?
-		println("Record saved:", note.Title)
-		return true
+	performNoteChange(
+		NoteChange{
+			Guid: generate_sha1(), Operation: 1,
+			NoteGuid: note.Guid,
+			Note: note,
+			NoteFragment: NoteFragment{},
+	})
+	println("Record saved:", note.Title)
+	return true
+}
+
+func getNote(guid string) (Note, error) {
+	var note Note
+	db.Where("guid = ?", guid).First(&note)
+	if note.Id != 0 {
+		return note, nil
+	} else {
+		return note, errors.New("Note not found")
 	}
-	println("Failed to save:", note.Title)
-	return false
 }
 
 func find_note_by_title(title string) (bool, Note) {
@@ -213,8 +298,8 @@ func importGob(in_file string) {
 				listNotes([]Note{note}, false) // [:] means all of the slice
 			}	else { println("The imported note is not newer, ignoring...")}
 		} else {
-			do_create( Note{ Title: n.Title, Description: n.Description, Body: n.Body, Tag: n.Tag } )
-			fmt.Printf("Created -->Title: %s - Desc: %s\nBody: %s\nTags: %s\n", n.Title, n.Description, n.Body, n.Tag)
+			do_create( Note{ Guid: generate_sha1(), Title: n.Title, Description: n.Description, Body: n.Body, Tag: n.Tag } )
+			fmt.Printf("Created -->Guid: %s, Title: %s - Desc: %s\nBody: %s\nTags: %s\n", short_sha(n.Guid), n.Title, n.Description, n.Body, n.Tag)
 		}
 	}
 }
@@ -238,7 +323,7 @@ func importCsv(in_file string) {
 			// we could check an 'update on import' option here, set the corresponding fields, then save
 			// or we could decide to update based on last_updated, but the export would have to save updated times - this would be a gob format
 		} else {
-			do_create( Note{Title: f[0], Description: f[1], Body: f[2], Tag: f[3]} )
+			do_create( Note{Guid: generate_sha1(), Title: f[0], Description: f[1], Body: f[2], Tag: f[3]} )
 			fmt.Printf("Created -->Title: %s - Desc: %s\nBody: %s\nTags: %s\n", f[0], f[1], f[2], f[3])
 		}
 	}
@@ -254,9 +339,18 @@ func deleteNotes(notes []Note) {
 		var input string
 		fmt.Scanln(&input) // Get keyboard input
 		if input == "y" || input == "Y" {
-			db.Delete(&n)
-			println("Note", save_id, "deleted")
+			doDelete(n)
+			println("Note [", save_id, "] deleted")
 		}
+	}
+}
+
+func doDelete(note Note) {
+	db.Delete(&note)
+	nc := NoteChange{ Guid: generate_sha1(), NoteGuid: note.Guid, Operation: op_delete }
+	db.Save(&nc)
+	if nc.Id > 0 { // Hopefully nc was reloaded
+		pf("NoteChange (%s) created successfully\n", short_sha(nc.Guid))
 	}
 }
 
@@ -270,54 +364,85 @@ func updateNotes(notes []Note) {
 		fmt.Scanln(&input) // Get keyboard input
 		if input == "y" || input == "Y" {
 			reader := bufio.NewReader(os.Stdin)
+			var nf NoteFragment = NoteFragment{}
 
 			println("\nTitle-->" + n.Title)
 			fmt.Println("Enter new Title (or '+ blah' to append, or <ENTER> for no change)")
 			tit, _ := reader.ReadString('\n')
 			tit = strings.TrimRight(tit, " \r\n")
+
+			orig_title := n.Title
 			if len(tit) > 1 && tit[0:1] == "+" {
-				n.Title = n.Title + tit[1:]
+				n.Title += tit[1:]
 			} else if len(tit) > 0 {
 				n.Title = tit
+			}
+			if orig_title != n.Title { //Build NoteFragment
+				nf.Title = n.Title
+				nf.Bitmask |= 8
 			}
 
 			println("Description-->" + n.Description)
 			fmt.Println("Enter new Description (or '-' to blank, '+ blah' to append, or <ENTER> for no change)")
 			desc, _ := reader.ReadString('\n')
 			desc = strings.TrimRight(desc, " \r\n")
+
+			orig_desc := n.Description
 			if desc == "-" {
 				n.Description = ""
 			} else if len(desc) > 1 && desc[0:1] == "+" {
-				n.Description = n.Description + desc[1:]
+				n.Description += desc[1:]
 			} else if len(desc) > 0 {
 				n.Description = desc
+			}
+			if orig_desc != n.Description { //Build NoteFragment
+				nf.Description = n.Description
+				nf.Bitmask |= 4
 			}
 
 			println("Body-->" + n.Body)
 			fmt.Println("Enter new Body (or '-' to blank, '+ blah' to append, or <ENTER> for no change)")
 			body, _ := reader.ReadString('\n')
 			body = strings.TrimRight(body, " \r\n ")
+
+			orig_body := n.Body
 			if body == "-" {
 				n.Body = ""
 			} else if len(body) > 1 && body[0:1] == "+" {
-				n.Body = n.Body + body[1:]
+				n.Body += body[1:]
 			} else if len(body) > 0 {
 				n.Body = body
+			}
+			if orig_body != n.Body { //Build NoteFragment
+				nf.Body = n.Body
+				nf.Bitmask |= 2
 			}
 
 			println("Tags-->" + n.Tag)
 			fmt.Println("Enter new Tags (or '-' to blank, '+ blah' to append, or <ENTER> for no change)")
 			tag, _ := reader.ReadString('\n')
 			tag = strings.TrimRight(tag, " \r\n ")
+
+			orig_tag := n.Tag
 			if tag == "-" {
 				n.Tag = ""
 			} else if len(tag) > 1 && tag[0:1] == "+" {
-				n.Tag = n.Tag + tag[1:]
+				n.Tag += tag[1:]
 			} else if len(tag) > 0 {
 				n.Tag = tag
 			}
+			if orig_tag != n.Tag { //Build NoteFragment
+				nf.Tag = n.Tag
+				nf.Bitmask |= 1
+			}
 
 			db.Save(&n)
+			nc := NoteChange{ Guid: generate_sha1(), NoteGuid: n.Guid, Operation: op_update, NoteFragment: nf }
+			db.Save(&nc)
+			if nc.Id > 0 {
+				pf("NoteChange (%s) created successfully\n", short_sha(nc.Guid))
+			}
+
 			curr_note[0] = n
 			listNotes(curr_note[:], false) // [:] means all of the slice
 		}
