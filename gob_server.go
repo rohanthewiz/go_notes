@@ -47,18 +47,25 @@ func handleConnection(conn net.Conn) {
 			println("Quit message received. Exiting..."); os.Exit(1)
 		case "WhoAreYou":
 			peer_id = msg.Param // receive the client db signature here also
-			if len(peer_id) == 40 {
-				msg.Param = whoAmI()
-				msg.Type = "WhoIAm"
-				peer, er = getPeerByGuid(peer_id)
-				if er != nil {
-					println("Error retrieving peer object");
-					msg.Type = "ERROR"
-					msg.Param = "There is no record for this client on the server."
-					return
+			println("Client id is:", short_sha(peer_id))
+			println("NoteChg.Guid is:", short_sha(msg.NoteChg.Guid))
+			if msg.NoteChg.Guid == get_server_secret() { // then automatically generate a token
+				pt, err := getPeerToken(peer_id)
+				println("Auth token generated:", pt)
+				if err == nil {
+					msg.NoteChg.Guid = pt // include the auth token in next msg
 				}
 			} else {
-				msg.Type = "InvalidPeerId"
+				msg.NoteChg.Guid = "" // no token
+			}
+			msg.Param = whoAmI()
+			msg.Type = "WhoIAm"
+			peer, er = getPeerByGuid(peer_id)
+			if er != nil {
+				println("Error retrieving peer object for peer:", short_sha(peer_id));
+				msg.Type = "ERROR"
+				msg.Param = "There is no record for this client on the server."
+				return
 			}
 			sendMsg(enc, msg)
 		case "AuthMe":

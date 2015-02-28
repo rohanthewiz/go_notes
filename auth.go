@@ -22,6 +22,15 @@ func whoAmI() string {
 	return local_sig.Guid
 }
 
+func get_server_secret() string {
+	var local_sig LocalSig
+	db.First(&local_sig)
+	if local_sig.Id > 0 {
+		return local_sig.ServerSecret
+	}
+	return ""
+}
+
 // We no longer create Peer here
 // since peer needs to have been created to have an auth token
 func getPeerByGuid(peer_id string) (Peer, error) {
@@ -59,28 +68,31 @@ func getPeerToken(peer_id string) (string, error) {
 		return peer.Token, nil
 	}
 }
-func savePeerToken(compound string) (error) {
-//	var peer_id string
-//	var token string
-	// Split compund string
-	arr := strings.Split(compound, "-")
-	peer_id := arr[0]; token := arr[1]
 
+// The client will save the token for later access to the server
+func savePeerToken(compound string) {
+	arr := strings.Split(strings.TrimSpace(compound), "-")
+	peer_id, token := arr[0], arr[1]
+	pf("Peer: %s, Auth Token: %s\n", peer_id, token)
+	err := setPeerToken(peer_id, token)  // todo pull the error msg out of the err object
+	if err != nil { println(err) }
+}
+
+func setPeerToken(peer_id string, token string) (error) {
 	var peer Peer
 	db.Where("guid = ?", peer_id).First(&peer)
-	if peer.Id < 1 { // then Create
-//		token := generate_sha1()
-		db.Create(&Peer{Guid: peer_id, Token: token})
+	if peer.Id < 1 {
 		println("Creating new peer entry for:", short_sha(peer_id))
-		db.Where("guid = ?", peer_id).First(&peer) // read it back
+		db.Create(&Peer{Guid: peer_id, Token: token})
+		// Verify
+		db.Where("guid = ?", peer_id).First(&peer)
 		if peer.Id < 1 {
 			return errors.New("Could not create peer entry")
 		}
-	  // Peer already exists - make sure it has an auth token
-	} else if len(peer.Token) == 0 {
-		peer.Token = token
+	} else { // Peer already exists - make sure it has an auth token
+		peer.Token = token // always update
 		db.Save(&peer)
+		println("Updated token for peer entry: %s", short_sha(peer_id))
 	}
-
 	return nil
 }

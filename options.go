@@ -22,7 +22,8 @@ func getOpts() (map[string]string, map[string]interface{}) {
         impPtr := flag.String("imp", "", "Import the notes queried from the file given")
         synchClientPtr := flag.String("synch_client", "", "Synch client mode")
         getPeerTokenPtr := flag.String("get_peer_token", "", "Get a token for interacting with this as server")
-        setPeerTokenPtr := flag.String("set_peer_token", "", "Save a token for interacting with this as server")
+        savePeerTokenPtr := flag.String("save_peer_token", "", "Save a token for interacting with this as server")
+        serverSecretPtr := flag.String("server_secret", "", "Include Server Secret")
 
         qiPtr := flag.Int("qi", 0, "Query for notes based on ID")
         qlPtr := flag.Int("ql", -1, "Limit the number of notes returned")
@@ -33,6 +34,7 @@ func getOpts() (map[string]string, map[string]interface{}) {
         delPtr := flag.Bool("del", false, "Delete the notes queried")
         updPtr := flag.Bool("upd", false, "Update the notes queried")
         svrPtr := flag.Bool("svr", false, "Web server mode")
+        getServerSecretPtr := flag.Bool("get_server_secret", false, "Show Server Secret")
         synchServerPtr := flag.Bool("synch_server", false, "Synch server mode")
 
         flag.Parse()
@@ -50,7 +52,8 @@ func getOpts() (map[string]string, map[string]interface{}) {
         opts_str["imp"] = *impPtr
         opts_str["synch_client"] = *synchClientPtr
         opts_str["get_peer_token"] = *getPeerTokenPtr
-        opts_str["set_peer_token"] = *setPeerTokenPtr
+        opts_str["save_peer_token"] = *savePeerTokenPtr
+        opts_str["server_secret"] = *serverSecretPtr
 
         opts_intf["qi"] = *qiPtr
         opts_intf["ql"] = *qlPtr
@@ -61,6 +64,7 @@ func getOpts() (map[string]string, map[string]interface{}) {
         opts_intf["upd"] = *updPtr
         opts_intf["svr"] = *svrPtr
         opts_intf["synch_server"] = *synchServerPtr
+        opts_intf["get_server_secret"] = *getServerSecretPtr
         opts_intf["setup_db"] = *setupDBPtr
 
         separator := "/"

@@ -17,7 +17,7 @@ import (
 )
 
 const app_name = "GoNotes"
-const version string = "0.8.15"
+const version string = "0.8.16"
 const line_separator string = "---------------------------------------------------------"
 
 type Note struct {
@@ -71,10 +71,11 @@ func ensureDBSig() {
 	var local_sigs []LocalSig
 	db.Find(&local_sigs)
 
-	if len(local_sigs) == 1 && len(local_sigs[0].Guid) == 40 { return } // all is good
+	if len(local_sigs) == 1 && len(local_sigs[0].Guid) == 40 &&
+		len(local_sigs[0].ServerSecret) == 40 { return } // all is good
 
 	if len(local_sigs) == 0 { // create the signature
-		db.Create(&LocalSig{Guid: generate_sha1()})
+		db.Create(&LocalSig{Guid: generate_sha1(), ServerSecret: generate_sha1()})
 		if db.Find(&local_sigs); len(local_sigs) == 1 && len(local_sigs[0].Guid) == 40 { // was it saved?
 			println("Local signature created")
 		}
@@ -82,7 +83,6 @@ func ensureDBSig() {
 		panic("Error in the 'local_sigs' table. There should be only one and only one good row")
 	}
 }
-
 
 func main() {
 
@@ -93,7 +93,8 @@ func main() {
 	}
 
 	//Do we need to migrate?
-	if ! db.HasTable(&Peer{}) || ! db.HasTable(&NoteChange{}) { migrate() }
+	if ! db.HasTable(&Peer{}) || ! db.HasTable(&Note{}) || ! db.HasTable(&NoteChange{}) ||
+		! db.HasTable(&NoteFragment{}) || ! db.HasTable(&LocalSig{}) { migrate() }
 
 	if opts_intf["v"].(bool) {
 		println(app_name, version)
@@ -116,19 +117,23 @@ func main() {
 	}
 
 	// Server
+	if opts_intf["get_server_secret"].(bool) {
+		println(get_server_secret())
+		return
+	}
+
+	// Server
 	if opts_str["get_peer_token"] != "" {
 		pt, err := getPeerToken(opts_str["get_peer_token"])
 		if err != nil {println("Error retrieving token"); return}
-		println("Peer token is:", pt)
+		fmt.Printf("Peer token is: %s-%s\nYou will now need to run the client with 'go_notes -save_peer_token the_token'\n",
+			whoAmI(), pt)
 		return
 	}
 
 	// Client
 	if opts_str["save_peer_token"] != "" {
-		err := savePeerToken(opts_str["peer_token"])
-		if err == nil {
-			println(short_sha(opts_str["peer_token"]), "saved")
-		}
+		savePeerToken(opts_str["save_peer_token"])
 		return
 	}
 
@@ -145,7 +150,7 @@ func main() {
 		createNote()
 
 	} else if opts_str["synch_client"] != "" { // client to test synching
-		synch_client(opts_str["synch_client"])
+			synch_client(opts_str["synch_client"], opts_str["server_secret"])
 
 	} else if opts_intf["synch_server"].(bool) { // server to test synching
 		synch_server()

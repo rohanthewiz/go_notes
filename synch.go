@@ -12,6 +12,7 @@ import(
 type LocalSig struct {
 	Id 			int64
 	Guid		string `sql: "size:40"`
+	ServerSecret string `sql: "size:40"`
 	CreatedAt	time.Time
 }
 
@@ -33,7 +34,7 @@ type Message struct {
 
 const SYNCH_PORT  string = "8080"
 
-func synch_client(host string) {
+func synch_client(host string, server_secret string) {
 	conn, err := net.Dial("tcp", host + ":" + SYNCH_PORT)
 	if err != nil {log.Fatal("Error connecting to server ", err)}
 	defer conn.Close()
@@ -43,7 +44,10 @@ func synch_client(host string) {
 	defer sendMsg(enc, Message{Type: "Hangup", Param: "", NoteChg: NoteChange{}})
 
 	// Send handshake
-	sendMsg(enc, Message{Type: "WhoAreYou", Param: whoAmI()})
+	sendMsg(enc, Message{
+		Type: "WhoAreYou", Param: whoAmI(), NoteChg: NoteChange{Guid: server_secret},
+	})
+
 	rcxMsg(dec, &msg) // Decode the response
 	if msg.Type == "WhoIAm" {
 		peer_id := msg.Param  // retrieve the server's guid
@@ -52,8 +56,14 @@ func synch_client(host string) {
 			println("The server's id is invalid. Run the server once with the -setup_db option")
 			return
 		}
+		// Is there a token for us?
+		if len(msg.NoteChg.Guid) == 40 {
+			setPeerToken(peer_id, msg.NoteChg.Guid)
+		}
 		peer, err := getPeerByGuid(peer_id)
 		if err != nil { println("Error retrieving peer object"); return }
+		msg.NoteChg.Guid = ""  // hide the evidence
+
 		// Auth
 		msg.Type = "AuthMe"
 		msg.Param = peer.Token // This is set for the server(peer) by some access granting mechanism
