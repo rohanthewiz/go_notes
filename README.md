@@ -113,20 +113,28 @@ $ gn -q all -s  # list all notes with the short list option. Note that here go_n
 ```
 
 ###Synchronizing
+Each GoNotes database is synchronizable with another. Just call one as the server and the other as a client.
+The client and server must point to different databases whether remote or local.
 ```
+# Remote
 $ ./go_notes -synch_server # Start the server
+# Local
 $ ./go_notes -synch_client server_address $ Start the client. server_address is the IP address or name of server
 ```
 
-Example (we can synch between two local databases)
+Example - synch between two local databases
 ```
 # Add a record to one database
 $ ./go_notes -db db1.sqlite -t "A test note"  # Create a note in db1
+$ ./go_notes -db db1.sqlite -get_server_secret # get a token for initial access to the server
 $ ./go_notes -db db1.sqlite -synch_server
-# Then in another terminal
-$ ./go_notes -db db2.sqlite -synch_client localhost
+# Then in another terminal we run the client
+# replace token_from_server below with the token received from the server
+# The -server_secret option is only needed on the first access to the server from the client
+$ ./go_notes -db db2.sqlite -synch_client localhost -server_secret token_from_server
 $ ./go_notes -db db2.sqlite -q all # should now show the test note synched from db1
-#  delete db1.sqlite and db2.sqlite when complete
+# Press CTRL-C on the server to quit
+# delete db1.sqlite and db2.sqlite when complete
 ```
 
 ###TODO
