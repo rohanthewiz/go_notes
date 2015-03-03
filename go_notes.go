@@ -228,7 +228,12 @@ func do_create(note Note) bool {
 			Note: note,
 			NoteFragment: NoteFragment{},
 	})
-	println("Record saved:", note.Title)
+
+	if n, err := getNote(note.Guid); err != nil {
+		pf("Error creating note %v\n", note); return false
+	} else {
+		pf("Record saved: [%d] %s\n", n.Id, n.Title)
+	}
 	return true
 }
 
