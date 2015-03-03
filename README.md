@@ -112,9 +112,25 @@ D:\GoProjs\src\gotut.org\go_notes>go_notes -db "D:\xfr\gn.sqlite" -t "Test New D
 $ gn -q all -s  # list all notes with the short list option. Note that here go_notes is aliased to *gn*
 ```
 
+###Synchronizing
+```
+$ ./go_notes -synch_server # Start the server
+$ ./go_notes -synch_client server_address $ Start the client. server_address is the IP address or name of server
+```
+
+Example (we can synch between two local databases)
+```
+# Add a record to one database
+$ ./go_notes -db db1.sqlite -t "A test note"  # Create a note in db1
+$ ./go_notes -db db1.sqlite -synch_server
+# Then in another terminal
+$ ./go_notes -db db2.sqlite -synch_client localhost
+$ ./go_notes -db db2.sqlite -q all # should now show the test note synched from db1
+#  delete db1.sqlite and db2.sqlite when complete
+```
+
 ###TODO
 - Finish up webserver mode
-- Synching over a network
 
 ###TIPS
 - There is a great article on ego at http://blog.gopheracademy.com/advent-2014/ego/
