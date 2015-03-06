@@ -75,6 +75,7 @@ func find_note_by_title(title string) (bool, Note) {
 	}
 }
 
+// TODO - Do we really need to pass options into this? Aren't they globally available?
 func queryNotes(str_options map[string]string, intf_options map[string]interface{}) []Note {
 	var notes []Note
 	if intf_options["qi"] !=nil && intf_options["qi"].(int) != 0 { // TODO should we be checking options for nil first?
