@@ -5,13 +5,13 @@ import (
 	"log"
 	"fmt"
 )
+const listen_port string = "8080"
 
 func doWebServer() {
 	router := httprouter.New()
-	router.GET("/", Index)
-	router.GET("/q/:query", Query)
-	println("Server listening on 8080... Ctrl-C to quit")
-	log.Fatal(http.ListenAndServe(":8080", router))
+	doRoutes(router)
+	pf("Server listening on %s... Ctrl-C to quit", listen_port)
+	log.Fatal(http.ListenAndServe(":" + listen_port, router))
 }
 
 // Handlers for httprouter
