@@ -25,7 +25,7 @@ func Index(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 func Query(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 	// messing with sha1 //println(generate_sha1())
 	opts_str["q"] = p.ByName("query")  // Overwrite the query param
-	notes := queryNotes(opts_str, opts_intf )
+	notes := queryNotes()
 	RenderQuery(w, notes) //call Ego generated method
 }
 
@@ -35,13 +35,13 @@ func WebNoteForm(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 }
 
 func WebCreateNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	md, err := ioutil.ReadAll(r.Body)
+	post_data, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(w, err)
 		return
 	}
-//	println("p.Title", p.ByName("title"))
+//	Only applies to GET request //println("p.Title", p.ByName("title"))
 //	println("p.Body", p.ByName("body"))
-	fmt.Fprintf(w, "HI There!\nRequest Body: %s\n", md)
+	fmt.Fprintf(w, "HI There!\nRequest Body: %s\n", post_data)
 }

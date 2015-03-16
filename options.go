@@ -9,13 +9,16 @@ import (
 func getOpts() (map[string]string, map[string]interface{}) {
         opts_str := make( map[string]string )
         opts_intf := make( map[string]interface{} )
-        
-        qPtr := flag.String("q", "", "Query for notes based on a LIKE search. \"all\" will return all notes")
+
         qgPtr := flag.String("qg", "", "Query tags based on a LIKE search")
+        qtPtr := flag.String("qt", "", "Query title based on a LIKE search")
+        qdPtr := flag.String("qd", "", "Query description based on a LIKE search")
+        qbPtr := flag.String("qb", "", "Query body based on a LIKE search")
         tPtr := flag.String("t", "", "Create note Title")
         dPtr := flag.String("d", "", "Create note Description")
         bPtr := flag.String("b", "", "Create note Body")
         gPtr := flag.String("g", "", "Comma separated list of Tags for new note")
+        qPtr := flag.String("q", "", "Query for notes based on a LIKE search. \"all\" will return all notes")
         adminPtr := flag.String("admin", "", "Privileged actions like 'delete_table'")
         dbPtr := flag.String("db", "", "Sqlite DB path")
         expPtr := flag.String("exp", "", "Export the notes queried to the format of the file given")
@@ -42,6 +45,9 @@ func getOpts() (map[string]string, map[string]interface{}) {
         // Store options in a couple of maps
         opts_str["q"] = *qPtr
         opts_str["qg"] = *qgPtr
+        opts_str["qt"] = *qtPtr
+        opts_str["qd"] = *qdPtr
+        opts_str["qb"] = *qbPtr
         opts_str["t"] = *tPtr
         opts_str["d"] = *dPtr
         opts_str["b"] = *bPtr

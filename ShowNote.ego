@@ -16,19 +16,22 @@
 <div class="container">
   <form action="/create" method="post">
     <p>
-      <label for="title">Enter Title</label>
+      <label for="title">Title</label>
       <input name="title" type = "text" value="<%= note.Title %>" />
     </p>
     <p>
-      <label for="description">Enter Description</label>
-      <input name="description" type = "text" value="<%= note.Description %>" />
+      <label for="description">Description</label>
+      <input name="description" type = "text" value="<%= note.Description %>"
+        placeholder="Enter description" />
     </p>
     <p>
-      <label for="body">Enter Body</label>
-      <input name="body" type = "text" value="<%= note.Body %>" />
+      <label for="body">Body</label><br>
+      <textarea name="body" rows="4" cols="70" placeholder="Enter note body">
+        <%= note.Body %>
+      </textarea>
     </p>
     <p>
-      <label for="tag">Enter Tag</label>
+      <label for="tag">Tags</label>
       <input name="tag" type = "text" value="<%= note.Tag %>" />
     </p>
     <p>

@@ -9,7 +9,7 @@ import (
 )
 
 const app_name = "GoNotes"
-const version string = "0.8.17"
+const version string = "0.8.18"
 
 // Get Commandline Options and Flags
 var opts_str, opts_intf = getOpts() //returns map[string]string, map[string]interface{}
@@ -129,9 +129,11 @@ func main() {
 	} else if opts_intf["setup_db"].(bool) { // Migrate the DB
 		migrate()
 
-	} else if opts_str["q"] != "" || opts_intf["qi"].(int) != 0 || opts_str["qg"] != ""{
+	} else if opts_str["q"] != "" || opts_intf["qi"].(int) != 0 ||
+				opts_str["qg"] != "" || opts_str["qt"] != "" ||
+				opts_str["qb"] != "" || opts_str["qd"] != "" {
 		// QUERY
-		notes := queryNotes(opts_str, opts_intf)
+		notes := queryNotes()
 
 		// List Notes found
 		println("")  // for UI sake

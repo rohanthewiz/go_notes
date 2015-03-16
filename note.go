@@ -75,23 +75,27 @@ func find_note_by_title(title string) (bool, Note) {
 	}
 }
 
-// TODO - Do we really need to pass options into this? Aren't they globally available?
-func queryNotes(str_options map[string]string, intf_options map[string]interface{}) []Note {
+// Query by Id, return all notes, query all fields for one param, query a combination of fields and params
+func queryNotes() []Note {
 	var notes []Note
-	if intf_options["qi"] !=nil && intf_options["qi"].(int) != 0 { // TODO should we be checking options for nil first?
-		db.Find(&notes, intf_options["qi"].(int))
-	} else if str_options["qg"] != "" {
-		db.Where("tag LIKE ?", "%"+str_options["qg"]+"%").
-		Limit(intf_options["ql"].(int)).Find(&notes)
-	} else if str_options["q"] == "all" {
+	if opts_intf["qi"] !=nil && opts_intf["qi"].(int) != 0 { // TODO should we be checking options for nil first?
+		db.Find(&notes, opts_intf["qi"].(int))
+	} else if opts_str["q"] == "all" {
 		db.Find(&notes)
-	} else if str_options["q"] != "" {
-		db.Where("title LIKE ?", "%"+str_options["q"]+"%").
-		Or("description LIKE ?", "%"+str_options["q"]+"%").
-		Or("body LIKE ?", "%"+str_options["q"]+"%").
-		Or("tag LIKE ?", "%"+str_options["q"]+"%").
-		Limit(intf_options["ql"].(int)).
+	} else if opts_str["q"] != "" {
+		db.Where("title LIKE ?", "%"+opts_str["q"]+"%").
+		Or("description LIKE ?", "%"+opts_str["q"]+"%").
+		Or("body LIKE ?", "%"+opts_str["q"]+"%").
+		Or("tag LIKE ?", "%"+opts_str["q"]+"%").
+		Limit(opts_intf["ql"].(int)).
 		Find(&notes)
+	} else {
+		query := db.Limit(opts_intf["ql"].(int))
+		query = query.Where("tag LIKE ?", "%" + opts_str["qg"] + "%")
+		query = query.Where("title LIKE ?", "%" + opts_str["qt"] + "%")
+		query = query.Where("description LIKE ?", "%" + opts_str["qd"] + "%")
+		query = query.Where("body LIKE ?", "%" + opts_str["qb"] + "%")
+		query.Find(&notes)
 	}
 	return notes
 }
