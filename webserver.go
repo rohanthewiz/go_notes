@@ -7,6 +7,7 @@ import (
 	"log"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 )
 const listen_port string = "8080"
 
@@ -34,14 +35,18 @@ func WebNoteForm(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	RenderShowNote(w, Note{Title: "Enter a title"})  //call Ego generated method
 }
 
-func WebCreateNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func WebCreateNote(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	post_data, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(w, err)
 		return
 	}
+	v, _ := url.ParseQuery(string(post_data))
 //	Only applies to GET request //println("p.Title", p.ByName("title"))
 //	println("p.Body", p.ByName("body"))
-	fmt.Fprintf(w, "HI There!\nRequest Body: %s\n", post_data)
+
+	fmt.Fprintf(w, "HI There!\nTitle: %s", v.Get("title"))
+	println("Body:", v.Get("body"))
 }
+
