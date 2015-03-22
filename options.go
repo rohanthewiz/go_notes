@@ -28,7 +28,7 @@ func getOpts() (map[string]string, map[string]interface{}) {
         savePeerTokenPtr := flag.String("save_peer_token", "", "Save a token for interacting with this as server")
         serverSecretPtr := flag.String("server_secret", "", "Include Server Secret")
 
-        qiPtr := flag.Int("qi", 0, "Query for notes based on ID")
+        qiPtr := flag.Int64("qi", 0, "Query for notes based on ID")
         qlPtr := flag.Int("ql", -1, "Limit the number of notes returned")
         sPtr := flag.Bool("s", false, "Short Listing - don't show the body")
         vPtr := flag.Bool("v", false, "Show version")

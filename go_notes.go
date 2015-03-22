@@ -115,10 +115,7 @@ func main() {
 	// CORE PROCESSING
 
 	if opts_intf["svr"].(bool) {
-		doWebServer()
-
-	} else if opts_str["t"] != "" { // No query options, we must be trying to CREATE
-		createNote()
+		webserver()
 
 	} else if opts_str["synch_client"] != "" { // client to test synching
 			synch_client(opts_str["synch_client"], opts_str["server_secret"])
@@ -129,7 +126,7 @@ func main() {
 	} else if opts_intf["setup_db"].(bool) { // Migrate the DB
 		migrate()
 
-	} else if opts_str["q"] != "" || opts_intf["qi"].(int) != 0 ||
+	} else if opts_str["q"] != "" || opts_intf["qi"].(int64) != 0 ||
 				opts_str["qg"] != "" || opts_str["qt"] != "" ||
 				opts_str["qb"] != "" || opts_str["qd"] != "" {
 		// QUERY
@@ -167,5 +164,8 @@ func main() {
 			if arr[arr_item_last] == "gob" {
 				importGob(opts_str["imp"])
 			}
+		// Create
+	} else if opts_str["t"] != "" { // No query options, we must be trying to CREATE
+		createNote(opts_str["t"], opts_str["d"], opts_str["b"], opts_str["g"])
 	}
 }

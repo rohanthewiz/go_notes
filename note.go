@@ -22,22 +22,24 @@ type Note struct {
 
 const line_separator string = "---------------------------------------------------------"
 
-func createNote() {
-	if opts_str["t"] != "" {
+func createNote(title string, desc string, body string, tag string) int64 {
+	if title != "" {
 		var chk_unique_title []Note
-		db.Where("title = ?", opts_str["t"]).Find(&chk_unique_title)
+		db.Where("title = ?", title).Find(&chk_unique_title)
 		if len(chk_unique_title) > 0 {
-			println("Error: Title", opts_str["t"], "is not unique!")
-			return
+			println("Error: Title", title, "is not unique!")
+			return 0
 		}
-		do_create( Note{Guid: generate_sha1(), Title: opts_str["t"], Description: opts_str["d"], Body: opts_str["b"], Tag: opts_str["g"]} )
+		return do_create( Note{Guid: generate_sha1(), Title: title, Description: desc,
+										Body: body, Tag: tag} )
 	} else {
 		println("Title (-t) is required if creating a note. Remember to precede option flags with '-'")
 	}
+	return 0
 }
 
 // The core create method
-func do_create(note Note) bool {
+func do_create(note Note) int64 {
 	print("Creating new note...")
 	performNoteChange(
 	NoteChange{
@@ -48,11 +50,12 @@ func do_create(note Note) bool {
 	})
 
 	if n, err := getNote(note.Guid); err != nil {
-		pf("Error creating note %v\n", note); return false
+		pf("Error creating note %v\n", note); return 0
 	} else {
 		pf("Record saved: [%d] %s\n", n.Id, n.Title)
+		return n.Id
 	}
-	return true
+	return 0
 }
 
 func getNote(guid string) (Note, error) {
@@ -78,8 +81,8 @@ func find_note_by_title(title string) (bool, Note) {
 // Query by Id, return all notes, query all fields for one param, query a combination of fields and params
 func queryNotes() []Note {
 	var notes []Note
-	if opts_intf["qi"] !=nil && opts_intf["qi"].(int) != 0 { // TODO should we be checking options for nil first?
-		db.Find(&notes, opts_intf["qi"].(int))
+	if opts_intf["qi"] !=nil && opts_intf["qi"].(int64) != 0 { // TODO should we be checking options for nil first?
+		db.Find(&notes, opts_intf["qi"].(int64))
 	} else if opts_str["q"] == "all" {
 		db.Find(&notes)
 	} else if opts_str["q"] != "" {
