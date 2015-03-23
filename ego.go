@@ -6,23 +6,23 @@ import (
 //line ShowNote.ego:1
  func RenderShowNote(w io.Writer, note Note) error  {
 //line ShowNote.ego:2
-_, _ = fmt.Fprintf(w, "\n\n<html>\n<head>\n  <style>\n    body { background-color: #faec9a }\n    h1 { font-size: 1.2em; margin-bottom: 0.1em; padding: 0.1em }\n    .container { padding: 1em; border: 1px solid gray; border-radius: 0.5em }\n    .title { font-weight: bold; color:darkgreen }\n    .note-body { padding-left:1.5em;}\n  </style>\n</head>\n<body>\n<h1>Note</h1>\n\n<div class=\"container\">\n  <form action=\"/create\" method=\"post\">\n    <p>\n      <label for=\"title\">Title</label>\n      <input name=\"title\" type = \"text\" value=\"")
-//line ShowNote.ego:20
+_, _ = fmt.Fprintf(w, "\n\n<html>\n<head>\n  <style>\n    body { background-color: #faec9a }\n    h1 { font-size: 1.2em; margin-bottom: 0.1em; padding: 0.1em }\n    .container { padding: 1em; border: 1px solid gray; border-radius: 0.5em }\n    .title { font-weight: bold; color:darkgreen }\n    .note-body { padding-left:1.5em;}\n  </style>\n\n  <script type=\"text/javascript\" src=\"./funcs.js\">\n  </script>\n</head>\n\n<body>\n<h1>Note</h1>\n\n<div class=\"container\">\n  <form action=\"/create\" method=\"post\">\n    <p>\n      <label for=\"title\">Title</label>\n      <input name=\"title\" type = \"text\" value=\"")
+//line ShowNote.ego:24
 _, _ = fmt.Fprintf(w, "%v",  note.Title )
-//line ShowNote.ego:20
+//line ShowNote.ego:24
 _, _ = fmt.Fprintf(w, "\" />\n    </p>\n    <p>\n      <label for=\"description\">Description</label>\n      <input name=\"description\" type = \"text\" value=\"")
-//line ShowNote.ego:24
+//line ShowNote.ego:28
 _, _ = fmt.Fprintf(w, "%v",  note.Description )
-//line ShowNote.ego:24
-_, _ = fmt.Fprintf(w, "\"\n        placeholder=\"Enter description\" />\n    </p>\n    <p>\n      <label for=\"body\">Body</label><br>\n      <textarea name=\"body\" rows=\"4\" cols=\"70\" placeholder=\"Enter note body\">\n        ")
-//line ShowNote.ego:30
+//line ShowNote.ego:28
+_, _ = fmt.Fprintf(w, "\" />\n    </p>\n    <p>\n      <label for=\"body\">Body</label><br>\n      <textarea name=\"body\" rows=\"4\" cols=\"70\" placeholder=\"Enter note body\">\n        ")
+//line ShowNote.ego:33
 _, _ = fmt.Fprintf(w, "%v",  note.Body )
-//line ShowNote.ego:31
+//line ShowNote.ego:34
 _, _ = fmt.Fprintf(w, "\n      </textarea>\n    </p>\n    <p>\n      <label for=\"tag\">Tags</label>\n      <input name=\"tag\" type = \"text\" value=\"")
-//line ShowNote.ego:35
+//line ShowNote.ego:38
 _, _ = fmt.Fprintf(w, "%v",  note.Tag )
-//line ShowNote.ego:35
-_, _ = fmt.Fprintf(w, "\" />\n    </p>\n    <p>\n      <input type=\"submit\" value = \"create\" />\n    </p>\n  </form>\n</div>\n\n</body>\n</html>\n")
+//line ShowNote.ego:38
+_, _ = fmt.Fprintf(w, "\" />\n    </p>\n    <p>\n      <input type=\"submit\" value = \"create\" />\n    </p>\n  </form>\n</div>\n\n<script>\n  doAlert(\"Hi there from Javascript!\\n%%A is a percentage A\");\n</script>\n\n</body>\n</html>\n")
 return nil
 }
 //line query.ego:1

@@ -9,7 +9,11 @@
     .title { font-weight: bold; color:darkgreen }
     .note-body { padding-left:1.5em;}
   </style>
+
+  <script type="text/javascript" src="funcs.js">
+  </script>
 </head>
+
 <body>
 <h1>Note</h1>
 
@@ -38,6 +42,10 @@
     </p>
   </form>
 </div>
+
+<script>
+  doAlert("Hi there from Javascript!\n%%A is a percentage A");
+</script>
 
 </body>
 </html>

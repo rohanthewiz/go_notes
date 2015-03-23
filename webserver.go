@@ -11,6 +11,8 @@ import (
 )
 const listen_port string = "8080"
 
+// Good reading: http://www.alexedwards.net/blog/golang-response-snippets
+
 func webserver() {
 	router := httprouter.New()
 	doRoutes(router)

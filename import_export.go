@@ -6,7 +6,6 @@ import (
 	"os"
 )
 
-
 func exportCsv(notes []Note, out_file string) {
 	csv_file, err := os.Create(out_file)
 	if err != nil { fmt.Println("Error: ", err); return }
