@@ -64,6 +64,8 @@ func main() {
 	if ! db.HasTable(&Peer{}) || ! db.HasTable(&Note{}) || ! db.HasTable(&NoteChange{}) ||
 		! db.HasTable(&NoteFragment{}) || ! db.HasTable(&LocalSig{}) { migrate() }
 
+	db.LogMode(true)
+
 	if opts_intf["v"].(bool) {
 		println(app_name, version)
 		return

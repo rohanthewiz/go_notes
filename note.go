@@ -85,19 +85,46 @@ func queryNotes() []Note {
 		db.Find(&notes, opts_intf["qi"].(int64))
 	} else if opts_str["q"] == "all" {
 		db.Find(&notes)
-	} else if opts_str["q"] != "" {
-		db.Where("title LIKE ?", "%"+opts_str["q"]+"%").
-		Or("description LIKE ?", "%"+opts_str["q"]+"%").
-		Or("body LIKE ?", "%"+opts_str["q"]+"%").
-		Or("tag LIKE ?", "%"+opts_str["q"]+"%").
-		Limit(opts_intf["ql"].(int)).
-		Find(&notes)
+//	} else if opts_str["q"] != "" {
+//		db.Where("title LIKE ?", "%"+opts_str["q"]+"%").
+//		Or("description LIKE ?", "%"+opts_str["q"]+"%").
+//		Or("body LIKE ?", "%"+opts_str["q"]+"%").
+//		Or("tag LIKE ?", "%"+opts_str["q"]+"%").
+//		Limit(opts_intf["ql"].(int)).
+//		Find(&notes)
 	} else {
+		q_present := len(opts_str["q"]) > 0
+		ors := " ("
 		query := db.Limit(opts_intf["ql"].(int))
-		query = query.Where("tag LIKE ?", "%" + opts_str["qg"] + "%")
-		query = query.Where("title LIKE ?", "%" + opts_str["qt"] + "%")
-		query = query.Where("description LIKE ?", "%" + opts_str["qd"] + "%")
-		query = query.Where("body LIKE ?", "%" + opts_str["qb"] + "%")
+
+		if len(opts_str["qg"]) > 0 {
+			query = query.Where("tag LIKE ?", "%" + opts_str["qg"] + "%")
+		} else if q_present {
+			ors += " tag LIKE '%" + opts_str["q"] + "%'" // First one (tag) won't ever have a preceding OR if present
+		}
+		if len(opts_str["qt"]) > 0 {
+			query = query.Where("title LIKE ?", "%"+ opts_str["qt"] + "%")
+		} else if q_present {
+			if len(ors) > 2 { ors += " OR" } // Or needed for possible second and on items
+			ors += " title LIKE '%" + opts_str["q"] + "%'"
+		}
+		if len(opts_str["qd"]) > 0 {
+			query = query.Where("description LIKE ?", "%" + opts_str["qd"] + "%")
+		} else if q_present {
+			if len(ors) > 2 { ors += " OR" }
+			ors += " description LIKE '%" + opts_str["q"] + "%'"
+		}
+		if len(opts_str["qb"]) > 0 {
+			query = query.Where("body LIKE ?", "%" + opts_str["qb"] + "%")
+		} else if q_present {
+			if len(ors) > 2 { ors += " OR" }
+			ors += " body LIKE '%" + opts_str["q"] + "%'"
+		}
+
+		ors += " )" // treat all ORs as a unit
+		println(ors)
+		if q_present && len(ors) > 0 { query = query.Where(ors) } // Chained Wheres are effectively ANDs
+
 		query.Find(&notes)
 	}
 	return notes

@@ -11,7 +11,7 @@
 <html>
 <head>
   <style>
-    body { background-color: #faec9a }
+    body { background-color: #eadb38 }
     h1 { font-size: 1.2em; margin-bottom: 0.1em; padding: 0.1em }
     .container { padding: 1em; border: 1px solid gray; border-radius: 0.5em }
     .title { font-weight: bold; color:darkgreen }
@@ -29,15 +29,15 @@
   <form action="<%= action %>" method="post">
     <p>
       <label for="title">Title</label>
-      <input name="title" type = "text" value="<%= note.Title %>" />
+      <input name="title" type = "text" value="<%= note.Title %>" size=54 />
     </p>
     <p>
       <label for="description">Description</label>
-      <input name="description" type = "text" value="<%= note.Description %>" />
+      <input name="description" type = "text" value="<%= note.Description %>" size=50 />
     </p>
     <p>
       <label for="body">Body</label><br>
-      <textarea name="body" rows="4" cols="70">
+      <textarea name="body" rows="6" cols="76">
         <%= note.Body %>
       </textarea>
     </p>
@@ -50,10 +50,10 @@
     </p>
   </form>
 </div>
-<p>Todo Ego print raw fmt.Print ? </p>
-<script>
-  doAlert("Hi there from Javascript!\nFunny chars test: %%A is a percentage");
+<!-- <script>
+  doAlert("Hi there from Javascript!\nFunny chars test: %% is a percentage");
 </script>
+-->
 
 </body>
 </html>

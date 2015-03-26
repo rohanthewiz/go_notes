@@ -53,8 +53,7 @@ func WebCreateNote(w http.ResponseWriter, r *http.Request, _ httprouter.Params) 
 
 	id := createNote(v.Get("title"), v.Get("description"), v.Get("body"), v.Get("tag"))
 	println("Title:", v.Get("title"))
-
-	println("Title via FormValue:", r.FormValue("title"))
+//	println("Title via FormValue:", r.FormValue("title"))
 	http.Redirect(w, r, "/qi/" + strconv.FormatInt(id, 10), http.StatusFound)
 }
 
