@@ -7,7 +7,8 @@ import (
 func doRoutes(router * httprouter.Router) {
 	router.GET("/", Index)
 	router.GET("/q/:query", Query)
+	router.GET("/qi/:id", QueryById)
 	router.GET("/new", WebNoteForm)
-	router.GET("/public/:file", ServeAsset)
+	router.GET("/js/:file", ServeJS)
 	router.POST("/create", WebCreateNote)
 }

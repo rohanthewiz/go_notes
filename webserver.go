@@ -7,7 +7,9 @@ import (
 	"log"
 	"fmt"
 	"io/ioutil"
+	"strconv"
 	"net/url"
+	"path"
 )
 const listen_port string = "8080"
 
@@ -26,14 +28,21 @@ func Index(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 }
 
 func Query(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
-	// messing with sha1 //println(generate_sha1())
 	opts_str["q"] = p.ByName("query")  // Overwrite the query param
 	notes := queryNotes()
 	RenderQuery(w, notes) //call Ego generated method
 }
 
+func QueryById(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	id, err := strconv.ParseInt(p.ByName("id"), 10, 64)  // Overwrite the query param
+	if err != nil { id = 0 }
+	opts_intf["qi"] = id
+	notes := queryNotes()
+	RenderQuery(w, notes)
+}
+
 func WebNoteForm(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	RenderShowNote(w, Note{Title: "Enter a title"})  //call Ego generated method
+	RenderNoteForm(w, Note{})  //call Ego generated method
 }
 
 func WebCreateNote(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -45,9 +54,12 @@ func WebCreateNote(w http.ResponseWriter, r *http.Request, _ httprouter.Params) 
 	id := createNote(v.Get("title"), v.Get("description"), v.Get("body"), v.Get("tag"))
 	println("Title:", v.Get("title"))
 
-	opts_intf["qi"] = id  // Overwrite the query param
-	notes := queryNotes()
-	RenderQuery(w, notes) //call Ego generated method
+	println("Title via FormValue:", r.FormValue("title"))
+	http.Redirect(w, r, "/qi/" + strconv.FormatInt(id, 10), http.StatusFound)
+}
+
+func ServeJS(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	http.ServeFile(w, r, path.Join("js", p.ByName("file")))
 }
 
 func HandleRequestErr(err error, w http.ResponseWriter) {

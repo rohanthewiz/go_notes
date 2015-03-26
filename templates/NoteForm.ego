@@ -1,5 +1,13 @@
-<%! func RenderShowNote(w io.Writer, note Note) error %>
-
+<%! func RenderNoteForm(w io.Writer, note Note) error %>
+<%  var action, button string
+    if len(note.Title) > 0 {
+      action = "/note/" // WIP!!! + strconv.FormatInt(note.Id, 10)
+      button = "Update"
+    } else {
+      action = "/create"
+      button = "Create"
+    }
+%>
 <html>
 <head>
   <style>
@@ -10,7 +18,7 @@
     .note-body { padding-left:1.5em;}
   </style>
 
-  <script type="text/javascript" src="funcs.js">
+  <script type="text/javascript" src="js/funcs.js">
   </script>
 </head>
 
@@ -18,7 +26,7 @@
 <h1>Note</h1>
 
 <div class="container">
-  <form action="/create" method="post">
+  <form action="<%= action %>" method="post">
     <p>
       <label for="title">Title</label>
       <input name="title" type = "text" value="<%= note.Title %>" />
@@ -29,7 +37,7 @@
     </p>
     <p>
       <label for="body">Body</label><br>
-      <textarea name="body" rows="4" cols="70" placeholder="Enter note body">
+      <textarea name="body" rows="4" cols="70">
         <%= note.Body %>
       </textarea>
     </p>
@@ -38,13 +46,13 @@
       <input name="tag" type = "text" value="<%= note.Tag %>" />
     </p>
     <p>
-      <input type="submit" value = "create" />
+      <input type="submit" value = "<%= button %>" />
     </p>
   </form>
 </div>
-
+<p>Todo Ego print raw fmt.Print ? </p>
 <script>
-  doAlert("Hi there from Javascript!\n%%A is a percentage A");
+  doAlert("Hi there from Javascript!\nFunny chars test: %%A is a percentage");
 </script>
 
 </body>

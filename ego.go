@@ -3,26 +3,46 @@ import (
 "fmt"
 "io"
 )
-//line ShowNote.ego:1
- func RenderShowNote(w io.Writer, note Note) error  {
-//line ShowNote.ego:2
-_, _ = fmt.Fprintf(w, "\n\n<html>\n<head>\n  <style>\n    body { background-color: #faec9a }\n    h1 { font-size: 1.2em; margin-bottom: 0.1em; padding: 0.1em }\n    .container { padding: 1em; border: 1px solid gray; border-radius: 0.5em }\n    .title { font-weight: bold; color:darkgreen }\n    .note-body { padding-left:1.5em;}\n  </style>\n\n  <script type=\"text/javascript\" src=\"./funcs.js\">\n  </script>\n</head>\n\n<body>\n<h1>Note</h1>\n\n<div class=\"container\">\n  <form action=\"/create\" method=\"post\">\n    <p>\n      <label for=\"title\">Title</label>\n      <input name=\"title\" type = \"text\" value=\"")
-//line ShowNote.ego:24
+//line NoteForm.ego:1
+ func RenderNoteForm(w io.Writer, note Note) error  {
+//line NoteForm.ego:2
+_, _ = fmt.Fprintf(w, "\n")
+//line NoteForm.ego:2
+  var action, button string
+    if len(note.Title) > 0 {
+      action = "/note/" // WIP!!! + strconv.FormatInt(note.Id, 10)
+      button = "Update"
+    } else {
+      action = "/create"
+      button = "Create"
+    }
+
+//line NoteForm.ego:11
+_, _ = fmt.Fprintf(w, "\n<html>\n<head>\n  <style>\n    body { background-color: #faec9a }\n    h1 { font-size: 1.2em; margin-bottom: 0.1em; padding: 0.1em }\n    .container { padding: 1em; border: 1px solid gray; border-radius: 0.5em }\n    .title { font-weight: bold; color:darkgreen }\n    .note-body { padding-left:1.5em;}\n  </style>\n\n  <script type=\"text/javascript\" src=\"js/funcs.js\">\n  </script>\n</head>\n\n<body>\n<h1>Note</h1>\n\n<div class=\"container\">\n  <form action=\"")
+//line NoteForm.ego:29
+_, _ = fmt.Fprintf(w, "%v",  action )
+//line NoteForm.ego:29
+_, _ = fmt.Fprintf(w, "\" method=\"post\">\n    <p>\n      <label for=\"title\">Title</label>\n      <input name=\"title\" type = \"text\" value=\"")
+//line NoteForm.ego:32
 _, _ = fmt.Fprintf(w, "%v",  note.Title )
-//line ShowNote.ego:24
+//line NoteForm.ego:32
 _, _ = fmt.Fprintf(w, "\" />\n    </p>\n    <p>\n      <label for=\"description\">Description</label>\n      <input name=\"description\" type = \"text\" value=\"")
-//line ShowNote.ego:28
+//line NoteForm.ego:36
 _, _ = fmt.Fprintf(w, "%v",  note.Description )
-//line ShowNote.ego:28
-_, _ = fmt.Fprintf(w, "\" />\n    </p>\n    <p>\n      <label for=\"body\">Body</label><br>\n      <textarea name=\"body\" rows=\"4\" cols=\"70\" placeholder=\"Enter note body\">\n        ")
-//line ShowNote.ego:33
+//line NoteForm.ego:36
+_, _ = fmt.Fprintf(w, "\" />\n    </p>\n    <p>\n      <label for=\"body\">Body</label><br>\n      <textarea name=\"body\" rows=\"4\" cols=\"70\">\n        ")
+//line NoteForm.ego:41
 _, _ = fmt.Fprintf(w, "%v",  note.Body )
-//line ShowNote.ego:34
+//line NoteForm.ego:42
 _, _ = fmt.Fprintf(w, "\n      </textarea>\n    </p>\n    <p>\n      <label for=\"tag\">Tags</label>\n      <input name=\"tag\" type = \"text\" value=\"")
-//line ShowNote.ego:38
+//line NoteForm.ego:46
 _, _ = fmt.Fprintf(w, "%v",  note.Tag )
-//line ShowNote.ego:38
-_, _ = fmt.Fprintf(w, "\" />\n    </p>\n    <p>\n      <input type=\"submit\" value = \"create\" />\n    </p>\n  </form>\n</div>\n\n<script>\n  doAlert(\"Hi there from Javascript!\\n%%A is a percentage A\");\n</script>\n\n</body>\n</html>\n")
+//line NoteForm.ego:46
+_, _ = fmt.Fprintf(w, "\" />\n    </p>\n    <p>\n      <input type=\"submit\" value = \"")
+//line NoteForm.ego:49
+_, _ = fmt.Fprintf(w, "%v",  button )
+//line NoteForm.ego:49
+_, _ = fmt.Fprintf(w, "\" />\n    </p>\n  </form>\n</div>\n<p>Todo Ego print raw fmt.Print ? </p>\n<script>\n  doAlert(\"Hi there from Javascript!\\nFunny chars test: %%A is a percentage\");\n</script>\n\n</body>\n</html>\n")
 return nil
 }
 //line query.ego:1
