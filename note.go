@@ -81,52 +81,38 @@ func find_note_by_title(title string) (bool, Note) {
 // Query by Id, return all notes, query all fields for one param, query a combination of fields and params
 func queryNotes() []Note {
 	var notes []Note
+	db.LogMode(true)
+
 	if opts_intf["qi"] !=nil && opts_intf["qi"].(int64) != 0 { // TODO should we be checking options for nil first?
 		db.Find(&notes, opts_intf["qi"].(int64))
 	} else if opts_str["q"] == "all" {
-		db.Find(&notes)
-//	} else if opts_str["q"] != "" {
-//		db.Where("title LIKE ?", "%"+opts_str["q"]+"%").
-//		Or("description LIKE ?", "%"+opts_str["q"]+"%").
-//		Or("body LIKE ?", "%"+opts_str["q"]+"%").
-//		Or("tag LIKE ?", "%"+opts_str["q"]+"%").
-//		Limit(opts_intf["ql"].(int)).
-//		Find(&notes)
+		db.Limit(opts_intf["ql"].(int)).Find(&notes)
+	// TAG and wildcard
+	} else if opts_str["qg"] != "" && opts_str["q"] != "" {
+		db.Where("tag LIKE ? AND (title LIKE ? OR description LIKE ? OR body LIKE ?)",
+					"%"+opts_str["qg"]+"%",
+					"%"+opts_str["q"]+"%",
+					"%"+opts_str["q"]+"%",
+					"%"+opts_str["q"]+"%",
+		).Limit(opts_intf["ql"].(int)).Find(&notes)
+	// TITLE and wildcard
+	} else if opts_str["qt"] != "" && opts_str["q"] != "" {
+		db.Where("title LIKE ? AND (tag LIKE ? OR description LIKE ? OR body LIKE ?)",
+					"%"+opts_str["qt"]+"%",
+					"%"+opts_str["q"]+"%",
+					"%"+opts_str["q"]+"%",
+					"%"+opts_str["q"]+"%",
+		).Limit(opts_intf["ql"].(int)).Find(&notes)
+	// ANY combination
 	} else {
-		q_present := len(opts_str["q"]) > 0
-		ors := " ("
-		query := db.Limit(opts_intf["ql"].(int))
-
-		if len(opts_str["qg"]) > 0 {
-			query = query.Where("tag LIKE ?", "%" + opts_str["qg"] + "%")
-		} else if q_present {
-			ors += " tag LIKE '%" + opts_str["q"] + "%'" // First one (tag) won't ever have a preceding OR if present
-		}
-		if len(opts_str["qt"]) > 0 {
-			query = query.Where("title LIKE ?", "%"+ opts_str["qt"] + "%")
-		} else if q_present {
-			if len(ors) > 2 { ors += " OR" } // Or needed for possible second and on items
-			ors += " title LIKE '%" + opts_str["q"] + "%'"
-		}
-		if len(opts_str["qd"]) > 0 {
-			query = query.Where("description LIKE ?", "%" + opts_str["qd"] + "%")
-		} else if q_present {
-			if len(ors) > 2 { ors += " OR" }
-			ors += " description LIKE '%" + opts_str["q"] + "%'"
-		}
-		if len(opts_str["qb"]) > 0 {
-			query = query.Where("body LIKE ?", "%" + opts_str["qb"] + "%")
-		} else if q_present {
-			if len(ors) > 2 { ors += " OR" }
-			ors += " body LIKE '%" + opts_str["q"] + "%'"
-		}
-
-		ors += " )" // treat all ORs as a unit
-		println(ors)
-		if q_present && len(ors) > 0 { query = query.Where(ors) } // Chained Wheres are effectively ANDs
-
-		query.Find(&notes)
+		db.Where("tag LIKE ? AND title LIKE ? AND description LIKE ? AND body LIKE ?",
+					"%"+opts_str["qg"]+"%",
+					"%"+opts_str["qt"]+"%",
+					"%"+opts_str["qd"]+"%",
+					"%"+opts_str["qb"]+"%",
+		).Limit(opts_intf["ql"].(int)).Find(&notes)
 	}
+
 	return notes
 }
 
