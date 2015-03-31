@@ -9,6 +9,8 @@ func doRoutes(router * httprouter.Router) {
 	router.GET("/q/:query", Query)
 	router.GET("/qi/:id", QueryById)
 	router.GET("/new", WebNoteForm)
+	router.GET("/edit/:id", WebNoteForm)
 	router.GET("/js/:file", ServeJS)
 	router.POST("/create", WebCreateNote)
+	router.POST("/note/:id", WebUpdateNote)
 }

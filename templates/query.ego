@@ -1,9 +1,10 @@
 <%! func RenderQuery(w io.Writer, notes []Note) error %>
+<%% import "github.com/russross/blackfriday" %%>
 
 <html>
 <head>
   <style>
-    body { background-color: #faec9a }
+    body { background-color: tan }
     ul { list-style-type:none; margin: 0; padding: 0; }
     li:first-child { border-top: 1px solid #a0a0a0}
     li { border-bottom: 1px solid #a0a0a0; line-height:1.2em; padding: 1.2em, 4em }
@@ -22,7 +23,7 @@
             - <%= note.Description %>
           <% } %>
           <% if note.Body != "" { %>
-            <br><span class="note-body"><%= note.Body %></span>
+            <br><span class="note-body"><%= string(blackfriday.MarkdownCommon([]byte(note.Body))) %></span>
           <% } %>
           </li>
   <% } %>

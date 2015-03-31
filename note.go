@@ -103,7 +103,15 @@ func queryNotes() []Note {
 					"%"+opts_str["q"]+"%",
 					"%"+opts_str["q"]+"%",
 		).Limit(opts_intf["ql"].(int)).Find(&notes)
-	// ANY combination
+	// General query
+	} else if opts_str["q"] != "" {
+		db.Where("tag LIKE ? OR title LIKE ? OR description LIKE ? OR body LIKE ?",
+					"%"+opts_str["q"]+"%",
+					"%"+opts_str["q"]+"%",
+					"%"+opts_str["q"]+"%",
+					"%"+opts_str["q"]+"%",
+		).Limit(opts_intf["ql"].(int)).Find(&notes)
+	// ANY combination - without q
 	} else {
 		db.Where("tag LIKE ? AND title LIKE ? AND description LIKE ? AND body LIKE ?",
 					"%"+opts_str["qg"]+"%",
@@ -140,6 +148,37 @@ func listNotes(notes []Note, show_count bool) {
 			msg = "s"
 		}
 		fmt.Printf("(%d note%s found)\n", len(notes), msg)
+	}
+}
+
+func allFieldsUpdate(note Note) { // note is an unsaved note prepared with Id and all other fields even if not changed
+	var orig Note
+	db.Where("id = ?", note.Id).First(&orig) // get the original for comparision
+	// Actual update
+	db.Table("notes").Where("id = ?", note.Id).Updates( map[string]interface{}{
+		"title": note.Title, "description": note.Description, "body": note.Body, "tag": note.Tag,
+	})
+	var nf NoteFragment = NoteFragment{}
+	if orig.Title != note.Title { //Build NoteFragment
+		nf.Title = note.Title
+		nf.Bitmask |= 8
+	}
+	if orig.Description != note.Description { //Build NoteFragment
+		nf.Description = note.Description
+		nf.Bitmask |= 4
+	}
+	if orig.Body != note.Body { //Build NoteFragment
+		nf.Body = note.Body
+		nf.Bitmask |= 2
+	}
+	if orig.Tag != note.Tag { //Build NoteFragment
+		nf.Tag = note.Tag
+		nf.Bitmask |= 1
+	}
+	nc := NoteChange{ Guid: generate_sha1(), NoteGuid: orig.Guid, Operation: op_update, NoteFragment: nf }
+	db.Save(&nc)
+	if nc.Id > 0 {
+		pf("NoteChange (%s) created successfully\n", short_sha(nc.Guid))
 	}
 }
 

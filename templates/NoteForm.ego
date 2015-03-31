@@ -1,10 +1,11 @@
 <%! func RenderNoteForm(w io.Writer, note Note) error %>
+<%% import "strconv" %%>
 <%  var action, button string
     if len(note.Title) > 0 {
-      action = "/note/" // WIP!!! + strconv.FormatInt(note.Id, 10)
+      action = "/note/" + strconv.FormatInt(note.Id, 10)
       button = "Update"
     } else {
-      action = "/create"
+      action = "/create/"
       button = "Create"
     }
 %>
