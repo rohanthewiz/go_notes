@@ -1,5 +1,6 @@
 <%! func RenderQuery(w io.Writer, notes []Note) error %>
 <%% import "github.com/russross/blackfriday" %%>
+<%% import "strconv" %%>
 
 <html>
 <head>
@@ -10,6 +11,7 @@
     li { border-bottom: 1px solid #a0a0a0; line-height:1.2em; padding: 1.2em, 4em }
     h1 { font-size: 1.2em; margin-bottom: 0.1em; padding: 0.1em }
     .title { font-weight: bold; color:darkgreen }
+    .edit { font-size: 0.7em; color:#401020; padding-left: 0.5em }
     .note-body { padding-left:1.5em;}
   </style>
 </head>
@@ -18,14 +20,16 @@
 
 <ul>
   <% for _, note := range notes { %>
-          <li><span class="title"><%= note.Title %></span>
-          <% if note.Description != "" { %>
-            - <%= note.Description %>
-          <% } %>
-          <% if note.Body != "" { %>
-            <br><span class="note-body"><%= string(blackfriday.MarkdownCommon([]byte(note.Body))) %></span>
-          <% } %>
-          </li>
+      <% id_str := strconv.FormatInt(note.Id, 10) %>
+      <li><a class="title" href="http://127.0.0.1:8080/show/<%= id_str %>"><%= note.Title %></a>
+      <a class="edit" href="http://127.0.0.1:8080/edit/<%= id_str %>">[edit]</a>
+      <% if note.Description != "" { %>
+        - <%= note.Description %>
+      <% } %>
+      <% if note.Body != "" { %>
+        <br><span class="note-body"><%= string(blackfriday.MarkdownCommon([]byte(note.Body))) %></span>
+      <% } %>
+      </li>
   <% } %>
 </ul>
 

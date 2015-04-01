@@ -33,6 +33,22 @@ func Query(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 	RenderQuery(w, notes) //call Ego generated method
 }
 
+func QueryTagAndWildCard(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
+	opts_str["qg"] = p.ByName("tag")  // Overwrite the query param
+	opts_str["q"] = p.ByName("query")  // Overwrite the query param
+	opts_intf["qi"] = nil
+	notes := queryNotes()
+	RenderQuery(w, notes) //call Ego generated method
+}
+
+func QueryTitleAndWildCard(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
+	opts_str["qt"] = p.ByName("title")  // Overwrite the query param
+	opts_str["q"] = p.ByName("query")  // Overwrite the query param
+	opts_intf["qi"] = nil
+	notes := queryNotes()
+	RenderQuery(w, notes) //call Ego generated method
+}
+
 func QueryById(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id, err := strconv.ParseInt(p.ByName("id"), 10, 64)  // Overwrite the query param
 	if err != nil { id = 0 }

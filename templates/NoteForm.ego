@@ -12,11 +12,13 @@
 <html>
 <head>
   <style>
-    body { background-color: #eadb38 }
+    body { background-color: tan }
     h1 { font-size: 1.2em; margin-bottom: 0.1em; padding: 0.1em }
     .container { padding: 1em; border: 1px solid gray; border-radius: 0.5em }
     .title { font-weight: bold; color:darkgreen }
     .note-body { padding-left:1.5em;}
+    input { background-color: #EEE6D0 }
+    textarea { background-color: #ECE6D0 }
   </style>
 
   <script type="text/javascript" src="js/funcs.js">
@@ -34,13 +36,11 @@
     </p>
     <p>
       <label for="description">Description</label>
-      <input name="description" type = "text" value="<%= note.Description %>" size=50 />
+      <input name="description" type = "text" value="<%= note.Description %>" size=60 />
     </p>
     <p>
       <label for="body">Body</label><br>
-      <textarea name="body" rows="6" cols="76">
-        <%= note.Body %>
-      </textarea>
+      <textarea name="body" rows="14" cols="76"><%= note.Body %></textarea>
     </p>
     <p>
       <label for="tag">Tags</label>
