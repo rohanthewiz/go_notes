@@ -82,11 +82,9 @@ func find_note_by_title(title string) (bool, Note) {
 func queryNotes() []Note {
 	var notes []Note
 	db.LogMode(true)
-
+	// The order of the if here is very important - esp. for the webserver!
 	if opts_intf["qi"] !=nil && opts_intf["qi"].(int64) != 0 { // TODO should we be checking options for nil first?
 		db.Find(&notes, opts_intf["qi"].(int64))
-	} else if opts_str["q"] == "all" {
-		db.Limit(opts_intf["ql"].(int)).Find(&notes)
 	// TAG and wildcard
 	} else if opts_str["qg"] != "" && opts_str["q"] != "" {
 		db.Where("tag LIKE ? AND (title LIKE ? OR description LIKE ? OR body LIKE ?)",
@@ -103,6 +101,9 @@ func queryNotes() []Note {
 					"%"+opts_str["q"]+"%",
 					"%"+opts_str["q"]+"%",
 		).Limit(opts_intf["ql"].(int)).Find(&notes)
+	//
+	} else if opts_str["q"] == "all" {
+		db.Limit(opts_intf["ql"].(int)).Find(&notes)
 	// General query
 	} else if opts_str["q"] != "" {
 		db.Where("tag LIKE ? OR title LIKE ? OR description LIKE ? OR body LIKE ?",

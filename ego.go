@@ -56,54 +56,54 @@ _, _ = fmt.Fprintf(w, "\n")
 //line query.ego:3
 _, _ = fmt.Fprintf(w, "\n")
 //line query.ego:4
-_, _ = fmt.Fprintf(w, "\n\n<html>\n<head>\n  <style>\n    body { background-color: tan }\n    ul { list-style-type:none; margin: 0; padding: 0; }\n    li:first-child { border-top: 1px solid #a0a0a0}\n    li { border-bottom: 1px solid #a0a0a0; line-height:1.2em; padding: 1.2em, 4em }\n    h1 { font-size: 1.2em; margin-bottom: 0.1em; padding: 0.1em }\n    .title { font-weight: bold; color:darkgreen }\n    .edit { font-size: 0.7em; color:#401020; padding-left: 0.5em }\n    .note-body { padding-left:1.5em;}\n  </style>\n</head>\n<body>\n<h1>My Notes</h1>\n\n<ul>\n  ")
-//line query.ego:22
+_, _ = fmt.Fprintf(w, "\n\n<html>\n<head>\n  <style>\n    body { background-color: tan }\n    ul { list-style-type:none; margin: 0; padding: 0; }\n    ul.topmost > li:first-child { border-top: 1px solid #531C1C}\n    ul.topmost > li { border-top:none; border-bottom: 1px solid #8A2E2E; padding: 0.3em 0.3em}\n    li { border-top: 1px solid #B89c72; line-height:1.2em; padding: 1.2em, 4em }\n    .h1 { font-size: 1.2em; margin-bottom: 0.1em; padding: 0.1em }\n    .title { font-weight: bold; color:darkgreen; padding-top: 0.4em }\n    .tool { font-size: 0.7em; color:#401020; padding-left: 0.5em }\n    .note-body { padding-left:1em; margin-top: 0.1em}\n  </style>\n</head>\n<body>\n\n<p>\n  <span class=\"h1\">My Notes</span>  [<a class=\"tool\" href=\"http://127.0.0.1:8080/new\">New</a> |\n  <a class=\"tool\" href=\"http://127.0.0.1:8080/q/all\">All</a>]\n</p>\n\n<ul class=\"topmost\">\n  ")
+//line query.ego:27
  for _, note := range notes { 
-//line query.ego:23
+//line query.ego:28
 _, _ = fmt.Fprintf(w, "\n      ")
-//line query.ego:23
+//line query.ego:28
  id_str := strconv.FormatInt(note.Id, 10) 
-//line query.ego:24
+//line query.ego:29
 _, _ = fmt.Fprintf(w, "\n      <li><a class=\"title\" href=\"http://127.0.0.1:8080/show/")
-//line query.ego:24
+//line query.ego:29
 _, _ = fmt.Fprintf(w, "%v",  id_str )
-//line query.ego:24
+//line query.ego:29
 _, _ = fmt.Fprintf(w, "\">")
-//line query.ego:24
+//line query.ego:29
 _, _ = fmt.Fprintf(w, "%v",  note.Title )
-//line query.ego:24
-_, _ = fmt.Fprintf(w, "</a>\n      <a class=\"edit\" href=\"http://127.0.0.1:8080/edit/")
-//line query.ego:25
+//line query.ego:29
+_, _ = fmt.Fprintf(w, "</a>\n      <a class=\"tool\" href=\"http://127.0.0.1:8080/edit/")
+//line query.ego:30
 _, _ = fmt.Fprintf(w, "%v",  id_str )
-//line query.ego:25
-_, _ = fmt.Fprintf(w, "\">[edit]</a>\n      ")
-//line query.ego:26
+//line query.ego:30
+_, _ = fmt.Fprintf(w, "\">[edit]</a>")
+//line query.ego:30
  if note.Description != "" { 
-//line query.ego:27
-_, _ = fmt.Fprintf(w, "\n        - ")
-//line query.ego:27
+//line query.ego:30
+_, _ = fmt.Fprintf(w, " - ")
+//line query.ego:30
 _, _ = fmt.Fprintf(w, "%v",  note.Description )
-//line query.ego:28
+//line query.ego:31
 _, _ = fmt.Fprintf(w, "\n      ")
-//line query.ego:28
- } 
-//line query.ego:29
-_, _ = fmt.Fprintf(w, "\n      ")
-//line query.ego:29
- if note.Body != "" { 
-//line query.ego:30
-_, _ = fmt.Fprintf(w, "\n        <br><span class=\"note-body\">")
-//line query.ego:30
-_, _ = fmt.Fprintf(w, "%v",  string(blackfriday.MarkdownCommon([]byte(note.Body))) )
-//line query.ego:30
-_, _ = fmt.Fprintf(w, "</span>\n      ")
 //line query.ego:31
  } 
 //line query.ego:32
-_, _ = fmt.Fprintf(w, "\n      </li>\n  ")
+_, _ = fmt.Fprintf(w, "\n      ")
+//line query.ego:32
+ if note.Body != "" { 
 //line query.ego:33
- } 
+_, _ = fmt.Fprintf(w, "\n        <br><div class=\"note-body\">")
+//line query.ego:33
+_, _ = fmt.Fprintf(w, "%v",  string(blackfriday.MarkdownCommon([]byte(note.Body))) )
+//line query.ego:33
+_, _ = fmt.Fprintf(w, "</span>\n      ")
 //line query.ego:34
+ } 
+//line query.ego:35
+_, _ = fmt.Fprintf(w, "\n      </li>\n  ")
+//line query.ego:36
+ } 
+//line query.ego:37
 _, _ = fmt.Fprintf(w, "\n</ul>\n\n</body>\n</html>\n")
 return nil
 }

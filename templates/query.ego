@@ -7,27 +7,30 @@
   <style>
     body { background-color: tan }
     ul { list-style-type:none; margin: 0; padding: 0; }
-    li:first-child { border-top: 1px solid #a0a0a0}
-    li { border-bottom: 1px solid #a0a0a0; line-height:1.2em; padding: 1.2em, 4em }
-    h1 { font-size: 1.2em; margin-bottom: 0.1em; padding: 0.1em }
-    .title { font-weight: bold; color:darkgreen }
-    .edit { font-size: 0.7em; color:#401020; padding-left: 0.5em }
-    .note-body { padding-left:1.5em;}
+    ul.topmost > li:first-child { border-top: 1px solid #531C1C}
+    ul.topmost > li { border-top:none; border-bottom: 1px solid #8A2E2E; padding: 0.3em 0.3em}
+    li { border-top: 1px solid #B89c72; line-height:1.2em; padding: 1.2em, 4em }
+    .h1 { font-size: 1.2em; margin-bottom: 0.1em; padding: 0.1em }
+    .title { font-weight: bold; color:darkgreen; padding-top: 0.4em }
+    .tool { font-size: 0.7em; color:#401020; padding-left: 0.5em }
+    .note-body { padding-left:1em; margin-top: 0.1em}
   </style>
 </head>
 <body>
-<h1>My Notes</h1>
 
-<ul>
+<p>
+  <span class="h1">My Notes</span>  [<a class="tool" href="http://127.0.0.1:8080/new">New</a> |
+  <a class="tool" href="http://127.0.0.1:8080/q/all">All</a>]
+</p>
+
+<ul class="topmost">
   <% for _, note := range notes { %>
       <% id_str := strconv.FormatInt(note.Id, 10) %>
       <li><a class="title" href="http://127.0.0.1:8080/show/<%= id_str %>"><%= note.Title %></a>
-      <a class="edit" href="http://127.0.0.1:8080/edit/<%= id_str %>">[edit]</a>
-      <% if note.Description != "" { %>
-        - <%= note.Description %>
+      <a class="tool" href="http://127.0.0.1:8080/edit/<%= id_str %>">[edit]</a><% if note.Description != "" { %> - <%= note.Description %>
       <% } %>
       <% if note.Body != "" { %>
-        <br><span class="note-body"><%= string(blackfriday.MarkdownCommon([]byte(note.Body))) %></span>
+        <br><div class="note-body"><%= string(blackfriday.MarkdownCommon([]byte(note.Body))) %></span>
       <% } %>
       </li>
   <% } %>

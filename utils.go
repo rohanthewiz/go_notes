@@ -4,6 +4,7 @@ import(
 	"fmt"
 	"time"
 	"crypto/sha1"
+	"strings"
 )
 
 var pf = fmt.Printf
@@ -17,4 +18,8 @@ func short_sha(sha string) string{
 		return sha[:12]
 	}
 	return sha
+}
+
+func trim_whitespace(in_str string) string {
+	return strings.Trim(in_str, " \n\r\t")
 }

@@ -27,37 +27,57 @@ func Index(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 }
 
 func Query(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
+	resetOptions()
 	opts_str["q"] = p.ByName("query")  // Overwrite the query param
-	opts_intf["qi"] = nil
 	notes := queryNotes()
 	RenderQuery(w, notes) //call Ego generated method
 }
 
+func QueryId(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
+	resetOptions()
+	id, err := strconv.ParseInt(p.ByName("id"), 10, 64)  // Overwrite the query param
+	if err != nil { id = 0 }
+	opts_intf["qi"] = id  // qi is the highest priority
+	notes := queryNotes()
+	RenderQuery(w, notes) //call Ego generated method
+}
+
+func QueryTag(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
+	resetOptions()
+	opts_str["qg"] = p.ByName("tag")  // Overwrite the query param
+	opts_intf["qi"] = nil // turn off unused option
+	opts_str["qt"] = "" // turn off unused option
+	opts_str["q"] = "" // turn off unused option
+	notes := queryNotes()
+	RenderQuery(w, notes)
+}
+
+func QueryTitle(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
+	resetOptions()
+	opts_str["qt"] = p.ByName("title")  // Overwrite the query param
+	opts_intf["qi"] = nil // turn off unused option
+	opts_str["qg"] = "" // turn off unused option
+	notes := queryNotes()
+	RenderQuery(w, notes)
+}
+
 func QueryTagAndWildCard(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
+	resetOptions()
 	opts_str["qg"] = p.ByName("tag")  // Overwrite the query param
 	opts_str["q"] = p.ByName("query")  // Overwrite the query param
-	opts_intf["qi"] = nil
 	notes := queryNotes()
 	RenderQuery(w, notes) //call Ego generated method
 }
 
 func QueryTitleAndWildCard(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
+	resetOptions()
 	opts_str["qt"] = p.ByName("title")  // Overwrite the query param
 	opts_str["q"] = p.ByName("query")  // Overwrite the query param
-	opts_intf["qi"] = nil
 	notes := queryNotes()
 	RenderQuery(w, notes) //call Ego generated method
 }
 
-func QueryById(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	id, err := strconv.ParseInt(p.ByName("id"), 10, 64)  // Overwrite the query param
-	if err != nil { id = 0 }
-	opts_intf["qi"] = id
-	notes := queryNotes()
-	RenderQuery(w, notes)
-}
-
-func WebNoteForm(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func WebNoteForm(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 	if id, err := strconv.ParseInt(p.ByName("id"), 10, 64); err == nil {
 		var note Note
 		db.Where("id = ?", id).First(&note) // get the original for comparision
@@ -77,9 +97,8 @@ func WebCreateNote(w http.ResponseWriter, r *http.Request, _ httprouter.Params) 
 	v, err := url.ParseQuery(string(post_data))
 	if err != nil { HandleRequestErr(err, w); return }
 
-	id := createNote(v.Get("title"), v.Get("description"), v.Get("body"), v.Get("tag"))
-	println("Title:", v.Get("title"))
-//	println("Title via FormValue:", r.FormValue("title"))
+	id := createNote(trim_whitespace(v.Get("title")), trim_whitespace(v.Get("description")),
+		trim_whitespace(v.Get("body")), trim_whitespace(v.Get("tag")))
 	http.Redirect(w, r, "/qi/" + strconv.FormatInt(id, 10), http.StatusFound)
 }
 
@@ -91,9 +110,9 @@ func WebUpdateNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 		v, err := url.ParseQuery(string(post_data))
 		if err != nil { HandleRequestErr(err, w); return }
 
-		note = Note{ Id: id, Title: v.Get("title"),
-			Description: v.Get("description"), Body: v.Get("body"),
-			Tag: v.Get("tag"),
+		note = Note{ Id: id, Title: trim_whitespace(v.Get("title")),
+			Description: trim_whitespace(v.Get("description")),
+			Body: trim_whitespace(v.Get("body")),	Tag: trim_whitespace(v.Get("tag")),
 		}
 		pf("Updating note with: %v ...\n", note)
 		allFieldsUpdate(note)
@@ -103,6 +122,15 @@ func WebUpdateNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 
 func ServeJS(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	http.ServeFile(w, r, path.Join("js", p.ByName("file")))
+}
+
+func resetOptions() {
+	opts_intf["qi"] = nil // turn off unused option
+	opts_str["qg"] = "" // turn off higher priority option
+	opts_str["qt"] = "" // turn off unused option
+	opts_str["qd"] = "" // turn off unused option
+	opts_str["qb"] = "" // turn off unused option
+	opts_str["q"] = "" // turn off higher priority option
 }
 
 func HandleRequestErr(err error, w http.ResponseWriter) {
