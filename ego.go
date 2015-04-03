@@ -76,34 +76,46 @@ _, _ = fmt.Fprintf(w, "</a>\n      <a class=\"tool\" href=\"http://127.0.0.1:808
 //line query.ego:36
 _, _ = fmt.Fprintf(w, "%v",  id_str )
 //line query.ego:36
-_, _ = fmt.Fprintf(w, "\">[edit]</a>")
-//line query.ego:36
- if note.Description != "" { 
-//line query.ego:36
-_, _ = fmt.Fprintf(w, " - ")
-//line query.ego:36
-_, _ = fmt.Fprintf(w, "%v",  note.Description )
+_, _ = fmt.Fprintf(w, "\">edit</a>\n      ")
 //line query.ego:37
-_, _ = fmt.Fprintf(w, "\n      ")
-//line query.ego:37
- } 
+ if len(notes) == 1 { 
 //line query.ego:38
-_, _ = fmt.Fprintf(w, "\n      ")
+_, _ = fmt.Fprintf(w, "\n      | <a class=\"tool\" href=\"http://127.0.0.1:8080/del/")
 //line query.ego:38
- if note.Body != "" { 
-//line query.ego:39
-_, _ = fmt.Fprintf(w, "\n        <br><div class=\"note-body\">")
-//line query.ego:39
-_, _ = fmt.Fprintf(w, "%v",  string(blackfriday.MarkdownCommon([]byte(note.Body))) )
-//line query.ego:39
-_, _ = fmt.Fprintf(w, "</span>\n      ")
-//line query.ego:40
- } 
+_, _ = fmt.Fprintf(w, "%v",  id_str )
+//line query.ego:38
+_, _ = fmt.Fprintf(w, "\"\n            onclick=\"return confirm('Are you sure you want to delete this note?')\">\n        delete</a>\n      ")
 //line query.ego:41
-_, _ = fmt.Fprintf(w, "\n      </li>\n  ")
-//line query.ego:42
  } 
+//line query.ego:42
+_, _ = fmt.Fprintf(w, "\n      ")
+//line query.ego:42
+ if note.Description != "" { 
+//line query.ego:42
+_, _ = fmt.Fprintf(w, " - ")
+//line query.ego:42
+_, _ = fmt.Fprintf(w, "%v",  note.Description )
 //line query.ego:43
+_, _ = fmt.Fprintf(w, "\n      ")
+//line query.ego:43
+ } 
+//line query.ego:44
+_, _ = fmt.Fprintf(w, "\n      ")
+//line query.ego:44
+ if note.Body != "" { 
+//line query.ego:45
+_, _ = fmt.Fprintf(w, "\n        <br><div class=\"note-body\">")
+//line query.ego:45
+_, _ = fmt.Fprintf(w, "%v",  string(blackfriday.MarkdownCommon([]byte(note.Body))) )
+//line query.ego:45
+_, _ = fmt.Fprintf(w, "</span>\n      ")
+//line query.ego:46
+ } 
+//line query.ego:47
+_, _ = fmt.Fprintf(w, "\n      </li>\n  ")
+//line query.ego:48
+ } 
+//line query.ego:49
 _, _ = fmt.Fprintf(w, "\n</ul>\n\n<script type=\"text/javascript\">\n  $( function() {\n    el = $('.note-body');\n    el.find(\"pre code\").each( function(i, block) {\n      hljs.highlightBlock( block );\n    })\n  });\n</script>\n\n</body>\n</html>\n")
 return nil
 }

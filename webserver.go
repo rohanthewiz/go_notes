@@ -29,13 +29,17 @@ func Index(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 func Query(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 	resetOptions()
 	opts_str["q"] = p.ByName("query")  // Overwrite the query param
+	limit, err := strconv.Atoi(p.ByName("limit"))
+	if err == nil {
+		opts_intf["ql"] = limit
+	}
 	notes := queryNotes()
 	RenderQuery(w, notes) //call Ego generated method
 }
 
 func QueryId(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 	resetOptions()
-	id, err := strconv.ParseInt(p.ByName("id"), 10, 64)  // Overwrite the query param
+	id, err := strconv.ParseInt(p.ByName("id"), 10, 64)
 	if err != nil { id = 0 }
 	opts_intf["qi"] = id  // qi is the highest priority
 	notes := queryNotes()
@@ -102,6 +106,16 @@ func WebCreateNote(w http.ResponseWriter, r *http.Request, _ httprouter.Params) 
 	http.Redirect(w, r, "/qi/" + strconv.FormatInt(id, 10), http.StatusFound)
 }
 
+func WebDeleteNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	id, err := strconv.ParseInt(p.ByName("id"), 10, 64)
+	if err != nil {
+		println("Error deleting note.")
+	} else {
+		doDelete(find_note_by_id(id))
+	}
+	http.Redirect(w, r, "/q/all/l/100", http.StatusFound)
+}
+
 func WebUpdateNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	var note Note
 	if id, err := strconv.ParseInt(p.ByName("id"), 10, 64); err == nil {
@@ -126,6 +140,7 @@ func ServeJS(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 
 func resetOptions() {
 	opts_intf["qi"] = nil // turn off unused option
+	opts_intf["ql"] = -1 // turn off unused option
 	opts_str["qg"] = "" // turn off higher priority option
 	opts_str["qt"] = "" // turn off unused option
 	opts_str["qd"] = "" // turn off unused option

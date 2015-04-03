@@ -78,6 +78,12 @@ func find_note_by_title(title string) (bool, Note) {
 	}
 }
 
+func find_note_by_id(id int64) (Note) {
+	var note Note
+	db.First(&note, id)
+	return note
+}
+
 // Query by Id, return all notes, query all fields for one param, query a combination of fields and params
 func queryNotes() []Note {
 	var notes []Note
@@ -295,6 +301,10 @@ func deleteNotes(notes []Note) {
 }
 
 func doDelete(note Note) {
+	if note == (Note{}) {
+		pf("Internal error: cannot delete non-existent note")
+		return
+	}
 	db.Delete(&note)
 	nc := NoteChange{ Guid: generate_sha1(), NoteGuid: note.Guid, Operation: op_delete }
 	db.Save(&nc)
