@@ -21,8 +21,6 @@
     textarea { background-color: #ECE6D0 }
   </style>
 
-  <script type="text/javascript" src="js/funcs.js">
-  </script>
 </head>
 
 <body>
@@ -51,10 +49,6 @@
     </p>
   </form>
 </div>
-<!-- <script>
-  doAlert("Hi there from Javascript!\nFunny chars test: %% is a percentage");
-</script>
--->
 
 </body>
 </html>

@@ -14,7 +14,13 @@
     .title { font-weight: bold; color:darkgreen; padding-top: 0.4em }
     .tool { font-size: 0.7em; color:#401020; padding-left: 0.5em }
     .note-body { padding-left:1em; margin-top: 0.1em}
+    code { -webkit-border-radius: 0.3em;
+          -moz-border-radius: 0.3em;
+          border-radius: 0.3em; }
   </style>
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/zenburn.min.css">
+  <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/highlight.min.js"></script>
 </head>
 <body>
 
@@ -35,6 +41,15 @@
       </li>
   <% } %>
 </ul>
+
+<script type="text/javascript">
+  $( function() {
+    el = $('.note-body');
+    el.find("pre code").each( function(i, block) {
+      hljs.highlightBlock( block );
+    })
+  });
+</script>
 
 </body>
 </html>
