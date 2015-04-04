@@ -32,17 +32,17 @@
 <ul class="topmost">
   <% for _, note := range notes { %>
       <% id_str := strconv.FormatInt(note.Id, 10) %>
-      <li><a class="title" href="http://127.0.0.1:8080/show/<%= id_str %>"><%= note.Title %></a>
-      <a class="tool" href="http://127.0.0.1:8080/edit/<%= id_str %>">edit</a>
+      <li><a class="title" href="/show/<%= id_str %>"><%= note.Title %></a>
+      <a class="tool" href="/edit/<%= id_str %>">edit</a>
       <% if len(notes) == 1 { %>
-      | <a class="tool" href="http://127.0.0.1:8080/del/<%= id_str %>"
+      | <a class="tool" href="/del/<%= id_str %>"
             onclick="return confirm('Are you sure you want to delete this note?')">
         delete</a>
       <% } %>
       <% if note.Description != "" { %> - <%= note.Description %>
       <% } %>
       <% if note.Body != "" { %>
-        <br><div class="note-body"><%= string(blackfriday.MarkdownCommon([]byte(note.Body))) %></span>
+        <div class="note-body"><%= string(blackfriday.MarkdownCommon([]byte(note.Body))) %></span>
       <% } %>
       </li>
   <% } %>

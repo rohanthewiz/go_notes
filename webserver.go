@@ -22,8 +22,9 @@ func webserver() {
 }
 
 // Handlers for httprouter
-func Index(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
-	fmt.Fprint(w, "Welcome!\n")
+func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	http.Redirect(w, r, "/q/all/l/100", http.StatusFound)
+//	fmt.Fprint(w, "Welcome!\n")
 }
 
 func Query(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
@@ -31,8 +32,15 @@ func Query(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 	opts_str["q"] = p.ByName("query")  // Overwrite the query param
 	limit, err := strconv.Atoi(p.ByName("limit"))
 	if err == nil {
-		opts_intf["ql"] = limit
+		opts_intf["l"] = limit
 	}
+	notes := queryNotes()
+	RenderQuery(w, notes) //call Ego generated method
+}
+
+func QueryLast(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
+	resetOptions()
+	opts_intf["ql"] = true  // qi is the highest priority
 	notes := queryNotes()
 	RenderQuery(w, notes) //call Ego generated method
 }
@@ -140,7 +148,8 @@ func ServeJS(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 
 func resetOptions() {
 	opts_intf["qi"] = nil // turn off unused option
-	opts_intf["ql"] = -1 // turn off unused option
+	opts_intf["ql"] = false // turn off unused option
+	opts_intf["l"] = -1 // turn off unused option
 	opts_str["qg"] = "" // turn off higher priority option
 	opts_str["qt"] = "" // turn off unused option
 	opts_str["qd"] = "" // turn off unused option

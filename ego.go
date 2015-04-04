@@ -64,7 +64,7 @@ _, _ = fmt.Fprintf(w, "\n      ")
 //line query.ego:34
  id_str := strconv.FormatInt(note.Id, 10) 
 //line query.ego:35
-_, _ = fmt.Fprintf(w, "\n      <li><a class=\"title\" href=\"http://127.0.0.1:8080/show/")
+_, _ = fmt.Fprintf(w, "\n      <li><a class=\"title\" href=\"/show/")
 //line query.ego:35
 _, _ = fmt.Fprintf(w, "%v",  id_str )
 //line query.ego:35
@@ -72,7 +72,7 @@ _, _ = fmt.Fprintf(w, "\">")
 //line query.ego:35
 _, _ = fmt.Fprintf(w, "%v",  note.Title )
 //line query.ego:35
-_, _ = fmt.Fprintf(w, "</a>\n      <a class=\"tool\" href=\"http://127.0.0.1:8080/edit/")
+_, _ = fmt.Fprintf(w, "</a>\n      <a class=\"tool\" href=\"/edit/")
 //line query.ego:36
 _, _ = fmt.Fprintf(w, "%v",  id_str )
 //line query.ego:36
@@ -80,7 +80,7 @@ _, _ = fmt.Fprintf(w, "\">edit</a>\n      ")
 //line query.ego:37
  if len(notes) == 1 { 
 //line query.ego:38
-_, _ = fmt.Fprintf(w, "\n      | <a class=\"tool\" href=\"http://127.0.0.1:8080/del/")
+_, _ = fmt.Fprintf(w, "\n      | <a class=\"tool\" href=\"/del/")
 //line query.ego:38
 _, _ = fmt.Fprintf(w, "%v",  id_str )
 //line query.ego:38
@@ -104,7 +104,7 @@ _, _ = fmt.Fprintf(w, "\n      ")
 //line query.ego:44
  if note.Body != "" { 
 //line query.ego:45
-_, _ = fmt.Fprintf(w, "\n        <br><div class=\"note-body\">")
+_, _ = fmt.Fprintf(w, "\n        <div class=\"note-body\">")
 //line query.ego:45
 _, _ = fmt.Fprintf(w, "%v",  string(blackfriday.MarkdownCommon([]byte(note.Body))) )
 //line query.ego:45

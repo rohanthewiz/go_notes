@@ -29,8 +29,9 @@ func getOpts() (map[string]string, map[string]interface{}) {
         serverSecretPtr := flag.String("server_secret", "", "Include Server Secret")
 
         qiPtr := flag.Int64("qi", 0, "Query for notes based on ID")
-        qlPtr := flag.Int("ql", -1, "Limit the number of notes returned")
+        lPtr := flag.Int("l", -1, "Limit the number of notes returned")
         sPtr := flag.Bool("s", false, "Short Listing - don't show the body")
+        qlPtr := flag.Bool("ql", false, "Query for the last note updated")
         vPtr := flag.Bool("v", false, "Show version")
         whoamiPtr := flag.Bool("whoami", false, "Show Client GUID")
         setupDBPtr := flag.Bool("setup_db", false, "Setup the Database")
@@ -60,10 +61,10 @@ func getOpts() (map[string]string, map[string]interface{}) {
         opts_str["get_peer_token"] = *getPeerTokenPtr
         opts_str["save_peer_token"] = *savePeerTokenPtr
         opts_str["server_secret"] = *serverSecretPtr
-
         opts_intf["qi"] = *qiPtr
-        opts_intf["ql"] = *qlPtr
+        opts_intf["l"] = *lPtr
         opts_intf["s"] =  *sPtr
+        opts_intf["ql"] =  *qlPtr
         opts_intf["v"] =  *vPtr
         opts_intf["whoami"] = *whoamiPtr
         opts_intf["del"] = *delPtr
