@@ -9,7 +9,7 @@ import (
 )
 
 const app_name = "GoNotes"
-const version string = "0.8.19"
+const version string = "0.8.20"
 
 // Get Commandline Options and Flags
 var opts_str, opts_intf = getOpts() //returns map[string]string, map[string]interface{}

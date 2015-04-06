@@ -12,6 +12,7 @@
     li { border-top: 1px solid #B89c72; line-height:1.2em; padding: 1.2em, 4em }
     .h1 { font-size: 1.2em; margin-bottom: 0.1em; padding: 0.1em }
     .title { font-weight: bold; color:darkgreen; padding-top: 0.4em }
+    .count { font-size: 0.8em; color:#401020; padding-left: 0.5em; padding-right: 0.5em }
     .tool { font-size: 0.7em; color:#401020; padding-left: 0.5em }
     .note-body { padding-left:1em; margin-top: 0.1em}
     code { -webkit-border-radius: 0.3em;
@@ -23,9 +24,9 @@
   <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/highlight.min.js"></script>
 </head>
 <body>
-
+<% notes_count := len(notes) %>
 <p>
-  <span class="h1">My Notes</span>  [<a class="tool" href="http://127.0.0.1:8080/new">New</a> |
+  <span class="h1">My Notes</span> <span class="count"><%= notes_count %> found</span>  [<a class="tool" href="http://127.0.0.1:8080/new">New</a> |
   <a class="tool" href="http://127.0.0.1:8080/q/all">All</a>]
 </p>
 
@@ -34,7 +35,7 @@
       <% id_str := strconv.FormatInt(note.Id, 10) %>
       <li><a class="title" href="/show/<%= id_str %>"><%= note.Title %></a>
       <a class="tool" href="/edit/<%= id_str %>">edit</a>
-      <% if len(notes) == 1 { %>
+      <% if notes_count == 1 { %>
       | <a class="tool" href="/del/<%= id_str %>"
             onclick="return confirm('Are you sure you want to delete this note?')">
         delete</a>
