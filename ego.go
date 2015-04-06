@@ -60,7 +60,7 @@ _, _ = fmt.Fprintf(w, "\n\n<html>\n<head>\n  <style>\n    body { background-colo
 //line query.ego:27
  notes_count := len(notes) 
 //line query.ego:28
-_, _ = fmt.Fprintf(w, "\n<p>\n  <span class=\"h1\">My Notes</span> <span class=\"count\">")
+_, _ = fmt.Fprintf(w, "\n<p>\n  <span class=\"h1\">GoNotes</span> <span class=\"count\">")
 //line query.ego:29
 _, _ = fmt.Fprintf(w, "%v",  notes_count )
 //line query.ego:29
