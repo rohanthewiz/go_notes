@@ -3,7 +3,7 @@ import (
 "fmt"
 "io"
 "strconv"
-"github.com/russross/blackfriday"
+"github.com/rohanthewiz/go_markdown"
 )
 //line NoteForm.ego:1
  func RenderNoteForm(w io.Writer, note Note) error  {

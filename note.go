@@ -111,7 +111,7 @@ func queryNotes() []Note {
 		).Limit(opts_intf["l"].(int)).Find(&notes)
 	//
 	} else if opts_str["q"] == "all" {
-		db.Limit(opts_intf["l"].(int)).Find(&notes)
+		db.Order("updated_at desc").Limit(opts_intf["l"].(int)).Find(&notes)
 	// General query
 	} else if opts_str["q"] != "" {
 		db.Where("tag LIKE ? OR title LIKE ? OR description LIKE ? OR body LIKE ?",

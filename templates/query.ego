@@ -1,5 +1,5 @@
 <%! func RenderQuery(w io.Writer, notes []Note) error %>
-<%% import "github.com/russross/blackfriday" %%>
+<%% import "github.com/rohanthewiz/go_markdown" %%>
 <%% import "strconv" %%>
 
 <html>

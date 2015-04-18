@@ -14,6 +14,7 @@ func doRoutes(router * httprouter.Router) {
 	router.GET("/q/:query/l/:limit", Query)
 	router.GET("/qg/:tag/q/:query", QueryTagAndWildCard)
 	router.GET("/q/:query/qg/:tag", QueryTagAndWildCard)
+	router.GET("/g/:tag/:query", QueryTagAndWildCard)
 	router.GET("/qt/:title/q/:query", QueryTitleAndWildCard)
 	router.GET("/q/:query/qt/:title", QueryTitleAndWildCard)
 	router.GET("/show/:id", QueryId)
