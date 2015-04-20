@@ -26,26 +26,26 @@ _, _ = fmt.Fprintf(w, "\n<html>\n<head>\n  <style>\n    body { background-color:
 //line NoteForm.ego:30
 _, _ = fmt.Fprintf(w, "%v",  action )
 //line NoteForm.ego:30
-_, _ = fmt.Fprintf(w, "\" method=\"post\">\n    <p>\n      <label for=\"title\">Title</label>\n      <input name=\"title\" type = \"text\" value=\"")
-//line NoteForm.ego:33
+_, _ = fmt.Fprintf(w, "\" method=\"post\">\n    <table><tr>\n      <td>\n        <label for=\"title\">Title</label>\n        <input name=\"title\" type = \"text\" value=\"")
+//line NoteForm.ego:34
 _, _ = fmt.Fprintf(w, "%v",  note.Title )
-//line NoteForm.ego:33
-_, _ = fmt.Fprintf(w, "\" size=54 />\n    </p>\n    <p>\n      <label for=\"description\">Description</label>\n      <input name=\"description\" type = \"text\" value=\"")
+//line NoteForm.ego:34
+_, _ = fmt.Fprintf(w, "\" size=54 />\n      </td><td>\n        <label for=\"tag\">&nbsp;&nbsp;Tags</label>\n        <input name=\"tag\" type = \"text\" value=\"")
 //line NoteForm.ego:37
-_, _ = fmt.Fprintf(w, "%v",  note.Description )
-//line NoteForm.ego:37
-_, _ = fmt.Fprintf(w, "\" size=60 />\n    </p>\n    <p>\n      <label for=\"body\">Body</label><br>\n      <textarea name=\"body\" rows=\"14\" cols=\"76\">")
-//line NoteForm.ego:41
-_, _ = fmt.Fprintf(w, "%v",  note.Body )
-//line NoteForm.ego:41
-_, _ = fmt.Fprintf(w, "</textarea>\n    </p>\n    <p>\n      <label for=\"tag\">Tags</label>\n      <input name=\"tag\" type = \"text\" value=\"")
-//line NoteForm.ego:45
 _, _ = fmt.Fprintf(w, "%v",  note.Tag )
-//line NoteForm.ego:45
-_, _ = fmt.Fprintf(w, "\" />\n    </p>\n    <p>\n      <input type=\"submit\" value = \"")
-//line NoteForm.ego:48
+//line NoteForm.ego:37
+_, _ = fmt.Fprintf(w, "\" size=24 />\n      <td></tr>\n    </table>\n    <p>\n      <label for=\"description\">Description</label>\n      <input name=\"description\" type = \"text\" value=\"")
+//line NoteForm.ego:42
+_, _ = fmt.Fprintf(w, "%v",  note.Description )
+//line NoteForm.ego:42
+_, _ = fmt.Fprintf(w, "\" size=83/>\n    </p>\n    <p>\n      <label for=\"body\">Body</label><br>\n      <textarea name=\"body\" rows=\"14\" cols=\"76\">")
+//line NoteForm.ego:46
+_, _ = fmt.Fprintf(w, "%v",  note.Body )
+//line NoteForm.ego:46
+_, _ = fmt.Fprintf(w, "</textarea>\n    </p>\n    <p>\n      <input type=\"submit\" value = \"")
+//line NoteForm.ego:49
 _, _ = fmt.Fprintf(w, "%v",  button )
-//line NoteForm.ego:48
+//line NoteForm.ego:49
 _, _ = fmt.Fprintf(w, "\" />\n    </p>\n  </form>\n</div>\n\n</body>\n</html>\n")
 return nil
 }

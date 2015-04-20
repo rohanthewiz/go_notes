@@ -28,21 +28,22 @@
 
 <div class="container">
   <form action="<%= action %>" method="post">
-    <p>
-      <label for="title">Title</label>
-      <input name="title" type = "text" value="<%= note.Title %>" size=54 />
-    </p>
+    <table><tr>
+      <td>
+        <label for="title">Title</label>
+        <input name="title" type = "text" value="<%= note.Title %>" size=54 />
+      </td><td>
+        <label for="tag">&nbsp;&nbsp;Tags</label>
+        <input name="tag" type = "text" value="<%= note.Tag %>" size=24 />
+      <td></tr>
+    </table>
     <p>
       <label for="description">Description</label>
-      <input name="description" type = "text" value="<%= note.Description %>" size=60 />
+      <input name="description" type = "text" value="<%= note.Description %>" size=83/>
     </p>
     <p>
       <label for="body">Body</label><br>
       <textarea name="body" rows="14" cols="76"><%= note.Body %></textarea>
-    </p>
-    <p>
-      <label for="tag">Tags</label>
-      <input name="tag" type = "text" value="<%= note.Tag %>" />
     </p>
     <p>
       <input type="submit" value = "<%= button %>" />
