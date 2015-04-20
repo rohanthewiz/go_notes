@@ -26,8 +26,8 @@
 <body>
 <% notes_count := len(notes) %>
 <p>
-  <span class="h1">GoNotes</span> <span class="count"><%= notes_count %> found</span>  [<a class="tool" href="http://127.0.0.1:8080/new">New</a> |
-  <a class="tool" href="http://127.0.0.1:8080/q/all">All</a>]
+  <span class="h1">GoNotes</span> <span class="count"><%= notes_count %> found</span>  [<a class="tool" href="http://127.0.0.1:<%= opts_str["port"] %>/new">New</a> |
+  <a class="tool" href="http://127.0.0.1:<%= opts_str["port"] %>/q/all">All</a>]
 </p>
 
 <ul class="topmost">

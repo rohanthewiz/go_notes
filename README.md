@@ -55,6 +55,7 @@ $ ./go_notes -svr
 	/q/:query - Query in tag, title, description or body
 	/q/:query/l/:limit - Same as above, but with a limit
 	/qg/:tag/q/:query - Query by tag and query term in any other field
+	/g/:tag/:query - Same as above, but less typing
 	/q/:query/qg/:tag - Same as above with just the order of query terms reversed
 	/qt/:title/q/:query - Query by title and query term in any other field
 	/q/:query/qt/:title - Same as above with just the order of query terms reversed

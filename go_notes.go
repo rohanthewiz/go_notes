@@ -117,7 +117,7 @@ func main() {
 	// CORE PROCESSING
 
 	if opts_intf["svr"].(bool) {
-		webserver()
+		webserver(opts_str["port"])
 
 	} else if opts_str["synch_client"] != "" { // client to test synching
 			synch_client(opts_str["synch_client"], opts_str["server_secret"])

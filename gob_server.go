@@ -30,7 +30,7 @@ func handleConnection(conn net.Conn) {
 	enc := gob.NewEncoder(conn)
 	dec := gob.NewDecoder(conn)
 
-	var note_changes []NoteChange
+	var local_changes []NoteChange
 	var peer_id string
 	var peer Peer
 	var er error
@@ -83,8 +83,8 @@ func handleConnection(conn net.Conn) {
 		case "NumberOfChanges":
 			if !authorized { println(authFailMsg); return }
 			// msg.Param will include the synch_point, so send num of changes since synch point
-			note_changes = retrieveLocalNoteChangesFromSynchPoint(msg.Param)
-			msg.Param = strconv.Itoa(len(note_changes))
+			local_changes = retrieveLocalNoteChangesFromSynchPoint(msg.Param)
+			msg.Param = strconv.Itoa(len(local_changes))
 			sendMsg(enc, msg)
 		case "SendChanges":
 			if !authorized { println(authFailMsg); return }
@@ -92,7 +92,7 @@ func handleConnection(conn net.Conn) {
 			msg.Param = ""
 			var note Note
 			var note_frag NoteFragment
-			for _, change := range(note_changes) {
+			for _, change := range(local_changes) {
 				note = Note{}
 				note_frag = NoteFragment{}
 				// We have the change but now we need the NoteFragment or Note depending on the operation type
@@ -126,7 +126,7 @@ func handleConnection(conn net.Conn) {
 				peer_changes[i] = msg.NoteChg
 			}
 			pf("\n%d peer changes received:\n", numChanges)
-			processChanges(peer, &peer_changes)
+			processChanges(&peer_changes, &local_changes)
 		case "NewSynchPoint": // New synch point at the end of synching
 			if !authorized { println(authFailMsg); return }
 			synch_nc := msg.NoteChg

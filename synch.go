@@ -32,7 +32,7 @@ type Message struct {
 	NoteChg		NoteChange
 }
 
-const SYNCH_PORT  string = "8080"
+const SYNCH_PORT  string = "8090"
 
 func synch_client(host string, server_secret string) {
 	conn, err := net.Dial("tcp", host + ":" + SYNCH_PORT)
@@ -94,14 +94,14 @@ func synch_client(host string, server_secret string) {
 		pf("Last known Synch position is \"%s\"\n", short_sha(peer.SynchPos))
 
 		// Get Server Changes
-		sendMsg(enc, Message{Type: "NumberOfChanges", Param: peer.SynchPos})
+		sendMsg(enc, Message{Type: "NumberOfChanges", Param: peer.SynchPos}) // heads up on number of changes
 		rcxMsg(dec, &msg) // Decode the response
 		numChanges, err := strconv.Atoi(msg.Param)
 		if err != nil { println("Could not decode the number of change messages"); return }
 		println(numChanges, "changes")
 
 		peer_changes := make([]NoteChange, numChanges)
-		sendMsg(enc, Message{Type: "SendChanges"})
+		sendMsg(enc, Message{Type: "SendChanges"})  // send the actual changes
 		for i := 0; i < numChanges; i++ {
 			msg = Message{}
 			rcxMsg(dec, &msg)
@@ -110,19 +110,19 @@ func synch_client(host string, server_secret string) {
 		pf("\n%d server changes received:\n", numChanges)
 		
     // Get Local Changes
-		note_changes := retrieveLocalNoteChangesFromSynchPoint(peer.SynchPos)
-		pf("%d local changes after synch point found\n", len(note_changes))
+		local_changes := retrieveLocalNoteChangesFromSynchPoint(peer.SynchPos)
+		pf("%d local changes after synch point found\n", len(local_changes))
 		// Push local changes to server
-		if len(note_changes) > 0 {
+		if len(local_changes) > 0 {
 			sendMsg(enc, Message{Type: "NumberOfClientChanges",
-				Param: strconv.Itoa(len(note_changes))})
+				Param: strconv.Itoa(len(local_changes))})
 			rcxMsg(dec, &msg)
 			if msg.Type == "SendChanges" {
 				msg.Type = "NoteChange"
 				msg.Param = ""
 				var note Note
 				var note_frag NoteFragment
-				for _, change := range (note_changes) {
+				for _, change := range (local_changes) {
 					note = Note{}
 					note_frag = NoteFragment{}
 					// We have the change but now we need the NoteFragment or Note depending on the operation type
@@ -144,11 +144,11 @@ func synch_client(host string, server_secret string) {
 
 		// Process remote changes received
 		if len(peer_changes) > 0 {
-			processChanges(peer, &peer_changes)
+			processChanges(&peer_changes, &local_changes)
 		}
 
 		// Mark Synch Point with a special NoteChange; Save on client and server
-		if len(peer_changes) > 0 || len(note_changes) > 0 {
+		if len(peer_changes) > 0 || len(local_changes) > 0 {
 			synch_point := generate_sha1()
 			synch_nc := NoteChange{Guid: synch_point, Operation: 9}
 			db.Save(&synch_nc)
@@ -170,34 +170,37 @@ func synch_client(host string, server_secret string) {
 	defer println("Synch Operation complete")
 }
 
-func processChanges(peer Peer, peer_changes * []NoteChange) {
+func processChanges(peer_changes * []NoteChange, local_changes * []NoteChange) {
 	sort.Sort(byCreatedAt(*peer_changes)) // we will apply in created order
-	for _, change := range(*peer_changes) {
-		println("____________________________________________________________________")
-		// If we already have this NoteChange locally then skip
-		var local_change NoteChange
-		db.Where("guid = ?", change.Guid).First(&local_change)
+	var local_change NoteChange
+	var skip bool
+
+	for _, peer_change := range(*peer_changes) {
+		// If we already have this NoteChange locally then skip // same change
+		db.Where("guid = ?", peer_change.Guid).First(&local_change)
 		if local_change.Id > 1 { continue } // we already have that NC
+		// If there is a newer local change of the same note and field then skip
+		for _, local_change = range(*local_changes) {
+			if local_change.NoteId == peer_change.NoteId && // same note
+					local_change.CreatedAt.After(peer_change.CreatedAt) && ( // local newer
+						// any field in peer_change matches a field in local_change
+						local_change.NoteFragment.Bitmask&0x8 == peer_change.NoteFragment.Bitmask&0x8 ||
+						local_change.NoteFragment.Bitmask&0x4 == peer_change.NoteFragment.Bitmask&0x4 ||
+						local_change.NoteFragment.Bitmask&0x2 == peer_change.NoteFragment.Bitmask&0x2 ||
+						local_change.NoteFragment.Bitmask&0x1 == peer_change.NoteFragment.Bitmask&0x1 ) {
+				skip = true
+			}
+		}
+		if skip {
+			skip = false // reset
+			continue
+		}
+
 		// Apply Changes
-		performNoteChange(change)
-		verifyNoteChangeApplied(change)
-		//We may not be using this algo: When done push this note Guid to the completed array
+		println("____________________________________________________________________")
+		performNoteChange(peer_change)
+		verifyNoteChangeApplied(peer_change)
 	}
-	// Save the last synch point - //TODO - How does success above influence the last synch point?
-//	var lastSynchPoint string
-//	if ln := len(*peer_changes); ln > 0 {
-//		lastSynchPoint = (*peer_changes)[ln - 1].Guid
-//	}
-//	peer.SynchPos = lastSynchPoint
-//	db.Save(&peer)
-//	// Verify synch point saved
-//	db.Where("guid = ?", peer.Guid).First(&peer)
-//	if peer.SynchPos == lastSynchPoint {
-//		println("Peer Synch Point saved:", short_sha(lastSynchPoint))
-//	} else {
-//		println("Warning! Could not save a synch point for peer:", short_sha(peer.Guid),
-//			"Future synchs with this peer may be unreliable")
-//	}
 }
 
 func retrieveLastChangeForNote(note_guid string) (NoteChange) {

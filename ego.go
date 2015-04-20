@@ -64,7 +64,15 @@ _, _ = fmt.Fprintf(w, "\n<p>\n  <span class=\"h1\">GoNotes</span> <span class=\"
 //line query.ego:29
 _, _ = fmt.Fprintf(w, "%v",  notes_count )
 //line query.ego:29
-_, _ = fmt.Fprintf(w, " found</span>  [<a class=\"tool\" href=\"http://127.0.0.1:8080/new\">New</a> |\n  <a class=\"tool\" href=\"http://127.0.0.1:8080/q/all\">All</a>]\n</p>\n\n<ul class=\"topmost\">\n  ")
+_, _ = fmt.Fprintf(w, " found</span>  [<a class=\"tool\" href=\"http://127.0.0.1:")
+//line query.ego:29
+_, _ = fmt.Fprintf(w, "%v",  opts_str["port"] )
+//line query.ego:29
+_, _ = fmt.Fprintf(w, "/new\">New</a> |\n  <a class=\"tool\" href=\"http://127.0.0.1:")
+//line query.ego:30
+_, _ = fmt.Fprintf(w, "%v",  opts_str["port"] )
+//line query.ego:30
+_, _ = fmt.Fprintf(w, "/q/all\">All</a>]\n</p>\n\n<ul class=\"topmost\">\n  ")
 //line query.ego:34
  for _, note := range notes { 
 //line query.ego:35

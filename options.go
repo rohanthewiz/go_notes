@@ -19,6 +19,7 @@ func getOpts() (map[string]string, map[string]interface{}) {
         bPtr := flag.String("b", "", "Create note Body")
         gPtr := flag.String("g", "", "Comma separated list of Tags for new note")
         qPtr := flag.String("q", "", "Query for notes based on a LIKE search. \"all\" will return all notes")
+        pPtr := flag.String("port", "8080", "Specify webserver port")
         adminPtr := flag.String("admin", "", "Privileged actions like 'delete_table'")
         dbPtr := flag.String("db", "", "Sqlite DB path")
         expPtr := flag.String("exp", "", "Export the notes queried to the format of the file given")
@@ -45,6 +46,7 @@ func getOpts() (map[string]string, map[string]interface{}) {
 
         // Store options in a couple of maps
         opts_str["q"] = *qPtr
+        opts_str["port"] = *pPtr
         opts_str["qg"] = *qgPtr
         opts_str["qt"] = *qtPtr
         opts_str["qd"] = *qdPtr

@@ -10,11 +10,10 @@ import (
 	"net/url"
 	"path"
 )
-const listen_port string = "8080"
 
 // Good reading: http://www.alexedwards.net/blog/golang-response-snippets
 
-func webserver() {
+func webserver(listen_port string) {
 	router := httprouter.New()
 	doRoutes(router)
 	pf("Server listening on %s... Ctrl-C to quit", listen_port)
