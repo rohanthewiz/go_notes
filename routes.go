@@ -9,6 +9,7 @@ func doRoutes(router * httprouter.Router) {
 	router.GET("/ql", QueryLast)
 	router.GET("/qi/:id", QueryId)
 	router.GET("/qg/:tag", QueryTag)
+	router.GET("/g/:tag", QueryTag)
 	router.GET("/qt/:title", QueryTitle)
 	router.GET("/q/:query", Query)
 	router.GET("/q/:query/l/:limit", Query)
