@@ -171,17 +171,23 @@ func synch_client(host string, server_secret string) {
 }
 
 func processChanges(peer_changes * []NoteChange, local_changes * []NoteChange) {
+	println("Processing received changes...")
 	sort.Sort(byCreatedAt(*peer_changes)) // we will apply in created order
 	var local_change NoteChange
 	var skip bool
 
 	for _, peer_change := range(*peer_changes) {
 		// If we already have this NoteChange locally then skip // same change
+		local_change = NoteChange{} // make sure local_change is inited here
+									// otherwise GORM uses its id in the query - weird!
 		db.Where("guid = ?", peer_change.Guid).First(&local_change)
-		if local_change.Id > 1 { continue } // we already have that NC
+		if local_change.Id > 1 {
+			pf("We already have NoteChange: %s -- skipping\n",short_sha(local_change.Guid))
+			continue // we already have that NC
+		}
 		// If there is a newer local change of the same note and field then skip
 		for _, local_change = range(*local_changes) {
-			if local_change.NoteId == peer_change.NoteId && // same note
+			if local_change.NoteGuid == peer_change.NoteGuid && // same note
 					local_change.CreatedAt.After(peer_change.CreatedAt) && ( // local newer
 						// any field in peer_change matches a field in local_change
 						local_change.NoteFragment.Bitmask&0x8 == peer_change.NoteFragment.Bitmask&0x8 ||
@@ -197,7 +203,7 @@ func processChanges(peer_changes * []NoteChange, local_changes * []NoteChange) {
 		}
 
 		// Apply Changes
-		println("____________________________________________________________________")
+		println("____________________APPLYING CHANGE_________________________________")
 		performNoteChange(peer_change)
 		verifyNoteChangeApplied(peer_change)
 	}
