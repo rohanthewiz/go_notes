@@ -5,10 +5,28 @@ import(
 	"time"
 	"crypto/sha1"
 	"strings"
+	"log"
 )
 
-var pf = fmt.Printf
-var pl = fmt.Println
+var lp = log.Println
+
+func pd(msg string) {
+	if opts_intf["debug"].(bool) {
+		lp(msg)
+	}
+}
+
+func pl(params ...interface{}) {
+	if opts_intf["verbose"].(bool) {
+		fmt.Println(params...)
+	}
+}
+
+func pf(msg string, params ...interface{}) {
+	if opts_intf["verbose"].(bool) {
+		fmt.Printf(msg, params...)
+	}
+}
 
 func generate_sha1() string {
 	return fmt.Sprintf("%x", sha1.Sum([]byte("%$" + time.Now().String() + "e{")))

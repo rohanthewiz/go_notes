@@ -46,7 +46,7 @@ func handleConnection(conn net.Conn) {
 		case "Quit":
 			pl("Quit message received. Exiting..."); os.Exit(1)
 		case "WhoAreYou":
-			peer_id = msg.Param // receive the client db signature here also
+			peer_id = msg.Param // receive the client db signature (peer id)
 			pl("Client id is:", short_sha(peer_id))
 			pl("NoteChg.Guid is:", short_sha(msg.NoteChg.Guid))
 			if msg.NoteChg.Guid == get_server_secret() { // then automatically generate a token

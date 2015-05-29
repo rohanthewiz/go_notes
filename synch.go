@@ -45,7 +45,7 @@ func synch_client(host string, server_secret string) {
 
 	// Send handshake
 	sendMsg(enc, Message{
-		Type: "WhoAreYou", Param: whoAmI(), NoteChg: NoteChange{Guid: server_secret},
+		Type: "WhoAreYou", Param: whoAmI(), NoteChg: NoteChange{Guid: server_secret}, // borrow NC: Guid
 	})
 
 	rcxMsg(dec, &msg) // Decode the response
