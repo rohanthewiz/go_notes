@@ -12,7 +12,7 @@ import(
 func synch_server() { // WIP
 	ln, err := net.Listen("tcp", ":" + SYNCH_PORT) // counterpart of net.Dial
 	if err != nil {
-		println("Error setting up server listen on port", SYNCH_PORT)
+		pl("Error setting up server listen on port", SYNCH_PORT)
 		return
 	}
 	fmt.Println("Server listening on port: " + SYNCH_PORT + " - CTRL-C to quit")
@@ -44,14 +44,14 @@ func handleConnection(conn net.Conn) {
 		case "Hangup":
 			printHangupMsg(conn); return
 		case "Quit":
-			println("Quit message received. Exiting..."); os.Exit(1)
+			pl("Quit message received. Exiting..."); os.Exit(1)
 		case "WhoAreYou":
 			peer_id = msg.Param // receive the client db signature here also
-			println("Client id is:", short_sha(peer_id))
-			println("NoteChg.Guid is:", short_sha(msg.NoteChg.Guid))
+			pl("Client id is:", short_sha(peer_id))
+			pl("NoteChg.Guid is:", short_sha(msg.NoteChg.Guid))
 			if msg.NoteChg.Guid == get_server_secret() { // then automatically generate a token
 				pt, err := getPeerToken(peer_id)
-				println("Auth token generated:", pt)
+				pl("Auth token generated:", pt)
 				if err == nil {
 					msg.NoteChg.Guid = pt // include the auth token in next msg
 				}
@@ -62,7 +62,7 @@ func handleConnection(conn net.Conn) {
 			msg.Type = "WhoIAm"
 			peer, er = getPeerByGuid(peer_id)
 			if er != nil {
-				println("Error retrieving peer object for peer:", short_sha(peer_id));
+				pl("Error retrieving peer object for peer:", short_sha(peer_id));
 				msg.Type = "ERROR"
 				msg.Param = "There is no record for this client on the server."
 				return
@@ -77,17 +77,17 @@ func handleConnection(conn net.Conn) {
 			}
 			sendMsg(enc, msg)
 		case "LatestChange":
-			if !authorized { println(authFailMsg); return }
+			if !authorized { pl(authFailMsg); return }
 			msg.NoteChg = retrieveLatestChange()
 			sendMsg(enc, msg)
 		case "NumberOfChanges":
-			if !authorized { println(authFailMsg); return }
+			if !authorized { pl(authFailMsg); return }
 			// msg.Param will include the synch_point, so send num of changes since synch point
 			local_changes = retrieveLocalNoteChangesFromSynchPoint(msg.Param)
 			msg.Param = strconv.Itoa(len(local_changes))
 			sendMsg(enc, msg)
 		case "SendChanges":
-			if !authorized { println(authFailMsg); return }
+			if !authorized { pl(authFailMsg); return }
 			msg.Type = "NoteChange"
 			msg.Param = ""
 			var note Note
@@ -110,13 +110,13 @@ func handleConnection(conn net.Conn) {
 				sendMsg(enc, msg)
 			}
 		case "NumberOfClientChanges":
-			if !authorized { println(authFailMsg); return }
+			if !authorized { pl(authFailMsg); return }
 			numChanges, err := strconv.Atoi(msg.Param)
 			if err != nil {
-				println("Could not decode the number of change messages"); return
+				pl("Could not decode the number of change messages"); return
 			}
-			if numChanges < 1 { println("No remote changes."); return }
-			println(numChanges, "changes")
+			if numChanges < 1 { pl("No remote changes."); return }
+			pl(numChanges, "changes")
 			peer_changes := make([]NoteChange, numChanges)
 			sendMsg(enc, Message{Type: "SendChanges"}) // Send the actual changes
 			// Receive changes, extract the NoteChanges, save into peer_changes
@@ -128,14 +128,14 @@ func handleConnection(conn net.Conn) {
 			pf("\n%d peer changes received:\n", numChanges)
 			processChanges(&peer_changes, &local_changes)
 		case "NewSynchPoint": // New synch point at the end of synching
-			if !authorized { println(authFailMsg); return }
+			if !authorized { pl(authFailMsg); return }
 			synch_nc := msg.NoteChg
 			synch_nc.Id = 0 // so it will save
 			db.Save(&synch_nc)
 			peer.SynchPos = synch_nc.Guid
 			db.Save(&peer)
 		default:
-			println("Unknown message type received", msg.Type)
+			pl("Unknown message type received", msg.Type)
 			printHangupMsg(conn); return
 		}
 	}
@@ -156,12 +156,12 @@ func printHangupMsg(conn net.Conn) {
 }
 
 func printMsg(msg Message, rcx bool) {
-	println("\n----------------------------------------------")
+	pl("\n----------------------------------------------")
 	if rcx { print("Received: ")
 	} else {
 		print("Sent: ")
 	}
-	println("Msg Type:", msg.Type, " Msg Param:", short_sha(msg.Param))
+	pl("Msg Type:", msg.Type, " Msg Param:", short_sha(msg.Param))
 	msg.NoteChg.Print()
 }
 

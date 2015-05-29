@@ -2,7 +2,7 @@
 <%% import "strconv" %%>
 <%  var action, button string
     if len(note.Title) > 0 {
-      action = "/note/" + strconv.FormatInt(note.Id, 10)
+      action = "/note/" + strconv.FormatUint(note.Id, 10)
       button = "Update"
     } else {
       action = "/create/"

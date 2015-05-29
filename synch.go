@@ -51,9 +51,9 @@ func synch_client(host string, server_secret string) {
 	rcxMsg(dec, &msg) // Decode the response
 	if msg.Type == "WhoIAm" {
 		peer_id := msg.Param  // retrieve the server's guid
-		println("The server's id is", short_sha(peer_id))
+		pl("The server's id is", short_sha(peer_id))
 		if len(peer_id) != 40 {
-			println("The server's id is invalid. Run the server once with the -setup_db option")
+			pl("The server's id is invalid. Run the server once with the -setup_db option")
 			return
 		}
 		// Is there a token for us?
@@ -61,7 +61,7 @@ func synch_client(host string, server_secret string) {
 			setPeerToken(peer_id, msg.NoteChg.Guid)
 		}
 		peer, err := getPeerByGuid(peer_id)
-		if err != nil { println("Error retrieving peer object"); return }
+		if err != nil { pl("Error retrieving peer object"); return }
 		msg.NoteChg.Guid = ""  // hide the evidence
 
 		// Auth
@@ -71,7 +71,7 @@ func synch_client(host string, server_secret string) {
 		sendMsg(enc, msg)
 		rcxMsg(dec, &msg)
 		if msg.Param != "Authorized" {
-			println("The server declined the authorization request")
+			pl("The server declined the authorization request")
 			return
 		}
 
@@ -97,8 +97,8 @@ func synch_client(host string, server_secret string) {
 		sendMsg(enc, Message{Type: "NumberOfChanges", Param: peer.SynchPos}) // heads up on number of changes
 		rcxMsg(dec, &msg) // Decode the response
 		numChanges, err := strconv.Atoi(msg.Param)
-		if err != nil { println("Could not decode the number of change messages"); return }
-		println(numChanges, "changes")
+		if err != nil { pl("Could not decode the number of change messages"); return }
+		pl(numChanges, "changes")
 
 		peer_changes := make([]NoteChange, numChanges)
 		sendMsg(enc, Message{Type: "SendChanges"})  // send the actual changes
@@ -161,17 +161,17 @@ func synch_client(host string, server_secret string) {
 		}
 
 	} else {
-			println("Peer does not respond to request for database id")
-			println("Make sure both server and client databases have been properly setup(migrated) with the -setup_db option")
-			println("or make sure peer version is >= 0.9")
+			pl("Peer does not respond to request for database id")
+			pl("Make sure both server and client databases have been properly setup(migrated) with the -setup_db option")
+			pl("or make sure peer version is >= 0.9")
 			return
     }
 
-	defer println("Synch Operation complete")
+	defer pl("Synch Operation complete")
 }
 
 func processChanges(peer_changes * []NoteChange, local_changes * []NoteChange) {
-	println("Processing received changes...")
+	pl("Processing received changes...")
 	sort.Sort(byCreatedAt(*peer_changes)) // we will apply in created order
 	var local_change NoteChange
 	var skip bool
@@ -203,7 +203,7 @@ func processChanges(peer_changes * []NoteChange, local_changes * []NoteChange) {
 		}
 
 		// Apply Changes
-		println("____________________APPLYING CHANGE_________________________________")
+		pl("____________________APPLYING CHANGE_________________________________")
 		performNoteChange(peer_change)
 		verifyNoteChangeApplied(peer_change)
 	}
@@ -229,14 +229,14 @@ func performNoteChange(nc NoteChange) bool {
 	switch nc.Operation {
 	case op_create:
 		if last_nc.Id > 0 {
-			println("Note - Title", last_nc.Note.Title, "Guid:", short_sha(last_nc.NoteGuid), "already exists locally - cannot create")
+			pl("Note - Title", last_nc.Note.Title, "Guid:", short_sha(last_nc.NoteGuid), "already exists locally - cannot create")
 			return false
 		}
 		nc.Note.Id = 0  // Make sure the embedded note object has a zero id for creation
 	case op_update:
 		note, err := getNote(nc.NoteGuid)
 		if err != nil {
-			println("Cannot update a non-existent note:", short_sha(nc.NoteGuid))
+			pl("Cannot update a non-existent note:", short_sha(nc.NoteGuid))
 			return false
 		}
 		updateNote(note, nc)
@@ -279,10 +279,10 @@ func saveNoteChange(nc NoteChange) bool {
 
 	db.Create(&nc) // will auto create contained objects too and it's smart - 'nil' children will not be created :-)
 	if !db.NewRecord(nc) { // was it saved?
-		println("Note change saved:", short_sha(nc.Guid), ", Operation:", nc.Operation)
+		pl("Note change saved:", short_sha(nc.Guid), ", Operation:", nc.Operation)
 		return true
 	}
-	println("Failed to record note changes.", nc.Note.Title, "Changed note Guid:",
+	pl("Failed to record note changes.", nc.Note.Title, "Changed note Guid:",
 			short_sha(nc.NoteGuid), "NoteChange Guid:", short_sha(nc.Guid))
 	return false
 }
@@ -295,10 +295,10 @@ func retrieveLocalNoteChangesFromSynchPoint(synch_guid string) ([]NoteChange) {
 	db.Where("guid = ?", synch_guid).First(&noteChange) // There should be only one
 	pf("Synch point note change is: %v\n", noteChange)
 	if noteChange.Id < 1 {
-		println("Can't find synch point locally - retrieving all note_changes", short_sha(synch_guid))
+		pl("Can't find synch point locally - retrieving all note_changes", short_sha(synch_guid))
 		db.Find(&noteChanges).Order("created_at, asc")
 	} else {
-		println("Attempting to retrieve note_changes beyond synch_point")
+		pl("Attempting to retrieve note_changes beyond synch_point")
 		db.Find(&noteChanges, "created_at > ?", noteChange.CreatedAt).Order("created_at asc")
 	}
 	return noteChanges
@@ -307,22 +307,22 @@ func retrieveLocalNoteChangesFromSynchPoint(synch_guid string) ([]NoteChange) {
 // VERIFICATION
 
 func verifyNoteChangeApplied(nc NoteChange) {
-	println("----------------------------------")
+	pl("----------------------------------")
 	retrievedChange, err := nc.Retrieve()
 	if err != nil {
-		println("Error retrieving the note change")
+		pl("Error retrieving the note change")
 	} else if nc.Operation == 1 {
 		retrievedNote, err := retrievedChange.RetrieveNote()
         pf("retrievedNote: %s\n", retrievedNote)
 		if err != nil {
-			println("Error retrieving the note changed")
+			pl("Error retrieving the note changed")
 		} else {
 			fmt.Printf("Note created:\n%v\n", retrievedNote)
 		}
 	} else if nc.Operation == 2 {
 		retrievedFrag, err := retrievedChange.RetrieveNoteFrag()
 		if err != nil {
-			println("Error retrieving the note fragment")
+			pl("Error retrieving the note fragment")
 		} else {
 			fmt.Printf("Note Fragment created:\n%v\n", retrievedFrag)
 		}

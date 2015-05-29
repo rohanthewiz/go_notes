@@ -81,22 +81,22 @@ func queryNotes() []Note {
 }
 
 func listNotes(notes []Note, show_count bool) {
-	println(line_separator)
+	pl(line_separator)
 	for _, n := range notes {
 		fmt.Printf("[%d] %s", n.Id, n.Title)
 		if n.Description != "" {
 			fmt.Printf(" - %s", n.Description)
 		}
-		println("")
+		pl("")
 		if !opts_intf["s"].(bool) {
 			if n.Body != "" {
-				println(n.Body)
+				pl(n.Body)
 			}
 			if n.Tag != "" {
-				println("Tags:", n.Tag)
+				pl("Tags:", n.Tag)
 			}
 		}
-		println(line_separator)
+		pl(line_separator)
 	}
 	if show_count {
 		var msg string // init'd to ""

@@ -9,47 +9,52 @@ import (
 )
 
 type Note struct {
-	Id          int64
-	Guid		string `sql: "size:40"` //Guid of the note
+	Id          uint64
+	Guid        string `sql: "size:40"` //Guid of the note
 	Title       string `sql: "size:128"`
 	Description string `sql: "size:255"`
 	Body        string `sql: "type:text"`
 	Tag         string `sql: "size:128"`
+	User        string // who's account is this currently in
+	Creator     string // who originally created the note
+	SharedBy    string // if it was shared to me, by who?
+	Public      bool   // Was it made public for all users
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
 
 const line_separator string = "---------------------------------------------------------"
 
-func createNote(title string, desc string, body string, tag string) int64 {
+func createNote(title string, desc string, body string, tag string) uint64 {
 	if title != "" {
 		var chk_unique_title []Note
 		db.Where("title = ?", title).Find(&chk_unique_title)
 		if len(chk_unique_title) > 0 {
-			println("Error: Title", title, "is not unique!")
+			pl("Error: Title", title, "is not unique!")
 			return 0
 		}
-		return do_create( Note{Guid: generate_sha1(), Title: title, Description: desc,
-										Body: body, Tag: tag} )
+		return do_create(Note{Guid: generate_sha1(), Title: title, Description: desc,
+			Body: body, Tag: tag})
 	} else {
-		println("Title (-t) is required if creating a note. Remember to precede option flags with '-'")
+		pl("Title (-t) is required if creating a note. Remember to precede option flags with '-'")
 	}
 	return 0
 }
 
 // The core create method
-func do_create(note Note) int64 {
+func do_create(note Note) uint64 {
 	print("Creating new note...")
 	performNoteChange(
-	NoteChange{
-		Guid: generate_sha1(), Operation: 1,
-		NoteGuid: note.Guid,
-		Note: note,
-		NoteFragment: NoteFragment{},
-	})
+		NoteChange{
+			Guid: generate_sha1(), Operation: 1,
+			NoteGuid:     note.Guid,
+			Note:         note,
+			NoteFragment: NoteFragment{},
+		})
 
 	if n, err := getNote(note.Guid); err != nil {
-		pf("Error creating note %v\n", note); return 0
+		pf("Error creating note %v\n", note)
+		return 0
 	} else {
 		pf("Record saved: [%d] %s\n", n.Id, n.Title)
 		return n.Id
@@ -61,7 +66,7 @@ func allFieldsUpdate(note Note) { // note is an unsaved note prepared with Id an
 	var orig Note
 	db.Where("id = ?", note.Id).First(&orig) // get the original for comparision
 	// Actual update
-	db.Table("notes").Where("id = ?", note.Id).Updates( map[string]interface{}{
+	db.Table("notes").Where("id = ?", note.Id).Updates(map[string]interface{}{
 		"title": note.Title, "description": note.Description, "body": note.Body, "tag": note.Tag,
 	})
 	var nf NoteFragment = NoteFragment{}
@@ -81,7 +86,7 @@ func allFieldsUpdate(note Note) { // note is an unsaved note prepared with Id an
 		nf.Tag = note.Tag
 		nf.Bitmask |= 1
 	}
-	nc := NoteChange{ Guid: generate_sha1(), NoteGuid: orig.Guid, Operation: op_update, NoteFragment: nf }
+	nc := NoteChange{Guid: generate_sha1(), NoteGuid: orig.Guid, Operation: op_update, NoteFragment: nf}
 	db.Save(&nc)
 	if nc.Id > 0 {
 		pf("NoteChange (%s) created successfully\n", short_sha(nc.Guid))
@@ -100,7 +105,7 @@ func updateNotes(notes []Note) {
 			reader := bufio.NewReader(os.Stdin)
 			var nf NoteFragment = NoteFragment{}
 
-			println("\nTitle-->" + n.Title)
+			pl("\nTitle-->" + n.Title)
 			fmt.Println("Enter new Title (or '+ blah' to append, or <ENTER> for no change)")
 			tit, _ := reader.ReadString('\n')
 			tit = strings.TrimRight(tit, " \r\n")
@@ -116,7 +121,7 @@ func updateNotes(notes []Note) {
 				nf.Bitmask |= 8
 			}
 
-			println("Description-->" + n.Description)
+			pl("Description-->" + n.Description)
 			fmt.Println("Enter new Description (or '-' to blank, '+ blah' to append, or <ENTER> for no change)")
 			desc, _ := reader.ReadString('\n')
 			desc = strings.TrimRight(desc, " \r\n")
@@ -134,7 +139,7 @@ func updateNotes(notes []Note) {
 				nf.Bitmask |= 4
 			}
 
-			println("Body-->" + n.Body)
+			pl("Body-->" + n.Body)
 			fmt.Println("Enter new Body (or '-' to blank, '+ blah' to append, or <ENTER> for no change)")
 			body, _ := reader.ReadString('\n')
 			body = strings.TrimRight(body, " \r\n ")
@@ -152,7 +157,7 @@ func updateNotes(notes []Note) {
 				nf.Bitmask |= 2
 			}
 
-			println("Tags-->" + n.Tag)
+			pl("Tags-->" + n.Tag)
 			fmt.Println("Enter new Tags (or '-' to blank, '+ blah' to append, or <ENTER> for no change)")
 			tag, _ := reader.ReadString('\n')
 			tag = strings.TrimRight(tag, " \r\n ")
@@ -171,7 +176,7 @@ func updateNotes(notes []Note) {
 			}
 
 			db.Save(&n)
-			nc := NoteChange{ Guid: generate_sha1(), NoteGuid: n.Guid, Operation: op_update, NoteFragment: nf }
+			nc := NoteChange{Guid: generate_sha1(), NoteGuid: n.Guid, Operation: op_update, NoteFragment: nf}
 			db.Save(&nc)
 			if nc.Id > 0 {
 				pf("NoteChange (%s) created successfully\n", short_sha(nc.Guid))
@@ -194,7 +199,7 @@ func deleteNotes(notes []Note) {
 		fmt.Scanln(&input) // Get keyboard input
 		if input == "y" || input == "Y" {
 			doDelete(n)
-			println("Note [", save_id, "] deleted")
+			pl("Note [", save_id, "] deleted")
 		}
 	}
 }
@@ -205,10 +210,9 @@ func doDelete(note Note) {
 		return
 	}
 	db.Delete(&note)
-	nc := NoteChange{ Guid: generate_sha1(), NoteGuid: note.Guid, Operation: op_delete }
+	nc := NoteChange{Guid: generate_sha1(), NoteGuid: note.Guid, Operation: op_delete}
 	db.Save(&nc)
 	if nc.Id > 0 { // Hopefully nc was reloaded
 		pf("NoteChange (%s) created successfully\n", short_sha(nc.Guid))
 	}
 }
-

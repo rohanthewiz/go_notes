@@ -32,7 +32,7 @@
 
 <ul class="topmost">
   <% for _, note := range notes { %>
-      <% id_str := strconv.FormatInt(note.Id, 10) %>
+      <% id_str := strconv.FormatUint(note.Id, 10) %>
       <li><a class="title" href="/show/<%= id_str %>"><%= note.Title %></a>
       <a class="tool" href="/edit/<%= id_str %>">edit</a>
       <% if notes_count == 1 { %>

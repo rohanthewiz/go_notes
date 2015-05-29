@@ -15,7 +15,7 @@ func whoAmI() string {
 		ensureDBSig()
 		db.First(&local_sig)
 		if local_sig.Id < 1 {
-			println("Could not locate or create local database signature.\nYou should back up your notes, delete the local database, import your notes then try again")
+			pl("Could not locate or create local database signature.\nYou should back up your notes, delete the local database, import your notes then try again")
 			return ""
 		}
 	}
@@ -51,7 +51,7 @@ func getPeerToken(peer_id string) (string, error) {
 	if peer.Id < 1 {
 		token := generate_sha1()
 		db.Create(&Peer{Guid: peer_id, Token: token})
-		println("Creating new peer entry for:", short_sha(peer_id))
+		pl("Creating new peer entry for:", short_sha(peer_id))
 		db.Where("guid = ?", peer_id).First(&peer) // read it back
 		if peer.Id < 1 {
 			return "", errors.New("Could not create peer entry")
@@ -75,14 +75,14 @@ func savePeerToken(compound string) {
 	peer_id, token := arr[0], arr[1]
 	pf("Peer: %s, Auth Token: %s\n", peer_id, token)
 	err := setPeerToken(peer_id, token)  // todo pull the error msg out of the err object
-	if err != nil { println(err) }
+	if err != nil { pl(err) }
 }
 
 func setPeerToken(peer_id string, token string) (error) {
 	var peer Peer
 	db.Where("guid = ?", peer_id).First(&peer)
 	if peer.Id < 1 {
-		println("Creating new peer entry for:", short_sha(peer_id))
+		pl("Creating new peer entry for:", short_sha(peer_id))
 		db.Create(&Peer{Guid: peer_id, Token: token})
 		// Verify
 		db.Where("guid = ?", peer_id).First(&peer)
@@ -92,7 +92,7 @@ func setPeerToken(peer_id string, token string) (error) {
 	} else { // Peer already exists - make sure it has an auth token
 		peer.Token = token // always update
 		db.Save(&peer)
-		println("Updated token for peer entry: %s", short_sha(peer_id))
+		pl("Updated token for peer entry: %s", short_sha(peer_id))
 	}
 	return nil
 }

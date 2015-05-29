@@ -8,6 +8,7 @@ import(
 )
 
 var pf = fmt.Printf
+var pl = fmt.Println
 
 func generate_sha1() string {
 	return fmt.Sprintf("%x", sha1.Sum([]byte("%$" + time.Now().String() + "e{")))

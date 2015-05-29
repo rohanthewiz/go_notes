@@ -110,13 +110,13 @@ func WebCreateNote(w http.ResponseWriter, r *http.Request, _ httprouter.Params) 
 
 	id := createNote(trim_whitespace(v.Get("title")), trim_whitespace(v.Get("description")),
 		trim_whitespace(v.Get("body")), trim_whitespace(v.Get("tag")))
-	http.Redirect(w, r, "/qi/" + strconv.FormatInt(id, 10), http.StatusFound)
+	http.Redirect(w, r, "/qi/" + strconv.FormatUint(id, 10), http.StatusFound)
 }
 
 func WebDeleteNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id, err := strconv.ParseInt(p.ByName("id"), 10, 64)
 	if err != nil {
-		println("Error deleting note.")
+		pl("Error deleting note.")
 	} else {
 		doDelete(find_note_by_id(id))
 	}
@@ -125,7 +125,7 @@ func WebDeleteNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 
 func WebUpdateNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	var note Note
-	if id, err := strconv.ParseInt(p.ByName("id"), 10, 64); err == nil {
+	if id, err := strconv.ParseUint(p.ByName("id"), 10, 64); err == nil {
 		post_data, err := ioutil.ReadAll(r.Body)
 		if err != nil { HandleRequestErr(err, w); return }
 		v, err := url.ParseQuery(string(post_data))
@@ -137,7 +137,7 @@ func WebUpdateNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 		}
 		pf("Updating note with: %v ...\n", note)
 		allFieldsUpdate(note)
-		http.Redirect(w, r, "/qi/"+strconv.FormatInt(note.Id, 10), http.StatusFound)
+		http.Redirect(w, r, "/qi/"+strconv.FormatUint(note.Id, 10), http.StatusFound)
 	}
 }
 
@@ -161,4 +161,4 @@ func HandleRequestErr(err error, w http.ResponseWriter) {
 		fmt.Fprint(w, err)
 }
 
-//	Only applies to GET request? //println("p.Title", p.ByName("title"))
+//	Only applies to GET request? //pl("p.Title", p.ByName("title"))
