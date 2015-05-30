@@ -116,7 +116,7 @@ func WebCreateNote(w http.ResponseWriter, r *http.Request, _ httprouter.Params) 
 func WebDeleteNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id, err := strconv.ParseInt(p.ByName("id"), 10, 64)
 	if err != nil {
-		pl("Error deleting note.")
+		fpl("Error deleting note.")
 	} else {
 		doDelete(find_note_by_id(id))
 	}

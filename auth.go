@@ -15,7 +15,7 @@ func whoAmI() string {
 		ensureDBSig()
 		db.First(&local_sig)
 		if local_sig.Id < 1 {
-			pl("Could not locate or create local database signature.\nYou should back up your notes, delete the local database, import your notes then try again")
+			fpl("Could not locate or create local database signature.\nYou should back up your notes, delete the local database, import your notes then try again")
 			return ""
 		}
 	}
@@ -43,6 +43,7 @@ func getPeerByGuid(peer_id string) (Peer, error) {
 }
 
 // Create Peer entry on server returning peer's auth token
+// (If there is already a valid one for this peer, use that)
 // This should be called on the server before first synch
 // So the server will know of the peer and the token needed for access ahead of time
 func getPeerToken(peer_id string) (string, error) {
@@ -92,7 +93,7 @@ func setPeerToken(peer_id string, token string) (error) {
 	} else { // Peer already exists - make sure it has an auth token
 		peer.Token = token // always update
 		db.Save(&peer)
-		pl("Updated token for peer entry: %s", short_sha(peer_id))
+		pf("Updated token for peer entry: %s", short_sha(peer_id))
 	}
 	return nil
 }

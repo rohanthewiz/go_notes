@@ -18,7 +18,7 @@ func exportCsv(notes []Note, out_file string) {
 		if err != nil { fmt.Println("Error: ", err); return }
 	}
 	writer.Flush()
-	pl("Exported to", out_file)
+	fpl("Exported to", out_file)
 }
 
 func exportGob(notes []Note, out_file string) {
@@ -29,7 +29,7 @@ func exportGob(notes []Note, out_file string) {
 
 	err = gob_encoder.Encode(notes)
 	if err != nil { fmt.Println("Error: ", err); return }
-	pl("Exported to", out_file)
+	fpl("Exported to", out_file)
 }
 
 func importGob(in_file string) {
@@ -49,7 +49,7 @@ func importGob(in_file string) {
 	for _, n := range notes {
 		exists, note := find_note_by_title(n.Title)
 		if exists {
-			pl("This note already exists: ", note.Title)
+			fpl("This note already exists: ", note.Title)
 			if n.UpdatedAt.After(note.UpdatedAt) {
 				pl("The imported note is newer, updating...")
 				note.Description = n.Description
@@ -57,7 +57,7 @@ func importGob(in_file string) {
 				note.Tag = n.Tag
 				db.Save(&note)
 				listNotes([]Note{note}, false) // [:] means all of the slice
-			}	else { pl("The imported note is not newer, ignoring...")}
+			}	else { fpl("The imported note is not newer, ignoring...")}
 		} else {
 			do_create( Note{ Guid: generate_sha1(), Title: n.Title, Description: n.Description, Body: n.Body, Tag: n.Tag } )
 			fmt.Printf("Created -->Guid: %s, Title: %s - Desc: %s\nBody: %s\nTags: %s\n", short_sha(n.Guid), n.Title, n.Description, n.Body, n.Tag)
@@ -80,7 +80,7 @@ func importCsv(in_file string) {
 	for _, f := range rawCSVdata {
 		exists, note := find_note_by_title(f[0])
 		if exists {
-			pl("This note already exists: ", note.Title)
+			fpl("This note already exists: ", note.Title)
 			// we could check an 'update on import' option here, set the corresponding fields, then save
 			// or we could decide to update based on last_updated, but the export would have to save updated times - this would be a gob format
 		} else {

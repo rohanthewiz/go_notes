@@ -44,6 +44,8 @@ func getOpts() (map[string]string, map[string]interface{}) {
 	svrPtr := flag.Bool("svr", false, "Web server mode")
 	getServerSecretPtr := flag.Bool("get_server_secret", false, "Show Server Secret")
 	synchServerPtr := flag.Bool("synch_server", false, "Synch server mode")
+	verbosePtr := flag.Bool("verbose", true, "verbose mode") // Todo - turn off for production
+	debugPtr := flag.Bool("debug", false, "debug mode") // Todo - turn off for production
 
 	flag.Parse()
 
@@ -78,6 +80,8 @@ func getOpts() (map[string]string, map[string]interface{}) {
 	opts_intf["synch_server"] = *synchServerPtr
 	opts_intf["get_server_secret"] = *getServerSecretPtr
 	opts_intf["setup_db"] = *setupDBPtr
+	opts_intf["verbose"] = *verbosePtr
+	opts_intf["debug"] = *debugPtr
 
 	separator := "/"
 	if strings.Contains(strings.ToUpper(os.Getenv("OS")), "WINDOWS") {

@@ -43,9 +43,9 @@ func synch_client(host string, server_secret string) {
 	dec := gob.NewDecoder(conn)
 	defer sendMsg(enc, Message{Type: "Hangup", Param: "", NoteChg: NoteChange{}})
 
-	// Send handshake
+	// Send handshake - Client initiates
 	sendMsg(enc, Message{
-		Type: "WhoAreYou", Param: whoAmI(), NoteChg: NoteChange{Guid: server_secret}, // borrow NC: Guid
+		Type: "WhoAreYou", Param: whoAmI(), NoteChg: NoteChange{Guid: server_secret}, // borrow NoteChange.Guid
 	})
 
 	rcxMsg(dec, &msg) // Decode the response
@@ -53,31 +53,32 @@ func synch_client(host string, server_secret string) {
 		peer_id := msg.Param  // retrieve the server's guid
 		pl("The server's id is", short_sha(peer_id))
 		if len(peer_id) != 40 {
-			pl("The server's id is invalid. Run the server once with the -setup_db option")
+			fpl("The server's id is invalid. Run the server once with the -setup_db option")
 			return
 		}
 		// Is there a token for us?
 		if len(msg.NoteChg.Guid) == 40 {
-			setPeerToken(peer_id, msg.NoteChg.Guid)
+			setPeerToken(peer_id, msg.NoteChg.Guid) // make sure to save new auth token
 		}
+		// Obtain the peer object which represents the server
 		peer, err := getPeerByGuid(peer_id)
-		if err != nil { pl("Error retrieving peer object"); return }
+		if err != nil { fpl("Error retrieving peer object"); return }
 		msg.NoteChg.Guid = ""  // hide the evidence
 
 		// Auth
 		msg.Type = "AuthMe"
 		msg.Param = peer.Token // This is set for the server(peer) by some access granting mechanism
-		                       // which for right now is manual
 		sendMsg(enc, msg)
 		rcxMsg(dec, &msg)
 		if msg.Param != "Authorized" {
-			pl("The server declined the authorization request")
+			fpl("The server declined the authorization request")
 			return
 		}
 
 		// Do we need to Synch?
+		// (SynchPos is the NoteChg.Guid of the last change applied in a synch operation)
 		if peer.SynchPos != "" { // Do we have a point of last synch with this peer?
-			last_change := retrieveLatestChange()
+			last_change := retrieveLatestChange() // Retrieve last local Note Change
 			if last_change.Id > 0 && last_change.Guid == peer.SynchPos {
 				// Get server last change
 				msg.Type = "LatestChange"
@@ -89,7 +90,7 @@ func synch_client(host string, server_secret string) {
 						short_sha(peer_id), short_sha(last_change.Guid))
 					return
 				}
-			}
+			} // else we probably have never synched so carry on
 		}
 		pf("Last known Synch position is \"%s\"\n", short_sha(peer.SynchPos))
 
@@ -97,11 +98,11 @@ func synch_client(host string, server_secret string) {
 		sendMsg(enc, Message{Type: "NumberOfChanges", Param: peer.SynchPos}) // heads up on number of changes
 		rcxMsg(dec, &msg) // Decode the response
 		numChanges, err := strconv.Atoi(msg.Param)
-		if err != nil { pl("Could not decode the number of change messages"); return }
+		if err != nil { fpl("Could not decode the number of change messages"); return }
 		pl(numChanges, "changes")
 
-		peer_changes := make([]NoteChange, numChanges)
-		sendMsg(enc, Message{Type: "SendChanges"})  // send the actual changes
+		peer_changes := make([]NoteChange, numChanges) // preallocate slice (optimization)
+		sendMsg(enc, Message{Type: "SendChanges"})  // please send the actual changes
 		for i := 0; i < numChanges; i++ {
 			msg = Message{}
 			rcxMsg(dec, &msg)
@@ -161,13 +162,13 @@ func synch_client(host string, server_secret string) {
 		}
 
 	} else {
-			pl("Peer does not respond to request for database id")
-			pl("Make sure both server and client databases have been properly setup(migrated) with the -setup_db option")
-			pl("or make sure peer version is >= 0.9")
+			fpl("Peer does not respond to request for database id")
+			fpl("Make sure both server and client databases have been properly setup(migrated) with the -setup_db option")
+			fpl("or make sure peer version is >= 0.9")
 			return
     }
 
-	defer pl("Synch Operation complete")
+	defer fpl("Synch Operation complete")
 }
 
 func processChanges(peer_changes * []NoteChange, local_changes * []NoteChange) {
@@ -229,14 +230,14 @@ func performNoteChange(nc NoteChange) bool {
 	switch nc.Operation {
 	case op_create:
 		if last_nc.Id > 0 {
-			pl("Note - Title", last_nc.Note.Title, "Guid:", short_sha(last_nc.NoteGuid), "already exists locally - cannot create")
+			fpl("Note - Title", last_nc.Note.Title, "Guid:", short_sha(last_nc.NoteGuid), "already exists locally - cannot create")
 			return false
 		}
 		nc.Note.Id = 0  // Make sure the embedded note object has a zero id for creation
 	case op_update:
 		note, err := getNote(nc.NoteGuid)
 		if err != nil {
-			pl("Cannot update a non-existent note:", short_sha(nc.NoteGuid))
+			fpl("Cannot update a non-existent note:", short_sha(nc.NoteGuid))
 			return false
 		}
 		updateNote(note, nc)
@@ -282,7 +283,7 @@ func saveNoteChange(nc NoteChange) bool {
 		pl("Note change saved:", short_sha(nc.Guid), ", Operation:", nc.Operation)
 		return true
 	}
-	pl("Failed to record note changes.", nc.Note.Title, "Changed note Guid:",
+	fpl("Failed to record note changes.", nc.Note.Title, "Changed note Guid:",
 			short_sha(nc.NoteGuid), "NoteChange Guid:", short_sha(nc.Guid))
 	return false
 }
@@ -310,21 +311,21 @@ func verifyNoteChangeApplied(nc NoteChange) {
 	pl("----------------------------------")
 	retrievedChange, err := nc.Retrieve()
 	if err != nil {
-		pl("Error retrieving the note change")
+		fpl("Error retrieving the note change")
 	} else if nc.Operation == 1 {
 		retrievedNote, err := retrievedChange.RetrieveNote()
         pf("retrievedNote: %s\n", retrievedNote)
 		if err != nil {
-			pl("Error retrieving the note changed")
+			fpl("Error retrieving the note changed")
 		} else {
-			fmt.Printf("Note created:\n%v\n", retrievedNote)
+			pf("Note created:\n%v\n", retrievedNote)
 		}
 	} else if nc.Operation == 2 {
 		retrievedFrag, err := retrievedChange.RetrieveNoteFrag()
 		if err != nil {
-			pl("Error retrieving the note fragment")
+			fpl("Error retrieving the note fragment")
 		} else {
-			fmt.Printf("Note Fragment created:\n%v\n", retrievedFrag)
+			pf("Note Fragment created:\n%v\n", retrievedFrag)
 		}
 	}
 }

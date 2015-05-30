@@ -1,7 +1,6 @@
 package main
 
 import(
-	"fmt"
 	"errors"
 )
 
@@ -34,7 +33,6 @@ func find_note_by_id(id int64) (Note) {
 // Query by Id, return all notes, query all fields for one param, query a combination of fields and params
 func queryNotes() []Note {
 	var notes []Note
-	db.LogMode(true)
 	// The order of the if here is very important - esp. for the webserver!
 	if opts_intf["ql"] == true {
 		db.Order("updated_at desc").Limit(1).Find(&notes)
@@ -81,28 +79,28 @@ func queryNotes() []Note {
 }
 
 func listNotes(notes []Note, show_count bool) {
-	pl(line_separator)
+	fpl(line_separator)
 	for _, n := range notes {
-		fmt.Printf("[%d] %s", n.Id, n.Title)
+		fpf("[%d] %s", n.Id, n.Title)
 		if n.Description != "" {
-			fmt.Printf(" - %s", n.Description)
+			fpf(" - %s", n.Description)
 		}
-		pl("")
+		fpl("")
 		if !opts_intf["s"].(bool) {
 			if n.Body != "" {
-				pl(n.Body)
+				fpl(n.Body)
 			}
 			if n.Tag != "" {
-				pl("Tags:", n.Tag)
+				fpl("Tags:", n.Tag)
 			}
 		}
-		pl(line_separator)
+		fpl(line_separator)
 	}
 	if show_count {
 		var msg string // init'd to ""
 		if len(notes) != 1 {
 			msg = "s"
 		}
-		fmt.Printf("(%d note%s found)\n", len(notes), msg)
+		fpf("(%d note%s found)\n", len(notes), msg)
 	}
 }

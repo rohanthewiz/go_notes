@@ -55,8 +55,8 @@ func ensureDBSig() {
 func main() {
 
 	if db_err != nil { // Can't err chk db conn outside method, so do it here
-		pl("There was an error connecting to the DB")
-		pl("DBPath: " + opts_str["db_path"])
+		fpl("There was an error connecting to the DB")
+		fpl("DBPath: " + opts_str["db_path"])
 		os.Exit(2)
 	}
 
@@ -64,18 +64,18 @@ func main() {
 	if ! db.HasTable(&Peer{}) || ! db.HasTable(&Note{}) || ! db.HasTable(&NoteChange{}) ||
 		! db.HasTable(&NoteFragment{}) || ! db.HasTable(&LocalSig{}) { migrate() }
 
-	db.LogMode(true)
-
 	if opts_intf["v"].(bool) {
-		pl(app_name, version)
+		fpl(app_name, version)
 		return
 	}
+
+	db.LogMode(opts_intf["debug"].(bool)) // Set debug mode for Gorm db
 
 	if opts_str["admin"] == "delete_tables" {
 		fmt.Println("Are you sure you want to delete all data? (N/y)")
 		var input string
 		fmt.Scanln(&input) // Get keyboard input
-		pl("input", input)
+		pd("input", input)
 		if input == "y" || input == "Y" {
 			db.DropTableIfExists(&Note{})
 			db.DropTableIfExists(&NoteChange{})
@@ -87,30 +87,33 @@ func main() {
 		return
 	}
 
-	// Client
+	// Client - Return our db signature
 	if opts_intf["whoami"].(bool) {
-		pl(whoAmI())
+		fpl(whoAmI())
 		return
 	}
 
-	// Server
-	if opts_intf["get_server_secret"].(bool) {
-		pl(get_server_secret())
-		return
-	}
-
-	// Server
+	// Server - Generate an auth token for a client
+	// The format of the generated token is: server_id-auth_token_for_the_client
 	if opts_str["get_peer_token"] != "" {
 		pt, err := getPeerToken(opts_str["get_peer_token"])
-		if err != nil {pl("Error retrieving token"); return}
-		fmt.Printf("Peer token is: %s-%s\nYou will now need to run the client with 'go_notes -save_peer_token the_token'\n",
+		if err != nil {fpl("Error retrieving token"); return}
+		fpf("Peer token is: %s-%s\nYou will now need to run the client with \n'go_notes -save_peer_token the_token'\n",
 			whoAmI(), pt)
 		return
 	}
 
-	// Client
+	// Client - Save a token generated for us by a server
 	if opts_str["save_peer_token"] != "" {
 		savePeerToken(opts_str["save_peer_token"])
+		return
+	}
+
+	// Server - Return the server's secret token
+	// This is a master key and will allow any client to auth
+	// We probably want to use the methods above instead
+	if opts_intf["get_server_secret"].(bool) {
+		fpl(get_server_secret())
 		return
 	}
 
@@ -135,7 +138,7 @@ func main() {
 		notes := queryNotes()
 
 		// List Notes found
-		pl("")  // for UI sake
+		fpl("")  // for UI sake
 		listNotes(notes, true)
 
 		// Options that can go with Query

@@ -30,13 +30,13 @@ func createNote(title string, desc string, body string, tag string) uint64 {
 		var chk_unique_title []Note
 		db.Where("title = ?", title).Find(&chk_unique_title)
 		if len(chk_unique_title) > 0 {
-			pl("Error: Title", title, "is not unique!")
+			fpl("Error: Title", title, "is not unique!")
 			return 0
 		}
 		return do_create(Note{Guid: generate_sha1(), Title: title, Description: desc,
 			Body: body, Tag: tag})
 	} else {
-		pl("Title (-t) is required if creating a note. Remember to precede option flags with '-'")
+		fpl("Title (-t) is required if creating a note. Remember to precede option flags with '-'")
 	}
 	return 0
 }
@@ -105,7 +105,7 @@ func updateNotes(notes []Note) {
 			reader := bufio.NewReader(os.Stdin)
 			var nf NoteFragment = NoteFragment{}
 
-			pl("\nTitle-->" + n.Title)
+			fpl("\nTitle-->" + n.Title)
 			fmt.Println("Enter new Title (or '+ blah' to append, or <ENTER> for no change)")
 			tit, _ := reader.ReadString('\n')
 			tit = strings.TrimRight(tit, " \r\n")
@@ -121,7 +121,7 @@ func updateNotes(notes []Note) {
 				nf.Bitmask |= 8
 			}
 
-			pl("Description-->" + n.Description)
+			fpl("Description-->" + n.Description)
 			fmt.Println("Enter new Description (or '-' to blank, '+ blah' to append, or <ENTER> for no change)")
 			desc, _ := reader.ReadString('\n')
 			desc = strings.TrimRight(desc, " \r\n")
@@ -139,7 +139,7 @@ func updateNotes(notes []Note) {
 				nf.Bitmask |= 4
 			}
 
-			pl("Body-->" + n.Body)
+			fpl("Body-->" + n.Body)
 			fmt.Println("Enter new Body (or '-' to blank, '+ blah' to append, or <ENTER> for no change)")
 			body, _ := reader.ReadString('\n')
 			body = strings.TrimRight(body, " \r\n ")
@@ -157,7 +157,7 @@ func updateNotes(notes []Note) {
 				nf.Bitmask |= 2
 			}
 
-			pl("Tags-->" + n.Tag)
+			fpl("Tags-->" + n.Tag)
 			fmt.Println("Enter new Tags (or '-' to blank, '+ blah' to append, or <ENTER> for no change)")
 			tag, _ := reader.ReadString('\n')
 			tag = strings.TrimRight(tag, " \r\n ")
@@ -199,7 +199,7 @@ func deleteNotes(notes []Note) {
 		fmt.Scanln(&input) // Get keyboard input
 		if input == "y" || input == "Y" {
 			doDelete(n)
-			pl("Note [", save_id, "] deleted")
+			fpl("Note [", save_id, "] deleted")
 		}
 	}
 }

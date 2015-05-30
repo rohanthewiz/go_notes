@@ -8,11 +8,14 @@ import(
 	"log"
 )
 
-var lp = log.Println
+// --- Some Shortcuts for often used output functions ---
 
-func pd(msg string) {
+var fpf = fmt.Printf
+var fpl = fmt.Println
+
+func pd(params ...interface{}) {
 	if opts_intf["debug"].(bool) {
-		lp(msg)
+		log.Println(params...)
 	}
 }
 
@@ -28,6 +31,8 @@ func pf(msg string, params ...interface{}) {
 	}
 }
 
+// --- Crypto ---
+
 func generate_sha1() string {
 	return fmt.Sprintf("%x", sha1.Sum([]byte("%$" + time.Now().String() + "e{")))
 }
@@ -38,6 +43,7 @@ func short_sha(sha string) string{
 	}
 	return sha
 }
+
 
 func trim_whitespace(in_str string) string {
 	return strings.Trim(in_str, " \n\r\t")
