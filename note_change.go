@@ -13,6 +13,7 @@ type NoteChange struct {
     Operation	int32  // 1: Create, 2: Update, 3: Delete, 9: Synch
     Note Note
     NoteId int64
+		User string // (GUID)  //todo - Add Index //A notechange always belongs to a single user
     NoteFragment NoteFragment
     NoteFragmentId int64
     CreatedAt   time.Time // A note change is never altered once created

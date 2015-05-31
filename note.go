@@ -15,9 +15,9 @@ type Note struct {
 	Description string `sql: "size:255"`
 	Body        string `sql: "type:text"`
 	Tag         string `sql: "size:128"`
-	User        string // who's account is this currently in
-	Creator     string // who originally created the note
-	SharedBy    string // if it was shared to me, by who?
+	User        string // who's account is this currently in (GUID) //todo - Add Index
+	Creator     string // (GUID) who originally created the note
+	SharedBy    string // (GUID) if it was shared to me, by who?
 	Public      bool   // Was it made public for all users
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
