@@ -3,7 +3,7 @@ package main
 import (
 	"time"
 	"errors"
-	"encoding/json"
+	//"encoding/json"
 )
 
 // Record note changes so we can replay them on synch
@@ -13,8 +13,8 @@ type NoteChange struct {
     NoteGuid		string `sql: "size:40"` // Guid of the note
     Operation	int32  // 1: Create, 2: Update, 3: Delete, 9: Synch
     Note Note
-    NoteId int64
-		User string // (GUID)  //todo - Add Index //A notechange always belongs to a single user
+    NoteId int64  // Add index?  //TODO - convert all ids to uint64
+		UserId uint64 // A notechange always belongs to a single user
     NoteFragment NoteFragment
     NoteFragmentId int64
     CreatedAt   time.Time // A note change is never altered once created
@@ -77,12 +77,12 @@ func (nc *NoteChange) RetrieveNoteFrag() (NoteFragment, error) {
 }
 
 func (nc *NoteChange) Print() {
-	j_str, err := json.Marshal(*nc)
-	if err != nil {
-		pl(string(j_str))
-	} else {
+//	j_str, err := json.Marshal(*nc) // todo
+//	if err != nil {
+//		pl(string(j_str))
+//	} else {
 		pf("%+v\n", nc)
-	}
+//	}
 //	pf("NoteChange: {Id: %d, Guid: %s, NoteGuid: %s, Oper: %d\nNote: {Id: %d, Guid: %s, Title: %s}\nNoteFragment: {Id: %d, Bitmask: %d, Title: %s, Description: %s, Body: %s, Tag: %s}}\n",
 //		nc.Id, short_sha(nc.Guid), short_sha(nc.NoteGuid), nc.Operation, nc.NoteId, short_sha(nc.Note.Guid), nc.Note.Title,
 //		nc.NoteFragment.Id, nc.NoteFragment.Bitmask, nc.NoteFragment.Title, nc.NoteFragment.Description, nc.NoteFragment.Body, nc.NoteFragment.Tag,

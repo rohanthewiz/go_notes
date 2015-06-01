@@ -113,16 +113,17 @@ func WebNoteForm(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 	}
 }
 
-func WebCreateNote(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	post_data, err := ioutil.ReadAll(r.Body)
-	if err != nil { HandleRequestErr(err, w); return }
-	v, err := url.ParseQuery(string(post_data))
-	if err != nil { HandleRequestErr(err, w); return }
-
-	id := createNote(trim_whitespace(v.Get("title")), trim_whitespace(v.Get("description")),
-		trim_whitespace(v.Get("body")), trim_whitespace(v.Get("tag")))
-	http.Redirect(w, r, "/qi/" + strconv.FormatUint(id, 10), http.StatusFound)
-}
+// Todo need user inputted here
+//func WebCreateNote(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+//	post_data, err := ioutil.ReadAll(r.Body)
+//	if err != nil { HandleRequestErr(err, w); return }
+//	v, err := url.ParseQuery(string(post_data))
+//	if err != nil { HandleRequestErr(err, w); return }
+//
+//	id := createNote(trim_whitespace(v.Get("title")), trim_whitespace(v.Get("description")),
+//		trim_whitespace(v.Get("body")), trim_whitespace(v.Get("tag")))
+//	http.Redirect(w, r, "/qi/" + strconv.FormatUint(id, 10), http.StatusFound)
+//}
 
 func WebDeleteNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id, err := strconv.ParseInt(p.ByName("id"), 10, 64)

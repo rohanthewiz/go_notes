@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings"
+	//"strings"
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -20,7 +20,7 @@ var db, db_err = gorm.Open("sqlite3", opts_str["db_path"])
 func migrate() {
 	// Create or update the table structure as needed
 	pl("Migrating the DB...")
-	db.AutoMigrate(&Note{}, &NoteChange{}, &NoteFragment{}, &LocalSig{}, &Peer{})
+	db.AutoMigrate(&Note{}, &NoteChange{}, &NoteFragment{}, &LocalSig{}, &Peer{}, &User{})
 	//According to GORM: Feel free to change your struct, AutoMigrate will keep your database up-to-date.
 	// Fyi, AutoMigrate will only *add new columns*, it won't update column's type or delete unused columns for safety
 	// If the table is not existing, AutoMigrate will create the table automatically.
@@ -30,6 +30,8 @@ func migrate() {
 	db.Model(&NoteChange{}).AddUniqueIndex("idx_note_change_guid", "guid")
 	db.Model(&NoteChange{}).AddIndex("idx_note_change_note_guid", "note_guid")
 	db.Model(&NoteChange{}).AddIndex("idx_note_change_created_at", "created_at")
+	db.Model(&User{}).AddUniqueIndex("idx_user_email", "email")
+	db.Model(&User{}).AddUniqueIndex("idx_user_guid", "guid")
 
 	ensureDBSig() // Initialize local with a SHA1 signature if it doesn't already have one
 	pl("Migration complete")
@@ -122,8 +124,8 @@ func main() {
 	if opts_intf["svr"].(bool) {
 		webserver(opts_str["port"])
 
-	} else if opts_str["synch_client"] != "" { // client to test synching
-			synch_client(opts_str["synch_client"], opts_str["server_secret"])
+//	} else if opts_str["synch_client"] != "" { // client to test synching
+//			synch_client(opts_str["synch_client"], opts_str["server_secret"])
 
 	} else if opts_intf["synch_server"].(bool) { // server to test synching
 		synch_server()
@@ -143,34 +145,34 @@ func main() {
 
 		// Options that can go with Query
 		// export
-		if opts_str["exp"] != "" {
-			arr := strings.Split(opts_str["exp"], ".")
-			arr_item_last := len(arr) -1
-			if arr[arr_item_last] == "csv" {
-				exportCsv(notes, opts_str["exp"])
-			}
-			if arr[arr_item_last] == "gob" {
-				exportGob(notes, opts_str["exp"])
-			}
-		} else if opts_intf["upd"].(bool) { // update
-			updateNotes(notes)
+//		if opts_str["exp"] != "" {
+//			arr := strings.Split(opts_str["exp"], ".")
+//			arr_item_last := len(arr) -1
+//			if arr[arr_item_last] == "csv" {
+//				exportCsv(notes, opts_str["exp"])
+//			}
+//			if arr[arr_item_last] == "gob" {
+//				exportGob(notes, opts_str["exp"])
+//			}
+//		} else if opts_intf["upd"].(bool) { // update
+//			updateNotes(notes)
 
 			// See if we want to delete
-		} else if opts_intf["del"].(bool) {
-			deleteNotes(notes)
-		}
+//		} else if opts_intf["del"].(bool) {
+//			deleteNotes(notes)
+//		}
 		// Other options
-	} else if opts_str["imp"] != "" { // import
-			arr := strings.Split(opts_str["imp"], ".")
-			arr_item_last := len(arr) -1
-			if arr[arr_item_last] == "csv" {
-				importCsv(opts_str["imp"])
-			}
-			if arr[arr_item_last] == "gob" {
-				importGob(opts_str["imp"])
-			}
+//	} else if opts_str["imp"] != "" { // import
+//			arr := strings.Split(opts_str["imp"], ".")
+//			arr_item_last := len(arr) -1
+//			if arr[arr_item_last] == "csv" {
+//				importCsv(opts_str["imp"])
+//			}
+//			if arr[arr_item_last] == "gob" {
+//				importGob(opts_str["imp"])
+//			}
 		// Create
-	} else if opts_str["t"] != "" { // No query options, we must be trying to CREATE
-		createNote(opts_str["t"], opts_str["d"], opts_str["b"], opts_str["g"])
+//	} else if opts_str["t"] != "" { // No query options, we must be trying to CREATE
+//		createNote(opts_str["t"], opts_str["d"], opts_str["b"], opts_str["g"])
 	}
 }

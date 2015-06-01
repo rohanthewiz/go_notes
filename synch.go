@@ -1,11 +1,11 @@
 package main
 import(
 	"fmt"
-	"log"
-	"strconv"
-	"net"
+	//"log"
+	//"strconv"
+	//"net"
 	"sort"
-	"encoding/gob"
+	//"encoding/gob"
 	"time"
 )
 
@@ -21,7 +21,7 @@ type Peer struct {
 	Id			int64
 	Guid		string `sql: "size:40"`
 	Token		string `sql: "size:40"`
-	User    string  // (GUID) has one user //todo - Add Index
+	UserId  uint64  // has one user //todo - Add Index?
 	Name		string `sql: "size:64"`
 	SynchPos	string `sql: "size:40"` // Last changeset applied
 	CreatedAt 	time.Time
@@ -36,144 +36,143 @@ type Message struct {
 
 const SYNCH_PORT  string = "8090"
 
-func synch_client(host string, server_secret string) {
-	conn, err := net.Dial("tcp", host + ":" + SYNCH_PORT)
-	if err != nil {log.Fatal("Error connecting to server ", err)}
-	defer conn.Close()
-	msg := Message{} // init to empty struct
-	enc := gob.NewEncoder(conn)
-	dec := gob.NewDecoder(conn)
-	defer sendMsg(enc, Message{Type: "Hangup", Param: "", NoteChg: NoteChange{}})
+//func synch_client(host string, server_secret string) {
+//	conn, err := net.Dial("tcp", host + ":" + SYNCH_PORT)
+//	if err != nil {log.Fatal("Error connecting to server ", err)}
+//	defer conn.Close()
+//	msg := Message{} // init to empty struct
+//	enc := gob.NewEncoder(conn)
+//	dec := gob.NewDecoder(conn)
+//	defer sendMsg(enc, Message{Type: "Hangup", Param: "", NoteChg: NoteChange{}})
+//
+//	// Send handshake - Client initiates
+//	sendMsg(enc, Message{
+//		Type: "WhoAreYou", Param: whoAmI(), NoteChg: NoteChange{Guid: server_secret}, // borrow NoteChange.Guid
+//	})
+//	rcxMsg(dec, &msg) // Decode the response
+//	if msg.Type == "WhoIAm" {
+//		peer_id := msg.Param  // retrieve the server's guid
+//		pl("The server's id is", short_sha(peer_id))
+//		if len(peer_id) != 40 {
+//			fpl("The server's id is invalid. Run the server once with the -setup_db option")
+//			return
+//		}
+//		// Is there a token for us?
+//		if len(msg.NoteChg.Guid) == 40 {
+//			setPeerToken(peer_id, msg.NoteChg.Guid) // make sure to save new auth token
+//		}
+//		// Obtain the peer object which represents the server
+//		peer, err := getPeerByGuid(peer_id)
+//		if err != nil { fpl("Error retrieving peer object"); return }
+//		msg.NoteChg.Guid = ""  // hide the evidence
+//
+//		// Auth
+//		msg.Type = "AuthMe"
+//		msg.Param = peer.Token // This is set for the server(peer) by some access granting mechanism
+//		sendMsg(enc, msg)
+//		rcxMsg(dec, &msg)
+//		if msg.Param != "Authorized" {
+//			fpl("The server declined the authorization request")
+//			return
+//		}
+//
+//		// Do we need to Synch?
+//		// (SynchPos is the NoteChg.Guid of the last change applied in a synch operation)
+//		if peer.SynchPos != "" { // Do we have a point of last synch with this peer?
+//			last_change := retrieveLatestChange() // Retrieve last local Note Change
+//			if last_change.Id > 0 && last_change.Guid == peer.SynchPos {
+//				// Get server last change
+//				msg.Type = "LatestChange"
+//				sendMsg(enc, msg)
+//				msg = Message{}
+//				rcxMsg(dec, &msg)
+//				if msg.NoteChg.Id > 0 && msg.NoteChg.Guid == peer.SynchPos {
+//					pf("We are already in synch with peer: %s at note_change: %s\n",
+//						short_sha(peer_id), short_sha(last_change.Guid))
+//					return
+//				}
+//			} // else we probably have never synched so carry on
+//		}
+//		pf("Last known Synch position is \"%s\"\n", short_sha(peer.SynchPos))
+//
+//		// Get Server Changes
+//		sendMsg(enc, Message{Type: "NumberOfChanges", Param: peer.SynchPos}) // heads up on number of changes
+//		rcxMsg(dec, &msg) // Decode the response
+//		numChanges, err := strconv.Atoi(msg.Param)
+//		if err != nil { fpl("Could not decode the number of change messages"); return }
+//		pl(numChanges, "changes")
+//
+//		peer_changes := make([]NoteChange, numChanges) // preallocate slice (optimization)
+//		sendMsg(enc, Message{Type: "SendChanges"})  // please send the actual changes
+//		for i := 0; i < numChanges; i++ {
+//			msg = Message{}
+//			rcxMsg(dec, &msg)
+//			peer_changes[i] = msg.NoteChg
+//		}
+//		pf("\n%d server changes received:\n", numChanges)
+//
+//    // Get Local Changes
+//		local_changes := retrieveLocalNoteChangesFromSynchPoint(peer.SynchPos)
+//		pf("%d local changes after synch point found\n", len(local_changes))
+//		// Push local changes to server
+//		if len(local_changes) > 0 {
+//			sendMsg(enc, Message{Type: "NumberOfClientChanges",
+//				Param: strconv.Itoa(len(local_changes))})
+//			rcxMsg(dec, &msg)
+//			if msg.Type == "SendChanges" {
+//				msg.Type = "NoteChange"
+//				msg.Param = ""
+//				var note Note
+//				var note_frag NoteFragment
+//				for _, change := range (local_changes) {
+//					note = Note{}
+//					note_frag = NoteFragment{}
+//					// We have the change but now we need the NoteFragment or Note depending on the operation type
+//					if change.Operation == 1 {
+//						db.Where("id = ?", change.NoteId).First(&note)
+//						note.Id = 0
+//						change.Note = note
+//					}
+//					if change.Operation == 2 {
+//						db.Where("id = ?", change.NoteFragmentId).First(&note_frag)
+//						change.NoteFragment = note_frag
+//					}
+//					msg.NoteChg = change
+//					msg.NoteChg.Print()
+//					sendMsg(enc, msg)
+//				}
+//			}
+//		}
+//
+//		// Process remote changes received
+//		if len(peer_changes) > 0 {
+//			processChanges(&peer_changes, &local_changes)
+//		}
+//
+//		// Mark Synch Point with a special NoteChange (Operation: 9)
+//		// Save on client and server
+//		if len(peer_changes) > 0 || len(local_changes) > 0 {
+//			synch_nc := NoteChange{Guid: generate_sha1(), Operation: 9}
+//			db.Save(&synch_nc)
+//			peer.SynchPos = synch_nc.Guid
+//			db.Save(&peer)
+//			// Mark the server with the same NoteChange
+//			msg.NoteChg = synch_nc
+//			msg.Type = "NewSynchPoint"
+//			sendMsg(enc, msg)
+//		}
+//
+//	} else {
+//			fpl("Peer does not respond to request for database id")
+//			fpl("Make sure both server and client databases have been properly setup(migrated) with the -setup_db option")
+//			fpl("or make sure peer version is >= 0.9")
+//			return
+//    }
+//
+//	defer fpl("Synch Operation complete")
+//}
 
-	// Send handshake - Client initiates
-	sendMsg(enc, Message{
-		Type: "WhoAreYou", Param: whoAmI(), NoteChg: NoteChange{Guid: server_secret}, // borrow NoteChange.Guid
-	})
-
-	rcxMsg(dec, &msg) // Decode the response
-	if msg.Type == "WhoIAm" {
-		peer_id := msg.Param  // retrieve the server's guid
-		pl("The server's id is", short_sha(peer_id))
-		if len(peer_id) != 40 {
-			fpl("The server's id is invalid. Run the server once with the -setup_db option")
-			return
-		}
-		// Is there a token for us?
-		if len(msg.NoteChg.Guid) == 40 {
-			setPeerToken(peer_id, msg.NoteChg.Guid) // make sure to save new auth token
-		}
-		// Obtain the peer object which represents the server
-		peer, err := getPeerByGuid(peer_id)
-		if err != nil { fpl("Error retrieving peer object"); return }
-		msg.NoteChg.Guid = ""  // hide the evidence
-
-		// Auth
-		msg.Type = "AuthMe"
-		msg.Param = peer.Token // This is set for the server(peer) by some access granting mechanism
-		sendMsg(enc, msg)
-		rcxMsg(dec, &msg)
-		if msg.Param != "Authorized" {
-			fpl("The server declined the authorization request")
-			return
-		}
-
-		// Do we need to Synch?
-		// (SynchPos is the NoteChg.Guid of the last change applied in a synch operation)
-		if peer.SynchPos != "" { // Do we have a point of last synch with this peer?
-			last_change := retrieveLatestChange() // Retrieve last local Note Change
-			if last_change.Id > 0 && last_change.Guid == peer.SynchPos {
-				// Get server last change
-				msg.Type = "LatestChange"
-				sendMsg(enc, msg)
-				msg = Message{}
-				rcxMsg(dec, &msg)
-				if msg.NoteChg.Id > 0 && msg.NoteChg.Guid == peer.SynchPos {
-					pf("We are already in synch with peer: %s at note_change: %s\n",
-						short_sha(peer_id), short_sha(last_change.Guid))
-					return
-				}
-			} // else we probably have never synched so carry on
-		}
-		pf("Last known Synch position is \"%s\"\n", short_sha(peer.SynchPos))
-
-		// Get Server Changes
-		sendMsg(enc, Message{Type: "NumberOfChanges", Param: peer.SynchPos}) // heads up on number of changes
-		rcxMsg(dec, &msg) // Decode the response
-		numChanges, err := strconv.Atoi(msg.Param)
-		if err != nil { fpl("Could not decode the number of change messages"); return }
-		pl(numChanges, "changes")
-
-		peer_changes := make([]NoteChange, numChanges) // preallocate slice (optimization)
-		sendMsg(enc, Message{Type: "SendChanges"})  // please send the actual changes
-		for i := 0; i < numChanges; i++ {
-			msg = Message{}
-			rcxMsg(dec, &msg)
-			peer_changes[i] = msg.NoteChg
-		}
-		pf("\n%d server changes received:\n", numChanges)
-		
-    // Get Local Changes
-		local_changes := retrieveLocalNoteChangesFromSynchPoint(peer.SynchPos)
-		pf("%d local changes after synch point found\n", len(local_changes))
-		// Push local changes to server
-		if len(local_changes) > 0 {
-			sendMsg(enc, Message{Type: "NumberOfClientChanges",
-				Param: strconv.Itoa(len(local_changes))})
-			rcxMsg(dec, &msg)
-			if msg.Type == "SendChanges" {
-				msg.Type = "NoteChange"
-				msg.Param = ""
-				var note Note
-				var note_frag NoteFragment
-				for _, change := range (local_changes) {
-					note = Note{}
-					note_frag = NoteFragment{}
-					// We have the change but now we need the NoteFragment or Note depending on the operation type
-					if change.Operation == 1 {
-						db.Where("id = ?", change.NoteId).First(&note)
-						note.Id = 0
-						change.Note = note
-					}
-					if change.Operation == 2 {
-						db.Where("id = ?", change.NoteFragmentId).First(&note_frag)
-						change.NoteFragment = note_frag
-					}
-					msg.NoteChg = change
-					msg.NoteChg.Print()
-					sendMsg(enc, msg)
-				}
-			}
-		}
-
-		// Process remote changes received
-		if len(peer_changes) > 0 {
-			processChanges(&peer_changes, &local_changes)
-		}
-
-		// Mark Synch Point with a special NoteChange (Operation: 9)
-		// Save on client and server
-		if len(peer_changes) > 0 || len(local_changes) > 0 {
-			synch_nc := NoteChange{Guid: generate_sha1(), Operation: 9}
-			db.Save(&synch_nc)
-			peer.SynchPos = synch_nc.Guid
-			db.Save(&peer)
-			// Mark the server with the same NoteChange
-			msg.NoteChg = synch_nc
-			msg.Type = "NewSynchPoint"
-			sendMsg(enc, msg)
-		}
-
-	} else {
-			fpl("Peer does not respond to request for database id")
-			fpl("Make sure both server and client databases have been properly setup(migrated) with the -setup_db option")
-			fpl("or make sure peer version is >= 0.9")
-			return
-    }
-
-	defer fpl("Synch Operation complete")
-}
-
-func processChanges(peer_changes * []NoteChange, local_changes * []NoteChange) {
+func processChanges(user User, peer_changes * []NoteChange, local_changes * []NoteChange) {
 	pl("Processing received changes...")
 	sort.Sort(byCreatedAt(*peer_changes)) // we will apply in created order
 	var local_change NoteChange
@@ -188,7 +187,7 @@ func processChanges(peer_changes * []NoteChange, local_changes * []NoteChange) {
 			pf("We already have NoteChange: %s -- skipping\n",short_sha(local_change.Guid))
 			continue // we already have that NC
 		}
-		// If there is a newer local change of the same note and field then skip
+		// If there is a *newer* local change of the same note and field then skip
 		for _, local_change = range(*local_changes) {
 			if local_change.NoteGuid == peer_change.NoteGuid && // same note
 					local_change.CreatedAt.After(peer_change.CreatedAt) && ( // local newer
@@ -207,27 +206,27 @@ func processChanges(peer_changes * []NoteChange, local_changes * []NoteChange) {
 
 		// Apply Changes
 		pl("____________________APPLYING CHANGE_________________________________")
-		performNoteChange(peer_change)
+		performNoteChange(user, peer_change)
 		verifyNoteChangeApplied(peer_change)
 	}
 }
 
-func retrieveLastChangeForNote(note_guid string) (NoteChange) {
+func retrieveLastChangeForNote(user User, note_guid string) (NoteChange) {
 	var noteChange NoteChange
-	db.Where("note_guid = ?", note_guid).Order("created_at desc").Limit(1).Find(&noteChange)
+	db.Where("user_id = ? and note_guid = ?", user.Id, note_guid).Order("created_at desc").Limit(1).Find(&noteChange)
 	return noteChange
 }
 
-func retrieveLatestChange() (NoteChange) {
+func retrieveLatestChange(user User) (NoteChange) {
 	var noteChange NoteChange
-	db.Order("created_at desc").First(&noteChange)
+	db.Where("user_id = ?", user.Id).Order("created_at desc").First(&noteChange)
 	return noteChange
 }
 
-func performNoteChange(nc NoteChange) bool {
+func performNoteChange(user User, nc NoteChange) bool {
 	nc.Print()
 	// Get The latest change for the current note in the local changeset
-	last_nc := retrieveLastChangeForNote(nc.NoteGuid)
+	last_nc := retrieveLastChangeForNote(user, nc.NoteGuid)
 
 	switch nc.Operation {
 	case op_create:
@@ -291,11 +290,11 @@ func saveNoteChange(nc NoteChange) bool {
 }
 
 // Get all local NCs later than the synchPoint
-func retrieveLocalNoteChangesFromSynchPoint(synch_guid string) ([]NoteChange) {
+func retrieveLocalNoteChangesFromSynchPoint(synch_guid string, user User) ([]NoteChange) {
 	var noteChange NoteChange
 	var noteChanges []NoteChange
 
-	db.Where("guid = ?", synch_guid).First(&noteChange) // There should be only one
+	db.Where("user_id = ? and guid = ?", user.Id, synch_guid).First(&noteChange) // There should be only one
 	pf("Synch point note change is: %v\n", noteChange)
 	if noteChange.Id < 1 {
 		pl("Can't find synch point locally - retrieving all note_changes", short_sha(synch_guid))

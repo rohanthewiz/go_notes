@@ -24,6 +24,6 @@ func doRoutes(router * httprouter.Router) {
 	router.GET("/edit/:id", WebNoteForm)
 	router.GET("/del/:id", WebDeleteNote)
 	router.GET("/js/:file", ServeJS)
-	router.POST("/create", WebCreateNote)
+	//router.POST("/create", WebCreateNote)
 	router.POST("/note/:id", WebUpdateNote)
 }

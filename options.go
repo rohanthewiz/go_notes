@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const CS = false // share codebase with central server
+const CentralServer = true // share codebase with central server
 
 //Setup commandline options and other configuration for Go Notes
 func getOpts() (map[string]string, map[string]interface{}) {

@@ -33,6 +33,7 @@ func handleConnection(conn net.Conn) {
 	var local_changes []NoteChange
 	var peer_id string
 	var peer Peer
+	var user User
 	var err error
 	var authorized bool = false // true so things will work while we develop auth
 
@@ -84,10 +85,16 @@ func handleConnection(conn net.Conn) {
 			peer, err = getPeerByGuid(peer_id)
 			if err != nil {
 				fpl("Error retrieving peer object for peer:", short_sha(peer_id));
-				msg.Type = "ERROR"
-				msg.Param = "There is no record for this client on the server."
+				fpf("Could not find a record for %s on the server.\n", peer_id)
 				return
 			}
+			user = User{}
+			db.Model(&peer).Related(&user) // retrieve the user associated with this peer
+			if user.Id < 1 {
+				fpl("Could not find a related user for peer\nPlease register a user for this peer", peer_id)
+				return
+			}
+			pl("Welcome", user.FirstName, user.LastName)
 			sendMsg(enc, msg)
 
 		case "AuthMe":
@@ -102,13 +109,13 @@ func handleConnection(conn net.Conn) {
 		// How client determines if we need to synch
 		case "LatestChange":
 			if !authorized { pl(authFailMsg); return }
-			msg.NoteChg = retrieveLatestChange() // Return server's last local Note Change
+			msg.NoteChg = retrieveLatestChange(user) // Return server's last local Note Change
 			sendMsg(enc, msg)
 
 		case "NumberOfChanges":
 			if !authorized { pl(authFailMsg); return }
 			// msg.Param will include the synch_point, so send num of changes since synch point
-			local_changes = retrieveLocalNoteChangesFromSynchPoint(msg.Param)
+			local_changes = retrieveLocalNoteChangesFromSynchPoint(msg.Param, user)
 			msg.Param = strconv.Itoa(len(local_changes))
 			sendMsg(enc, msg)
 		case "SendChanges":
@@ -151,7 +158,7 @@ func handleConnection(conn net.Conn) {
 				peer_changes[i] = msg.NoteChg
 			}
 			pf("\n%d peer changes received:\n", numChanges)
-			processChanges(&peer_changes, &local_changes)
+			processChanges(user, &peer_changes, &local_changes)
 		case "NewSynchPoint": // New synch point at the end of synching
 			if !authorized { pl(authFailMsg); return }
 			synch_nc := msg.NoteChg
