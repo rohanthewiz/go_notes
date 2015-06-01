@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"net/url"
 	"path"
+	"encoding/json"
 )
 
 // Good reading: http://www.alexedwards.net/blog/golang-response-snippets
@@ -51,6 +52,16 @@ func QueryId(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 	opts_intf["qi"] = id  // qi is the highest priority
 	notes := queryNotes()
 	RenderQuery(w, notes) //call Ego generated method
+}
+
+func QueryIdAsJson(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
+	resetOptions()
+	id, err := strconv.ParseInt(p.ByName("id"), 10, 64)
+	if err != nil { id = 0 }
+	opts_intf["qi"] = id  // qi is the highest priority
+	j_notes, err := json.Marshal(queryNotes())
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(j_notes)
 }
 
 func QueryTag(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {

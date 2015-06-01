@@ -43,7 +43,7 @@
     </p>
     <p>
       <label for="body">Body</label><br>
-      <textarea name="body" rows="14" cols="76"><%= note.Body %></textarea>
+      <textarea name="body" rows="14" cols="76"><%== note.Body %></textarea>
     </p>
     <p>
       <input type="submit" value = "<%= button %>" />

@@ -68,7 +68,7 @@ func handleConnection(conn net.Conn) {
 			pl("NoteChg.Guid is:", short_sha(msg.NoteChg.Guid))
 			if msg.NoteChg.Guid == get_server_secret() { // then automatically generate a token
 				pt, err := getPeerToken(peer_id)
-				if err == nil {
+				if err != nil {
 					msg.NoteChg.Guid = ""
 				} else {
 					pl("Auth token generated:", pt)

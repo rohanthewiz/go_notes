@@ -150,10 +150,10 @@ func synch_client(host string, server_secret string) {
 			processChanges(&peer_changes, &local_changes)
 		}
 
-		// Mark Synch Point with a special NoteChange; Save on client and server
+		// Mark Synch Point with a special NoteChange (Operation: 9)
+		// Save on client and server
 		if len(peer_changes) > 0 || len(local_changes) > 0 {
-			synch_point := generate_sha1()
-			synch_nc := NoteChange{Guid: synch_point, Operation: 9}
+			synch_nc := NoteChange{Guid: generate_sha1(), Operation: 9}
 			db.Save(&synch_nc)
 			peer.SynchPos = synch_nc.Guid
 			db.Save(&peer)

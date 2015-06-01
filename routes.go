@@ -8,6 +8,7 @@ func doRoutes(router * httprouter.Router) {
 	router.GET("/", Index)
 	router.GET("/ql", QueryLast)
 	router.GET("/qi/:id", QueryId)
+	router.GET("/json/qi/:id", QueryIdAsJson)
 	router.GET("/qg/:tag", QueryTag)
 	router.GET("/g/:tag", QueryTag)
 	router.GET("/qt/:title", QueryTitle)

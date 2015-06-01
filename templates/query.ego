@@ -43,7 +43,7 @@
       <% if note.Description != "" { %> - <%= note.Description %>
       <% } %>
       <% if note.Body != "" { %>
-        <div class="note-body"><%= string(blackfriday.MarkdownCommon([]byte(note.Body))) %></span>
+        <div class="note-body"><%== string(blackfriday.MarkdownCommon([]byte(note.Body))) %></span>
       <% } %>
       </li>
   <% } %>

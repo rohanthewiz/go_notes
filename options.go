@@ -45,7 +45,7 @@ func getOpts() (map[string]string, map[string]interface{}) {
 	getServerSecretPtr := flag.Bool("get_server_secret", false, "Show Server Secret")
 	synchServerPtr := flag.Bool("synch_server", false, "Synch server mode")
 	verbosePtr := flag.Bool("verbose", true, "verbose mode") // Todo - turn off for production
-	debugPtr := flag.Bool("debug", false, "debug mode") // Todo - turn off for production
+	debugPtr := flag.Bool("debug", true, "debug mode") // Todo - turn off for production
 
 	flag.Parse()
 

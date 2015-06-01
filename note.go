@@ -43,7 +43,7 @@ func createNote(title string, desc string, body string, tag string) uint64 {
 
 // The core create method
 func do_create(note Note) uint64 {
-	print("Creating new note...")
+	pl("Creating new note...")
 	performNoteChange(
 		NoteChange{
 			Guid: generate_sha1(), Operation: 1,
