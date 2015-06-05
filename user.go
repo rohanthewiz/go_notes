@@ -1,5 +1,8 @@
 package main
-import "time"
+import (
+	"time"
+	"errors"
+)
 
 
 // A User can have multiple peers
@@ -14,10 +17,25 @@ type User struct {
 	Email string // will be the users unique identifier
 	Guid string  // GUID will be hash of users email
 	CryptedPassword string
-	Seed string
+	Salt string
 	Peers []Peer // has many peers
 	NoteChanges []NoteChange // for synching
 	Notes []Note // for notes retrieval
 	CreatedAt time.Time
 	UpdatedAt time.Time
+}
+func NewUser(first_name string, last_name string, email string, password string, password_conf string) (* User, error) {
+	var user User
+	if password != password_conf {
+	  	return user, errors.New("Password and password confirmation does not match")
+	}
+	user = User{FirstName: first_name, LastName: last_name, Email: email}
+	user.Guid = generate_sha1()
+	user.Salt = generate_sha1()
+	user.CryptedPassword = hashPassword(password, user.Salt)
+	return user, nil
+}
+
+func (u * User) create() {
+	db.Create(u)
 }

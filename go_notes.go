@@ -172,7 +172,7 @@ func main() {
 //				importGob(opts_str["imp"])
 //			}
 		// Create
-//	} else if opts_str["t"] != "" { // No query options, we must be trying to CREATE
-//		createNote(opts_str["t"], opts_str["d"], opts_str["b"], opts_str["g"])
+	} else if opts_str["t"] != "" { // No query options, we must be trying to CREATE
+		createNote(opts_str["t"], opts_str["d"], opts_str["b"], opts_str["g"])
 	}
 }
