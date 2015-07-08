@@ -12,6 +12,7 @@ import(
 
 var fpf = fmt.Printf
 var fpl = fmt.Println
+var lpl = log.Println
 
 func pd(params ...interface{}) {
 	if opts_intf["debug"].(bool) {
@@ -37,9 +38,9 @@ func generate_sha1() string {
 	return fmt.Sprintf("%x", sha1.Sum([]byte("%$" + time.Now().String() + "e{")))
 }
 
-func hashPassword(pword string, salt string) {
-	// TODO - do some hashing here
-	return
+func hashPassword(pword string, salt string) string {
+	return fmt.Sprintf("%x", sha1.Sum([]byte("[--]" + pword + "e{" + salt)))
+
 }
 
 func short_sha(sha string) string{

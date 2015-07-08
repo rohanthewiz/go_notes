@@ -8,14 +8,14 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-const app_name = "GoNotes"
-const version string = "0.10.3"
+const app_name = "GoNotes Server"
+const version string = "0.10.4"
 
 // Get Commandline Options and Flags
 var opts_str, opts_intf = getOpts() //returns map[string]string, map[string]interface{}
 
 // Init db
-var db, db_err = gorm.Open("sqlite3", opts_str["db_path"])
+var db gorm.DB
 
 func migrate() {
 	// Create or update the table structure as needed
@@ -55,8 +55,8 @@ func ensureDBSig() {
 }
 
 func main() {
-
-	if db_err != nil { // Can't err chk db conn outside method, so do it here
+	db, err := gorm.Open("sqlite3", opts_str["db_path"])
+	if err != nil { // Can't err chk db conn outside method, so do it here
 		fpl("There was an error connecting to the DB")
 		fpl("DBPath: " + opts_str["db_path"])
 		os.Exit(2)
@@ -171,8 +171,9 @@ func main() {
 //			if arr[arr_item_last] == "gob" {
 //				importGob(opts_str["imp"])
 //			}
+
 		// Create
-	} else if opts_str["t"] != "" { // No query options, we must be trying to CREATE
-		createNote(opts_str["t"], opts_str["d"], opts_str["b"], opts_str["g"])
+//	} else if opts_str["t"] != "" { // No query options, we must be trying to CREATE
+//		createNote(opts_str["t"], opts_str["d"], opts_str["b"], opts_str["g"])
 	}
 }

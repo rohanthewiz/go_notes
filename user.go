@@ -24,18 +24,26 @@ type User struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
+
 func NewUser(first_name string, last_name string, email string, password string, password_conf string) (* User, error) {
-	var user User
 	if password != password_conf {
-	  	return user, errors.New("Password and password confirmation does not match")
+	  	return nil, errors.New("Password and password confirmation do not match")
 	}
-	user = User{FirstName: first_name, LastName: last_name, Email: email}
+	user := new(User)
+	user.FirstName = first_name
+	user.LastName = last_name
+	user.Email = email
 	user.Guid = generate_sha1()
 	user.Salt = generate_sha1()
 	user.CryptedPassword = hashPassword(password, user.Salt)
+	user.Create()
 	return user, nil
 }
 
-func (u * User) create() {
+func (u * User) Create() {
 	db.Create(u)
+}
+
+func (u *User) Auth( word string) bool {
+	return u.CryptedPassword == hashPassword(word, u.Salt)
 }
