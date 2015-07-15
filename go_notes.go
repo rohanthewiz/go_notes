@@ -45,7 +45,7 @@ func ensureDBSig() {
 		len(local_sigs[0].ServerSecret) == 40 { return } // all is good
 
 	if len(local_sigs) == 0 { // create the signature
-		db.Create(&LocalSig{Guid: generate_sha1(), ServerSecret: generate_sha1()})
+		db.Create(&LocalSig{Guid: random_sha1(), ServerSecret: random_sha1()})
 		if db.Find(&local_sigs); len(local_sigs) == 1 && len(local_sigs[0].Guid) == 40 { // was it saved?
 			pl("Local signature created")
 		}

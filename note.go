@@ -33,7 +33,7 @@ func createNote(user User, title string, desc string, body string, tag string) u
 			fpl("Error: Title", title, "is not unique!")
 			return 0
 		}
-		return do_create(user, Note{Guid: generate_sha1(), Title: title, Description: desc,
+		return do_create(user, Note{Guid: random_sha1(), Title: title, Description: desc,
 			Body: body, Tag: tag})
 	} else {
 		fpl("Title (-t) is required if creating a note. Remember to precede option flags with '-'")
@@ -46,7 +46,7 @@ func do_create(user User, note Note) uint64 {
 	pl("Creating new note...")
 	performNoteChange( user,
 		NoteChange{
-			Guid: generate_sha1(), Operation: 1,
+			Guid: random_sha1(), Operation: 1,
 			NoteGuid:     note.Guid,
 			Note:         note,
 			NoteFragment: NoteFragment{},
@@ -86,7 +86,7 @@ func allFieldsUpdate(note Note) { // note is an unsaved note prepared with Id an
 		nf.Tag = note.Tag
 		nf.Bitmask |= 1
 	}
-	nc := NoteChange{Guid: generate_sha1(), NoteGuid: orig.Guid, Operation: op_update, NoteFragment: nf}
+	nc := NoteChange{Guid: random_sha1(), NoteGuid: orig.Guid, Operation: op_update, NoteFragment: nf}
 	db.Save(&nc)
 	if nc.Id > 0 {
 		pf("NoteChange (%s) created successfully\n", short_sha(nc.Guid))
@@ -176,7 +176,7 @@ func allFieldsUpdate(note Note) { // note is an unsaved note prepared with Id an
 //			}
 //
 //			db.Save(&n)
-//			nc := NoteChange{Guid: generate_sha1(), NoteGuid: n.Guid, Operation: op_update, NoteFragment: nf}
+//			nc := NoteChange{Guid: random_sha1(), NoteGuid: n.Guid, Operation: op_update, NoteFragment: nf}
 //			db.Save(&nc)
 //			if nc.Id > 0 {
 //				pf("NoteChange (%s) created successfully\n", short_sha(nc.Guid))
@@ -210,7 +210,7 @@ func doDelete(note Note) {
 		return
 	}
 	db.Delete(&note)
-	nc := NoteChange{Guid: generate_sha1(), NoteGuid: note.Guid, Operation: op_delete}
+	nc := NoteChange{Guid: random_sha1(), NoteGuid: note.Guid, Operation: op_delete}
 	db.Save(&nc)
 	if nc.Id > 0 { // Hopefully nc was reloaded
 		pf("NoteChange (%s) created successfully\n", short_sha(nc.Guid))

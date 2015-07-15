@@ -1,6 +1,8 @@
 .idea/*
 .DS_Store
 *.csv
+*.a
 go_notes.exe
 go_notes
 test/*
+_vendor/pkg/*

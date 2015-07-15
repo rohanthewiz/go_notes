@@ -202,11 +202,11 @@ func printMsg(msg Message, rcx bool) {
 //	fmt.Printf("encoder is a type of: %v\n", reflect.TypeOf(encoder))
 
 //			// Send a Create Change
-//			noteGuid := generate_sha1() // we use the note guid in two places (a little denormalization)
+//			noteGuid := random_sha1() // we use the note guid in two places (a little denormalization)
 //			note1Guid := noteGuid
 //			msg.NoteChg = NoteChange{
 //				Operation: 1,
-//				Guid: generate_sha1(),
+//				Guid: random_sha1(),
 //				NoteGuid: noteGuid,
 //				Note: Note{
 //					Guid: noteGuid, Title: "Synch Note 1",
@@ -217,10 +217,10 @@ func printMsg(msg Message, rcx bool) {
 //			sendMsg(enc, msg)
 //
 //			// Send another Create Change
-//			noteGuid = generate_sha1()
+//			noteGuid = random_sha1()
 //			msg.NoteChg = NoteChange{
 //				Operation: 1,
-//				Guid: generate_sha1(),
+//				Guid: random_sha1(),
 //				NoteGuid: noteGuid,
 //				Note: Note{
 //					Guid: noteGuid, Title: "Synch Note 2",
@@ -234,7 +234,7 @@ func printMsg(msg Message, rcx bool) {
 //			// Send an update operation
 //			msg.NoteChg = NoteChange{
 //				Operation: 2,
-//				Guid: generate_sha1(),
+//				Guid: random_sha1(),
 //				NoteGuid: second_note_guid,
 //				Note: Note{},
 //				NoteFragment: NoteFragment{
@@ -246,7 +246,7 @@ func printMsg(msg Message, rcx bool) {
 //			// Send a Delete Change
 //			msg.NoteChg = NoteChange{
 //				Operation: 3,
-//				Guid: generate_sha1(),
+//				Guid: random_sha1(),
 //				NoteGuid: note1Guid,
 //				Note: Note{},
 //				NoteFragment: NoteFragment{},

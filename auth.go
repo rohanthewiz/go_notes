@@ -50,7 +50,7 @@ func getPeerToken(peer_id string) (string, error) {
 	var peer Peer
 	db.Where("guid = ?", peer_id).First(&peer)
 	if peer.Id < 1 {
-		token := generate_sha1()
+		token := random_sha1()
 		db.Create(&Peer{Guid: peer_id, Token: token})
 		pl("Creating new peer entry for:", short_sha(peer_id))
 		db.Where("guid = ?", peer_id).First(&peer) // read it back
@@ -61,7 +61,7 @@ func getPeerToken(peer_id string) (string, error) {
 		}
 	  // Peer already exists - make sure it has an auth token
 	} else if len(peer.Token) == 0 {
-		token := generate_sha1()
+		token := random_sha1()
 		peer.Token = token
 		db.Save(&peer)
 		return token, nil

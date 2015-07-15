@@ -2,6 +2,7 @@ package main
 import (
 	"time"
 	"errors"
+	"github.com/elithrar/simple-scrypt"
 )
 
 
@@ -33,9 +34,14 @@ func NewUser(first_name string, last_name string, email string, password string,
 	user.FirstName = first_name
 	user.LastName = last_name
 	user.Email = email
-	user.Guid = generate_sha1()
-	user.Salt = generate_sha1()
-	user.CryptedPassword = hashPassword(password, user.Salt)
+	user.Guid = random_sha1()
+	user.Salt = random_sha1()
+	hash, err := scrypt.GenerateFromPassword([]byte(password + user.Salt), scrypt.DefaultParams)
+	if err != nil {
+		lpl("Failed to generate a password hash for", user.Email)
+		return nil, err
+	}
+	user.CryptedPassword = string(hash)
 	user.Create()
 	return user, nil
 }
@@ -45,5 +51,9 @@ func (u * User) Create() {
 }
 
 func (u *User) Auth( word string) bool {
-	return u.CryptedPassword == hashPassword(word, u.Salt)
+	err := scrypt.CompareHashAndPassword([]byte(u.CryptedPassword), []byte(word + u.Salt))
+	if err != nil {
+		return false
+	}
+	return true
 }
