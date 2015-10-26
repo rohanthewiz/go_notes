@@ -9,7 +9,7 @@ import (
 )
 
 const app_name = "GoNotes"
-const version string = "0.10.3"
+const version string = "0.10.4"
 
 // Get Commandline Options and Flags
 var opts_str, opts_intf = getOpts() //returns map[string]string, map[string]interface{}
@@ -172,5 +172,7 @@ func main() {
 		// Create
 	} else if opts_str["t"] != "" { // No query options, we must be trying to CREATE
 		createNote(opts_str["t"], opts_str["d"], opts_str["b"], opts_str["g"])
+	} else {
+		webserver(opts_str["port"])
 	}
 }
