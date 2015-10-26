@@ -1,0 +1,36 @@
+{
+	"version": 0,
+	"dependencies": [
+		{
+			"importpath": "github.com/jinzhu/gorm",
+			"repository": "https://github.com/jinzhu/gorm",
+			"revision": "5f113dcb8d8d2c0968ae9c867ab01cd3a783585a",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/julienschmidt/httprouter",
+			"repository": "https://github.com/julienschmidt/httprouter",
+			"revision": "77a895ad01ebc98a4dc95d8355bc825ce80a56f6",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/lib/pq/hstore",
+			"repository": "https://github.com/lib/pq",
+			"revision": "83c4f410d0aed80a0f44bac6a576a7f2435791f3",
+			"branch": "master",
+			"path": "/hstore"
+		},
+		{
+			"importpath": "github.com/mattn/go-sqlite3",
+			"repository": "https://github.com/mattn/go-sqlite3",
+			"revision": "b808f01f660667b1510acf216aa2b9fe7f555ddb",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/qor/inflection",
+			"repository": "https://github.com/qor/inflection",
+			"revision": "3272df6c21d04180007eb3349844c89a3856bc25",
+			"branch": "master"
+		}
+	]
+}
