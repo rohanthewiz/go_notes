@@ -120,7 +120,7 @@ func WebCreateNote(w http.ResponseWriter, r *http.Request, _ httprouter.Params) 
 	if err != nil { HandleRequestErr(err, w); return }
 
 	id := createNote(trim_whitespace(v.Get("title")), trim_whitespace(v.Get("description")),
-		trim_whitespace(v.Get("body")), trim_whitespace(v.Get("tag")))
+		trim_whitespace(v.Get("body")), list_to_tags(v.Get("tag")))
 	http.Redirect(w, r, "/qi/" + strconv.FormatUint(id, 10), http.StatusFound)
 }
 
@@ -144,7 +144,7 @@ func WebUpdateNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 
 		note = Note{ Id: id, Title: trim_whitespace(v.Get("title")),
 			Description: trim_whitespace(v.Get("description")),
-			Body: trim_whitespace(v.Get("body")),	Tag: trim_whitespace(v.Get("tag")),
+			Body: trim_whitespace(v.Get("body")),	Tags: list_to_tags(v.Get("tag")),
 		}
 		pf("Updating note with: %v ...\n", note)
 		allFieldsUpdate(note)

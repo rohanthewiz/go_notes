@@ -9,7 +9,7 @@ import (
 )
 
 const app_name = "GoNotes"
-const version string = "0.10.4"
+const version string = "0.11.0"
 
 // Get Commandline Options and Flags
 var opts_str, opts_intf = getOpts() //returns map[string]string, map[string]interface{}
@@ -20,13 +20,14 @@ var db, db_err = gorm.Open("sqlite3", opts_str["db_path"])
 func migrate() {
 	// Create or update the table structure as needed
 	pl("Migrating the DB...")
-	db.AutoMigrate(&Note{}, &NoteChange{}, &NoteFragment{}, &LocalSig{}, &Peer{})
+	db.AutoMigrate(&Note{}, &Tag, &NoteChange{}, &NoteFragment{}, &LocalSig{}, &Peer{})
 	//According to GORM: Feel free to change your struct, AutoMigrate will keep your database up-to-date.
 	// Fyi, AutoMigrate will only *add new columns*, it won't update column's type or delete unused columns for safety
 	// If the table is not existing, AutoMigrate will create the table automatically.
 
 	db.Model(&Note{}).AddUniqueIndex("idx_note_guid", "guid")
 	db.Model(&Note{}).AddUniqueIndex("idx_note_title", "title")
+	db.Model(&Tag{}).AddUniqueIndex("idx_tag_name", "name")
 	db.Model(&NoteChange{}).AddUniqueIndex("idx_note_change_guid", "guid")
 	db.Model(&NoteChange{}).AddIndex("idx_note_change_note_guid", "note_guid")
 	db.Model(&NoteChange{}).AddIndex("idx_note_change_created_at", "created_at")

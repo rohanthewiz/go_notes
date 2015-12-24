@@ -48,3 +48,11 @@ func short_sha(sha string) string{
 func trim_whitespace(in_str string) string {
 	return strings.Trim(in_str, " \n\r\t")
 }
+
+func list_to_tags(list string) []Tag {
+	var tags []Tag
+	for _, tag := range strings.Split(list, ",") {
+		tags = append(tags, Tag{Name: trim_whitespace(tag)})
+	}
+	return tags
+}

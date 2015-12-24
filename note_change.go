@@ -31,7 +31,7 @@ type NoteFragment struct {
 	Title       string `sql: "size:128"`
 	Description string `sql: "size:255"`
 	Body        string `sql: "type:text"`
-	Tag         string `sql: "size:128"`
+	Tags         []Tag `gorm:"many2many:note_tags"`
 }
 
 type byCreatedAt []NoteChange

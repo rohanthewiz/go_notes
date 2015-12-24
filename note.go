@@ -7,6 +7,12 @@ import (
 	"strings"
 	"time"
 )
+const line_separator string = "---------------------------------------------------------"
+
+type Tag struct {
+	ID uint64
+	Name string
+}
 
 type Note struct {
 	Id          uint64
@@ -14,7 +20,7 @@ type Note struct {
 	Title       string `sql: "size:128"`
 	Description string `sql: "size:255"`
 	Body        string `sql: "type:text"`
-	Tag         string `sql: "size:128"`
+	Tags        []Tag `gorm:"many2many:note_tags"`
 	User        string // who's account is this currently in (GUID) //todo - Add Index
 	Creator     string // (GUID) who originally created the note
 	SharedBy    string // (GUID) if it was shared to me, by who?
@@ -23,7 +29,24 @@ type Note struct {
 	UpdatedAt   time.Time
 }
 
-const line_separator string = "---------------------------------------------------------"
+func (n Note) tagsEqual(other Note) bool {
+	if len(n.Tags) != len(other.Tags) {
+		fmt.Println("Differing lengths")
+		return false
+	}
+
+	for _, tag := range n.Tags {
+		found := false
+		for _, other_tag := range other.Tags {
+			if other_tag.Name == tag.Name { // found tag within other.Tags
+				found = true; break
+			}
+		}
+		if !found { return false } // tag not found within other.Tags
+
+	}
+	return true;
+}
 
 func createNote(title string, desc string, body string, tag string) uint64 {
 	if title != "" {
@@ -34,7 +57,7 @@ func createNote(title string, desc string, body string, tag string) uint64 {
 			return 0
 		}
 		return do_create(Note{Guid: generate_sha1(), Title: title, Description: desc,
-			Body: body, Tag: tag})
+			Body: body, Tags: list_to_tags(tag)})
 	} else {
 		fpl("Title (-t) is required if creating a note. Remember to precede option flags with '-'")
 	}
@@ -67,8 +90,9 @@ func allFieldsUpdate(note Note) { // note is an unsaved note prepared with Id an
 	db.Where("id = ?", note.Id).First(&orig) // get the original for comparision
 	// Actual update
 	db.Table("notes").Where("id = ?", note.Id).Updates(map[string]interface{}{
-		"title": note.Title, "description": note.Description, "body": note.Body, "tag": note.Tag,
+		"title": note.Title, "description": note.Description, "body": note.Body, "tags": note.Tags,
 	})
+	// Build and save change
 	var nf NoteFragment = NoteFragment{}
 	if orig.Title != note.Title { //Build NoteFragment
 		nf.Title = note.Title
@@ -82,8 +106,8 @@ func allFieldsUpdate(note Note) { // note is an unsaved note prepared with Id an
 		nf.Body = note.Body
 		nf.Bitmask |= 2
 	}
-	if orig.Tag != note.Tag { //Build NoteFragment
-		nf.Tag = note.Tag
+	if !note.tagsEqual(orig) { //Build NoteFragment
+		nf.Tags = note.Tags
 		nf.Bitmask |= 1
 	}
 	nc := NoteChange{Guid: generate_sha1(), NoteGuid: orig.Guid, Operation: op_update, NoteFragment: nf}
@@ -157,12 +181,12 @@ func updateNotes(notes []Note) {
 				nf.Bitmask |= 2
 			}
 
-			fpl("Tags-->" + n.Tag)
+			fpl("Tags-->" + n.Tags)
 			fmt.Println("Enter new Tags (or '-' to blank, '+ blah' to append, or <ENTER> for no change)")
 			tag, _ := reader.ReadString('\n')
 			tag = strings.TrimRight(tag, " \r\n ")
 
-			orig_tag := n.Tag
+			orig_tag := n.Tags
 			if tag == "-" {
 				n.Tag = ""
 			} else if len(tag) > 1 && tag[0:1] == "+" {
