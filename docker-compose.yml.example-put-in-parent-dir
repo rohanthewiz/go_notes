@@ -1,11 +1,13 @@
 version: '3'
 services:
-  web:
-    build: .
+  gn:
+    build: ./go_notes
     ports:
      - "8092:8080"
     volumes:
-      - /c/Users/RAllison3/go_notes:/app
+      - $PWD/gnDir:/app
+      #- /c/Users/RAllison3/go_notes:/app
+
 #  redis:
 #    image: "redis:alpine"
 
