@@ -4,3 +4,4 @@
 go_notes.exe
 go_notes
 test/*
+*.gob
