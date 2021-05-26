@@ -23,21 +23,24 @@ GOPATH/src/yourdomain.com/your_project
 ```
 
 ## Getting and Building GoNotes
-(You may need Mercurial installed)
 
 ```
-apt-get install mercurial
-# Get the GoNotes archive
-go get github.com/rohanthewiz/go_notes
-cd $GOPATH/src/github.com/rohanthewiz/go_notes
+# Clone the GoNotes archive
+git clone https://github.com/rohanthewiz/go_notes.git
+cd go_notes
 go build # this will produce the executable 'go_notes' in the current directory
 ```
-You will require the ego package to make changes to the template files
+
+Switching this over to element, removing Ego...
+
+### Old stuff
+(Old: You will require the ego package to make changes to the template files)
 Install it with
 
 ```
 go get github.com/benbjohnson/ego/...  # yes the three dots at the end are necessary
 ```
+
 If you make changes to an ego template file, you will need to 'compile' it before the main build.
 For example if you updated *query.ego* you will need to run
 

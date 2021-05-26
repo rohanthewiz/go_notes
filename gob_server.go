@@ -1,32 +1,42 @@
 // GOB client server
 package main
-import(
-	//"reflect"
-	"os"
-	"net"
+
+import (
 	"encoding/gob"
 	"fmt"
+	"go_notes/note"
+	"log"
+	"net"
+
+	"os"
 	"strconv"
 )
 
 func synch_server() { // WIP
-	ln, err := net.Listen("tcp", ":" + SYNCH_PORT) // counterpart of net.Dial
+	ln, err := net.Listen("tcp", ":"+SynchPort) // counterpart of net.Dial
 	if err != nil {
-		fpl("Error setting up server listen on port", SYNCH_PORT)
+		fmt.Println("Error setting up server listen on port", SynchPort)
 		return
 	}
-	fmt.Println("Server listening on port: " + SYNCH_PORT + " - CTRL-C to quit")
+	fmt.Println("Server listening on port: " + SynchPort + " - CTRL-C to quit")
 
 	for {
 		conn, err := ln.Accept() // this blocks until connection or error
-		if err != nil { continue }
+		if err != nil {
+			continue
+		}
 		go handleConnection(conn)
 	}
 }
 
 func handleConnection(conn net.Conn) {
 	msg := Message{}
-	defer conn.Close()
+	defer func(conn net.Conn) {
+		err := conn.Close()
+		if err != nil {
+			log.Println("Error closing conn", err)
+		}
+	}(conn)
 	enc := gob.NewEncoder(conn)
 	dec := gob.NewDecoder(conn)
 
@@ -42,10 +52,12 @@ func handleConnection(conn net.Conn) {
 
 		switch msg.Type {
 		case "Hangup":
-			printHangupMsg(conn); return
+			printHangupMsg(conn)
+			return
 
 		case "Quit":
-			pl("Quit message received. Exiting..."); os.Exit(1)
+			pl("Quit message received. Exiting...")
+			os.Exit(1)
 
 			// This is the point of id exchange between the server and client
 			// Normal auth process is that the client provides its db signature(peer_id)
@@ -64,8 +76,8 @@ func handleConnection(conn net.Conn) {
 			//         ./go_notes -save_peer_token the_token (detail: the_token here is of the format "server_id-auth_token")
 		case "WhoAreYou":
 			peer_id = msg.Param // receive the client db signature
-			pd("Client id is:", short_sha(peer_id))
-			pl("NoteChg.Guid is:", short_sha(msg.NoteChg.Guid))
+			pd("Client id is:", shortSHA(peer_id))
+			pl("NoteChg.Guid is:", shortSHA(msg.NoteChg.Guid))
 			if msg.NoteChg.Guid == get_server_secret() { // then automatically generate a token
 				pt, err := getPeerToken(peer_id)
 				if err != nil {
@@ -83,7 +95,7 @@ func handleConnection(conn net.Conn) {
 			// Retrieve the actual peer object which represents the client
 			peer, err = getPeerByGuid(peer_id)
 			if err != nil {
-				fpl("Error retrieving peer object for peer:", short_sha(peer_id));
+				fmt.Println("Error retrieving peer object for peer:", shortSHA(peer_id))
 				msg.Type = "ERROR"
 				msg.Param = "There is no record for this client on the server."
 				return
@@ -101,30 +113,39 @@ func handleConnection(conn net.Conn) {
 
 		// How client determines if we need to synch
 		case "LatestChange":
-			if !authorized { pl(authFailMsg); return }
+			if !authorized {
+				pl(authFailMsg)
+				return
+			}
 			msg.NoteChg = retrieveLatestChange() // Return server's last local Note Change
 			sendMsg(enc, msg)
 
 		case "NumberOfChanges":
-			if !authorized { pl(authFailMsg); return }
+			if !authorized {
+				pl(authFailMsg)
+				return
+			}
 			// msg.Param will include the synch_point, so send num of changes since synch point
 			local_changes = retrieveLocalNoteChangesFromSynchPoint(msg.Param)
 			msg.Param = strconv.Itoa(len(local_changes))
 			sendMsg(enc, msg)
 		case "SendChanges":
-			if !authorized { pl(authFailMsg); return }
+			if !authorized {
+				pl(authFailMsg)
+				return
+			}
 			msg.Type = "NoteChange"
 			msg.Param = ""
-			var note Note
+			var nte note.Note
 			var note_frag NoteFragment
-			for _, change := range(local_changes) {
-				note = Note{}
+			for _, change := range local_changes {
+				nte = note.Note{}
 				note_frag = NoteFragment{}
 				// We have the change but now we need the NoteFragment or Note depending on the operation type
 				if change.Operation == 1 {
-					db.Where("id = ?", change.NoteId).First(&note)
-					note.Id = 0
-					change.Note = note
+					db.Where("id = ?", change.NoteId).First(&nte)
+					nte.Id = 0
+					change.Note = nte
 				}
 				if change.Operation == 2 {
 					db.Where("id = ?", change.NoteFragmentId).First(&note_frag)
@@ -135,12 +156,19 @@ func handleConnection(conn net.Conn) {
 				sendMsg(enc, msg)
 			}
 		case "NumberOfClientChanges":
-			if !authorized { pl(authFailMsg); return }
+			if !authorized {
+				pl(authFailMsg)
+				return
+			}
 			numChanges, err := strconv.Atoi(msg.Param)
 			if err != nil {
-				pl("Could not decode the number of change messages"); return
+				pl("Could not decode the number of change messages")
+				return
 			}
-			if numChanges < 1 { pl("No remote changes."); return }
+			if numChanges < 1 {
+				pl("No remote changes.")
+				return
+			}
 			pl(numChanges, "changes")
 			peer_changes := make([]NoteChange, numChanges)
 			sendMsg(enc, Message{Type: "SendChanges"}) // Send the actual changes
@@ -153,7 +181,10 @@ func handleConnection(conn net.Conn) {
 			pf("\n%d peer changes received:\n", numChanges)
 			processChanges(&peer_changes, &local_changes)
 		case "NewSynchPoint": // New synch point at the end of synching
-			if !authorized { pl(authFailMsg); return }
+			if !authorized {
+				pl(authFailMsg)
+				return
+			}
 			synch_nc := msg.NoteChg
 			synch_nc.Id = 0 // so it will save
 			db.Save(&synch_nc)
@@ -161,19 +192,28 @@ func handleConnection(conn net.Conn) {
 			db.Save(&peer)
 		default:
 			pl("Unknown message type received", msg.Type)
-			printHangupMsg(conn); return
+			printHangupMsg(conn)
+			return
 		}
 	}
 }
 
 func sendMsg(encoder *gob.Encoder, msg Message) {
-	encoder.Encode(msg); printMsg(msg, false)
+	err := encoder.Encode(msg)
+	if err != nil {
+		log.Println("Error on message encode:", err)
+	}
+	printMsg(msg, false)
 	//time.Sleep(10)
 }
 
 func rcxMsg(decoder *gob.Decoder, msg *Message) {
 	//time.Sleep(10)
-	decoder.Decode(&msg); printMsg(*msg, true)
+	err := decoder.Decode(&msg)
+	if err != nil {
+		log.Println("error on message decode:", err)
+	}
+	printMsg(*msg, true)
 }
 
 func printHangupMsg(conn net.Conn) {
@@ -182,66 +222,11 @@ func printHangupMsg(conn net.Conn) {
 
 func printMsg(msg Message, rcx bool) {
 	pl("\n----------------------------------------------")
-	if rcx { print("Received: ")
+	if rcx {
+		print("Received: ")
 	} else {
 		print("Sent: ")
 	}
-	pl("Msg Type:", msg.Type, " Msg Param:", short_sha(msg.Param))
+	pl("Msg Type:", msg.Type, " Msg Param:", shortSHA(msg.Param))
 	msg.NoteChg.Print()
 }
-
-
-// CODE_SCRAP // Yes. A compiled language allows us to do this without any runtime penalty
-//	fmt.Printf("encoder is a type of: %v\n", reflect.TypeOf(encoder))
-
-//			// Send a Create Change
-//			noteGuid := generate_sha1() // we use the note guid in two places (a little denormalization)
-//			note1Guid := noteGuid
-//			msg.NoteChg = NoteChange{
-//				Operation: 1,
-//				Guid: generate_sha1(),
-//				NoteGuid: noteGuid,
-//				Note: Note{
-//					Guid: noteGuid, Title: "Synch Note 1",
-//					Description: "Description for Synch Note 1", Body: "Body for Synch Note 1",
-//					Tag: "tag_synch_1", CreatedAt: time.Now()},
-//				NoteFragment: NoteFragment{},
-//			}
-//			sendMsg(enc, msg)
-//
-//			// Send another Create Change
-//			noteGuid = generate_sha1()
-//			msg.NoteChg = NoteChange{
-//				Operation: 1,
-//				Guid: generate_sha1(),
-//				NoteGuid: noteGuid,
-//				Note: Note{
-//					Guid: noteGuid, Title: "Synch Note 2",
-//					Description: "Description for Synch Note 2", Body: "Body for Synch Note 2",
-//					Tag: "tag_synch_2", CreatedAt: time.Now().Add(time.Second)},
-//				NoteFragment: NoteFragment{},
-//			}
-//			second_note_guid := msg.NoteChg.NoteGuid // save for use in update op
-//			sendMsg(enc, msg)
-//
-//			// Send an update operation
-//			msg.NoteChg = NoteChange{
-//				Operation: 2,
-//				Guid: generate_sha1(),
-//				NoteGuid: second_note_guid,
-//				Note: Note{},
-//				NoteFragment: NoteFragment{
-//						Bitmask: 0xC, Title: "Synch Note 2 - Updated",
-//						Description: "Updated!"},
-//			}
-//			sendMsg(enc, msg)
-//
-//			// Send a Delete Change
-//			msg.NoteChg = NoteChange{
-//				Operation: 3,
-//				Guid: generate_sha1(),
-//				NoteGuid: note1Guid,
-//				Note: Note{},
-//				NoteFragment: NoteFragment{},
-//			}
-//			sendMsg(enc, msg)

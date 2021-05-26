@@ -1,106 +1,108 @@
 package main
 
-import(
+import (
 	"errors"
+	"fmt"
+	"go_notes/note"
 )
 
-func getNote(guid string) (Note, error) {
-	var note Note
-	db.Where("guid = ?", guid).First(&note)
-	if note.Id != 0 {
-		return note, nil
+func getNote(guid string) (note.Note, error) {
+	var n note.Note
+	db.Where("guid = ?", guid).First(&n)
+	if n.Id != 0 {
+		return n, nil
 	} else {
-		return note, errors.New("Note not found")
+		return n, errors.New("Note not found")
 	}
 }
 
-func find_note_by_title(title string) (bool, Note) {
-	var notes []Note
+func findNoteByTitle(title string) (bool, note.Note) {
+	var notes []note.Note
 	db.Where("title = ?", title).Limit(1).Find(&notes)
 	if len(notes) == 1 {
 		return true, notes[0]
 	} else {
-		return false, Note{} // yes this is the way you represent an empty Note object/struct
+		return false, note.Note{} // yes this is the way you represent an empty Note object/struct
 	}
 }
 
-func find_note_by_id(id int64) (Note) {
-	var note Note
-	db.First(&note, id)
-	return note
+func findNoteById(id int64) note.Note {
+	var n note.Note
+	db.First(&n, id)
+	return n
 }
 
 // Query by Id, return all notes, query all fields for one param, query a combination of fields and params
-func queryNotes() []Note {
-	var notes []Note
+func queryNotes() []note.Note {
+	var notes []note.Note
 	// The order of the if here is very important - esp. for the webserver!
-	if opts_intf["ql"] == true {
+	if optsIntf["ql"] == true {
 		db.Order("updated_at desc").Limit(1).Find(&notes)
-	} else if opts_intf["qi"] !=nil && opts_intf["qi"].(int64) != 0 {
-		db.Find(&notes, opts_intf["qi"].(int64))
+	} else if optsIntf["qi"] != nil && optsIntf["qi"].(int64) != 0 {
+		db.Find(&notes, optsIntf["qi"].(int64))
 		// TAG and wildcard
-	} else if opts_str["qg"] != "" && opts_str["q"] != "" {
+	} else if optsStr["qg"] != "" && optsStr["q"] != "" {
 		db.Where("tag LIKE ? AND (title LIKE ? OR description LIKE ? OR body LIKE ?)",
-					"%"+opts_str["qg"]+"%",
-					"%"+opts_str["q"]+"%",
-					"%"+opts_str["q"]+"%",
-					"%"+opts_str["q"]+"%",
-		).Order("updated_at desc").Limit(opts_intf["l"].(int)).Find(&notes)
+			"%"+optsStr["qg"]+"%",
+			"%"+optsStr["q"]+"%",
+			"%"+optsStr["q"]+"%",
+			"%"+optsStr["q"]+"%",
+		).Order("updated_at desc").Limit(optsIntf["l"].(int)).Find(&notes)
 		// TITLE and wildcard
-	} else if opts_str["qt"] != "" && opts_str["q"] != "" {
+	} else if optsStr["qt"] != "" && optsStr["q"] != "" {
 		db.Where("title LIKE ? AND (tag LIKE ? OR description LIKE ? OR body LIKE ?)",
-					"%"+opts_str["qt"]+"%",
-					"%"+opts_str["q"]+"%",
-					"%"+opts_str["q"]+"%",
-					"%"+opts_str["q"]+"%",
-		).Order("updated_at desc").Limit(opts_intf["l"].(int)).Find(&notes)
+			"%"+optsStr["qt"]+"%",
+			"%"+optsStr["q"]+"%",
+			"%"+optsStr["q"]+"%",
+			"%"+optsStr["q"]+"%",
+		).Order("updated_at desc").Limit(optsIntf["l"].(int)).Find(&notes)
 		//
-	} else if opts_str["q"] == "all" {
-		db.Order("updated_at desc").Limit(opts_intf["l"].(int)).Find(&notes)
+	} else if optsStr["q"] == "all" {
+		db.Order("updated_at desc").Limit(optsIntf["l"].(int)).Find(&notes)
 		// General query
-	} else if opts_str["q"] != "" {
+	} else if optsStr["q"] != "" {
 		db.Where("tag LIKE ? OR title LIKE ? OR description LIKE ? OR body LIKE ?",
-					"%"+opts_str["q"]+"%",
-					"%"+opts_str["q"]+"%",
-					"%"+opts_str["q"]+"%",
-					"%"+opts_str["q"]+"%",
-		).Order("updated_at desc").Limit(opts_intf["l"].(int)).Find(&notes)
+			"%"+optsStr["q"]+"%",
+			"%"+optsStr["q"]+"%",
+			"%"+optsStr["q"]+"%",
+			"%"+optsStr["q"]+"%",
+		).Order("updated_at desc").Limit(optsIntf["l"].(int)).Find(&notes)
 		// ANY combination - without q
 	} else {
 		db.Where("tag LIKE ? AND title LIKE ? AND description LIKE ? AND body LIKE ?",
-					"%"+opts_str["qg"]+"%",
-					"%"+opts_str["qt"]+"%",
-					"%"+opts_str["qd"]+"%",
-					"%"+opts_str["qb"]+"%",
-		).Order("updated_at desc").Limit(opts_intf["l"].(int)).Find(&notes)
+			"%"+optsStr["qg"]+"%",
+			"%"+optsStr["qt"]+"%",
+			"%"+optsStr["qd"]+"%",
+			"%"+optsStr["qb"]+"%",
+		).Order("updated_at desc").Limit(optsIntf["l"].(int)).Find(&notes)
 	}
 
 	return notes
 }
 
-func listNotes(notes []Note, show_count bool) {
-	fpl(line_separator)
+func listNotes(notes []note.Note, showCount bool) {
+	fmt.Println(LineSeparator)
 	for _, n := range notes {
-		fpf("[%d] %s", n.Id, n.Title)
+		fmt.Printf("[%d] %s", n.Id, n.Title)
 		if n.Description != "" {
-			fpf(" - %s", n.Description)
+			fmt.Printf(" - %s", n.Description)
 		}
-		fpl("")
-		if !opts_intf["s"].(bool) {
+		fmt.Println("")
+		if !optsIntf["s"].(bool) {
 			if n.Body != "" {
-				fpl(n.Body)
+				fmt.Println(n.Body)
 			}
 			if n.Tag != "" {
-				fpl("Tags:", n.Tag)
+				fmt.Println("Tags:", n.Tag)
 			}
 		}
-		fpl(line_separator)
+		fmt.Println(LineSeparator)
 	}
-	if show_count {
+	if showCount {
 		var msg string // init'd to ""
 		if len(notes) != 1 {
 			msg = "s"
 		}
-		fpf("(%d note%s found)\n", len(notes), msg)
+		fmt.Printf("(%d note%s found)\n", len(notes), msg)
 	}
 }

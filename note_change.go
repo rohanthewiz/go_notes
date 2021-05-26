@@ -1,23 +1,24 @@
 package main
 
 import (
-	"time"
-	"errors"
 	"encoding/json"
+	"errors"
+	"go_notes/note"
+	"time"
 )
 
 // Record note changes so we can replay them on synch
 type NoteChange struct {
-    Id          int64
-    Guid		string `sql: "size:40"` //Guid of the change
-    NoteGuid		string `sql: "size:40"` // Guid of the note
-    Operation	int32  // 1: Create, 2: Update, 3: Delete, 9: Synch
-    Note Note
-    NoteId int64
-		User string // (GUID)  //todo - Add Index //A notechange always belongs to a single user
-    NoteFragment NoteFragment
-    NoteFragmentId int64
-    CreatedAt   time.Time // A note change is never altered once created
+	Id             int64
+	Guid           string `sql:"size:40"` //Guid of the change
+	NoteGuid       string `sql:"size:40"` // Guid of the note
+	Operation      int32  // 1: Create, 2: Update, 3: Delete, 9: Synch
+	Note           note.Note
+	NoteId         int64
+	User           string // (GUID)  //todo - Add Index //A notechange always belongs to a single user
+	NoteFragment   NoteFragment
+	NoteFragmentId int64
+	CreatedAt      time.Time // A note change is never altered once created
 }
 
 const op_create int32 = 1
@@ -25,13 +26,13 @@ const op_update int32 = 2
 const op_delete int32 = 3
 
 type NoteFragment struct {
-	Id          int64
-	Bitmask		int16	// Indicate Active fields (allows for empty string update)
+	Id      int64
+	Bitmask int16 // Indicate Active fields (allows for empty string update)
 	// 0x8 - Title, 0x4 - Description, 0x2 - Body, 0x1 - Tag
-	Title       string `sql: "size:128"`
-	Description string `sql: "size:255"`
-	Body        string `sql: "type:text"`
-	Tag         string `sql: "size:128"`
+	Title       string `sql:"size:128"`
+	Description string `sql:"size:255"`
+	Body        string `sql:"type:text"`
+	Tag         string `sql:"size:128"`
 }
 
 type byCreatedAt []NoteChange
@@ -56,13 +57,13 @@ func (nc *NoteChange) Retrieve() (NoteChange, error) {
 	}
 }
 
-func (nc *NoteChange) RetrieveNote() (Note, error) {
-	var note Note
-	db.Model(nc).Related(&note)
-	if note.Id > 0 {
-		return note, nil
+func (nc *NoteChange) RetrieveNote() (note.Note, error) {
+	var nte note.Note
+	db.Model(nc).Related(&nte)
+	if nte.Id > 0 {
+		return nte, nil
 	} else {
-		return Note{}, errors.New("Note not found")
+		return note.Note{}, errors.New("Note not found")
 	}
 }
 
@@ -83,8 +84,8 @@ func (nc *NoteChange) Print() {
 	} else {
 		pf("%+v\n", nc)
 	}
-//	pf("NoteChange: {Id: %d, Guid: %s, NoteGuid: %s, Oper: %d\nNote: {Id: %d, Guid: %s, Title: %s}\nNoteFragment: {Id: %d, Bitmask: %d, Title: %s, Description: %s, Body: %s, Tag: %s}}\n",
-//		nc.Id, short_sha(nc.Guid), short_sha(nc.NoteGuid), nc.Operation, nc.NoteId, short_sha(nc.Note.Guid), nc.Note.Title,
-//		nc.NoteFragment.Id, nc.NoteFragment.Bitmask, nc.NoteFragment.Title, nc.NoteFragment.Description, nc.NoteFragment.Body, nc.NoteFragment.Tag,
-//	)
+	//	pf("NoteChange: {Id: %d, Guid: %s, NoteGuid: %s, Oper: %d\nNote: {Id: %d, Guid: %s, Title: %s}\nNoteFragment: {Id: %d, Bitmask: %d, Title: %s, Description: %s, Body: %s, Tag: %s}}\n",
+	//		nc.Id, shortSHA(nc.Guid), shortSHA(nc.NoteGuid), nc.Operation, nc.NoteId, shortSHA(nc.Note.Guid), nc.Note.Title,
+	//		nc.NoteFragment.Id, nc.NoteFragment.Bitmask, nc.NoteFragment.Title, nc.NoteFragment.Description, nc.NoteFragment.Body, nc.NoteFragment.Tag,
+	//	)
 }
