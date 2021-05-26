@@ -134,21 +134,21 @@ func QueryTitleAndWildCard(w http.ResponseWriter, _ *http.Request, p httprouter.
 
 func WebNoteForm(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 	if id, err := strconv.ParseInt(p.ByName("id"), 10, 64); err == nil {
-		var note note2.Note
-		db.Where("id = ?", id).First(&note) // get the original for comparision
-		if note.Id > 0 {
-			err := RenderNoteForm(w, note)
+		var nte note2.Note
+		db.Where("id = ?", id).First(&nte) // get the original for comparision
+		if nte.Id > 0 {
+			err := web.NoteForm(w, nte)
 			if err != nil {
 				log.Println("Error in Render NoteForm:", err)
 			}
 		} else {
-			err := RenderNoteForm(w, note2.Note{})
+			err := web.NoteForm(w, note2.Note{})
 			if err != nil {
 				log.Println("Error in Render NoteForm:", err)
 			}
 		}
 	} else {
-		err := RenderNoteForm(w, note2.Note{})
+		err := web.NoteForm(w, note2.Note{})
 		if err != nil {
 			log.Println("Error in Render NoteForm:", err)
 		}
