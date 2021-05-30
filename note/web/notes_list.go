@@ -47,6 +47,7 @@ body { background-color: tan }
     .tool { font-size: 0.7em; color:#401020; padding-left: 0.5em }
     .note-body { padding-left:1em; margin-top: 0.1em}
 	.time-label { font-size: 0.7rem }
+	.text-menu { font-weight: bold }
 	.small { font-size: 0.8em }
     code { -webkit-border-radius: 0.3em;
           -moz-border-radius: 0.3em;
@@ -92,17 +93,18 @@ body { background-color: tan }
 									}
 									return
 								}(),
-								e("a", "href", "/edit/"+strId).R(t("edit")),
-								t(" | "),
-								e("a", "href", "/del/"+strId,
-									"onclick", "return confirm('Are you sure you want to delete this note?')",
-								).R(t("del")),
 								func() (r int) {
 									if showDetails {
-										e("span", "class", "small").R(t(" GUID: ", utils.TruncString(n.Guid, 15)))
+										e("span", "class", "small").R(t(" GUID ", utils.TruncString(n.Guid, 15)))
 									}
 									return
 								}(),
+								t("&nbsp;&nbsp;"),
+								e("a", "class", "text-menu", "href", "/edit/"+strId).R(t("edit")),
+								t(" | "),
+								e("a", "class", "text-menu", "href", "/del/"+strId,
+									"onclick", "return confirm('Are you sure you want to delete this note?')",
+								).R(t("del")),
 								t("] "),
 								func() (r int) {
 									if showDetails {
