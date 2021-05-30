@@ -12,7 +12,7 @@ require (
 	github.com/julienschmidt/httprouter v1.1.0
 	github.com/lib/pq v1.10.2 // indirect
 	github.com/mattn/go-sqlite3 v1.2.0
-	github.com/rohanthewiz/element v0.1.3-0.20171211183050-258e367a7eb5
+	github.com/rohanthewiz/element v0.1.6
 	github.com/rohanthewiz/go_markdown v0.0.0-20160315044756-cbcef778537c
 	golang.org/x/net v0.0.0-20170110034938-60c41d1de8da // indirect
 )

@@ -7,64 +7,87 @@ import (
 	"io"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/rohanthewiz/element"
 )
 
 func NoteForm(w io.Writer, note note.Note) (err error) {
-	var action, button string
+	var action, formAction, pageHeadingPrefix string
+	var strNoteId string
+
 	if note.Id > 0 {
-		action = "/note/" + strconv.FormatUint(note.Id, 10)
-		button = "Update"
+		strNoteId = strconv.FormatUint(note.Id, 10)
+		action = "/note/" + strNoteId
+		formAction = "Update"
+		pageHeadingPrefix = "Edit "
 	} else {
 		action = "/create/"
-		button = "Create"
+		formAction = "Create"
+		pageHeadingPrefix = "New "
 	}
-	e := element.New
+
+	s := &strings.Builder{}
+	e := func(el string, p ...string) element.Element {
+		return element.New(s, el, p...)
+	}
+	t := func(p ...string) element.Element {
+		return element.Text(s, p...)
+	}
+
 	str := e("html").R(
 		e("head").R(
-			e("title").R("Note Form"),
-			e("style").R(`
+			e("title").R(t("Note Form")),
+			e("style").R(t(`
 	body { background-color: tan }
 	.container { padding: 1em; border: 1px solid gray; border-radius: 0.5em }
     ul { list-style-type:none; margin: 0; padding: 0; }
     ul.topmost > li:first-child { border-top: 1px solid #531C1C}
     ul.topmost > li { border-top:none; border-bottom: 1px solid #8A2E2E; padding: 0.3em 0.3em}
+    td label {margin-right: 0.4em;}
+    p label {margin-right: 0.4em; vertical-align: top;}
     li { border-top: 1px solid #B89c72; line-height:1.2em; padding: 1.2em 4em }
     .h1 { font-size: 1.2em; margin-bottom: 0.1em; padding: 0.1em }
     .title { font-weight: bold; color:darkgreen; padding-top: 0.4em }
     .count { font-size: 0.8em; color:#401020; padding-left: 0.5em; padding-right: 0.5em }
     .tool { font-size: 0.7em; color:#401020; padding-left: 0.5em }
     .note-body { padding-left:1.5em; margin-top: 0.1em}
+	button {cursor: pointer; margin: 0.5em 0.1em; vertical-align: baseline;}
 	input { background-color: #EEE6D0 }
-	textarea { background-color: #ECE6D0 }`),
+	textarea { background-color: #ECE6D0 }`)),
 		),
 		e("body").R(
-			e("h1").R("Note"),
+			e("span", "class", "h1").R(t(pageHeadingPrefix, "Note")),
+			func() element.Element {
+				if note.Id > 0 {
+					e("button", "onclick", "javascript:window.location='/duplicate/"+strNoteId+"'").R(t("Duplicate"))
+				}
+				return t()
+			}(),
 			e("div", "class", "container").R(
 				e("form", "action", action, "method", "post").R(
 					e("table").R(
 						e("tr").R(
 							e("td").R(
-								e("label", "for", "title").R("Title"),
+								e("label", "for", "title").R(t("Title")),
 								e("input", "name", "title", "type", "text", "size", "54", "value", html.EscapeString(note.Title)).R(),
 							),
 							e("td").R(
-								e("label", "for", "tag").R("&nbsp;&nbsp;Tags"),
+								e("label", "for", "tag").R(t("&nbsp;&nbsp;Tags")),
 								e("input", "name", "tag", "type", "text", "size", "24", "value", html.EscapeString(note.Tag)).R(),
 							),
 						),
 					),
 					e("p").R(
-						e("label", "for", "descr").R("Description"),
+						e("label", "for", "descr").R(t("Description")),
 						e("input", "name", "descr", "size", "83", "value", html.EscapeString(note.Description)).R(),
 					),
 					e("p").R(
-						e("label", "for", "body").R("Body"),
-						e("textarea", "name", "body", "row", "14", "cols", "76").R(note.Body),
+						e("label", "for", "body").R(t("Body")),
+						e("textarea", "name", "body", "rows", "20", "cols", "76").R(t(note.Body)),
 					),
 					e("p").R(
-						e("input", "type", "submit", "value", button).R(),
+						e("input", "type", "submit", "value", formAction).R(),
 					),
 				),
 			),
