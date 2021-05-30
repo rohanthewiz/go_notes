@@ -1,7 +1,7 @@
 package main
 
 import (
-	note2 "go_notes/note"
+	"go_notes/note"
 	"go_notes/note/web"
 	"net/http"
 
@@ -29,7 +29,15 @@ func webserver(listen_port string) {
 // Handlers for httprouter
 func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	http.Redirect(w, r, "/q/all/l/100", http.StatusFound)
-	//	fmt.Fprint(w, "Welcome!\n")
+}
+
+func webListNotes(w http.ResponseWriter) {
+	notes := queryNotes()
+
+	err := web.NotesList(w, notes, optsStr)
+	if err != nil {
+		log.Println("Error in notes list html gen:", err)
+	}
 }
 
 func Query(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
@@ -39,21 +47,13 @@ func Query(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 	if err == nil {
 		optsIntf["l"] = limit
 	}
-	notes := queryNotes()
-	err = web.NotesListDetailed(w, notes, optsStr)
-	if err != nil {
-		log.Println("Error building query response:", err)
-	}
+	webListNotes(w)
 }
 
 func QueryLast(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 	resetOptions()
-	optsIntf["ql"] = true // qi is the highest priority
-	notes := queryNotes()
-	err := web.NotesListDetailed(w, notes, optsStr)
-	if err != nil {
-		log.Println("Error in notes list html gen:", err)
-	}
+	optsIntf["ql"] = true
+	webListNotes(w)
 }
 
 func QueryId(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
@@ -63,11 +63,7 @@ func QueryId(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 		id = 0
 	}
 	optsIntf["qi"] = id // qi is the highest priority
-	notes := queryNotes()
-	err = web.NotesListDetailed(w, notes, optsStr)
-	if err != nil {
-		log.Println("Error in notes list html gen:", err)
-	} //call Ego generated method
+	webListNotes(w)
 }
 
 func QueryIdAsJson(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
@@ -78,6 +74,9 @@ func QueryIdAsJson(w http.ResponseWriter, _ *http.Request, p httprouter.Params) 
 	}
 	optsIntf["qi"] = id // qi is the highest priority
 	jNotes, err := json.Marshal(queryNotes())
+	if err != nil {
+		log.Println("Error marshalling Note id:", strconv.FormatInt(id, 10))
+	}
 	w.Header().Set("Content-Type", "application/json")
 	_, err = w.Write(jNotes)
 	if err != nil {
@@ -91,11 +90,7 @@ func QueryTag(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 	optsIntf["qi"] = nil            // turn off unused option
 	optsStr["qt"] = ""              // turn off unused option
 	optsStr["q"] = ""               // turn off unused option
-	notes := queryNotes()
-	err := web.NotesListDetailed(w, notes, optsStr)
-	if err != nil {
-		log.Println("Error in notes list html gen:", err)
-	}
+	webListNotes(w)
 }
 
 func QueryTitle(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
@@ -103,52 +98,41 @@ func QueryTitle(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 	optsStr["qt"] = p.ByName("title") // Overwrite the query param
 	optsIntf["qi"] = nil              // turn off unused option
 	optsStr["qg"] = ""                // turn off unused option
-	notes := queryNotes()
-	err := web.NotesListDetailed(w, notes, optsStr)
-	if err != nil {
-		log.Println("Error in notes list html gen:", err)
-	}
+	webListNotes(w)
 }
 
 func QueryTagAndWildCard(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 	resetOptions()
 	optsStr["qg"] = p.ByName("tag")  // Overwrite the query param
 	optsStr["q"] = p.ByName("query") // Overwrite the query param
-	notes := queryNotes()
-	err := web.NotesListDetailed(w, notes, optsStr)
-	if err != nil {
-		log.Println("Error in notes list html gen:", err)
-	}
+	webListNotes(w)
 }
 
 func QueryTitleAndWildCard(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 	resetOptions()
 	optsStr["qt"] = p.ByName("title") // Overwrite the query param
 	optsStr["q"] = p.ByName("query")  // Overwrite the query param
-	notes := queryNotes()
-	err := web.NotesListDetailed(w, notes, optsStr)
-	if err != nil {
-		log.Println("Error in notes list html gen:", err)
-	}
+	webListNotes(w)
 }
 
 func WebNoteForm(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 	if id, err := strconv.ParseInt(p.ByName("id"), 10, 64); err == nil {
-		var nte note2.Note
+		var nte note.Note
 		db.Where("id = ?", id).First(&nte) // get the original for comparision
+		fmt.Printf("note at WebNoteForm %#v\n", nte)
 		if nte.Id > 0 {
-			err := web.NoteForm(w, nte)
+			err = web.NoteForm(w, nte)
 			if err != nil {
 				log.Println("Error in Render NoteForm:", err)
 			}
 		} else {
-			err := web.NoteForm(w, note2.Note{})
+			err := web.NoteForm(w, note.Note{})
 			if err != nil {
 				log.Println("Error in Render NoteForm:", err)
 			}
 		}
 	} else {
-		err := web.NoteForm(w, note2.Note{})
+		err := web.NoteForm(w, note.Note{})
 		if err != nil {
 			log.Println("Error in Render NoteForm:", err)
 		}
@@ -202,7 +186,7 @@ func WebDeleteNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 }
 
 func WebUpdateNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	var note note2.Note
+	var nte note.Note
 	if id, err := strconv.ParseUint(p.ByName("id"), 10, 64); err == nil {
 		post_data, err := ioutil.ReadAll(r.Body)
 		if err != nil {
@@ -215,13 +199,13 @@ func WebUpdateNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 			return
 		}
 
-		note = note2.Note{Id: id, Title: trimWhitespace(v.Get("title")),
+		nte = note.Note{Id: id, Title: trimWhitespace(v.Get("title")),
 			Description: trimWhitespace(v.Get("description")),
 			Body:        trimWhitespace(v.Get("body")), Tag: trimWhitespace(v.Get("tag")),
 		}
-		pf("Updating note with: %v ...\n", note)
-		AllFieldsUpdate(note)
-		http.Redirect(w, r, "/qi/"+strconv.FormatUint(note.Id, 10), http.StatusFound)
+		pf("Updating note with: %v ...\n", nte)
+		AllFieldsUpdate(nte)
+		http.Redirect(w, r, "/qi/"+strconv.FormatUint(nte.Id, 10), http.StatusFound)
 	}
 }
 

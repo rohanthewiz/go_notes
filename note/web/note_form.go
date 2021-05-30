@@ -31,11 +31,11 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 	e := func(el string, p ...string) element.Element {
 		return element.New(s, el, p...)
 	}
-	t := func(p ...string) element.Element {
+	t := func(p ...string) int {
 		return element.Text(s, p...)
 	}
 
-	str := e("html").R(
+	e("html").R(
 		e("head").R(
 			e("title").R(t("Note Form")),
 			e("style").R(t(`
@@ -86,12 +86,12 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 						e("textarea", "name", "body", "rows", "20", "cols", "76").R(t(note.Body)),
 					),
 					e("p").R(
-						func() element.Element {
+						func() (r int) {
 							if note.Id > 0 {
 								e("input", "type", "submit", "value", "Duplicate", "formaction", "/dup/"+strNoteId)
 								// e("button", "onclick", "javascript:window.location='/duplicate/"+strNoteId+"'").R(t("Duplicate"))
 							}
-							return t()
+							return
 						}(),
 						e("input", "type", "submit", "value", "Cancel", "formaction", "/"),
 						e("input", "type", "submit", "value", formAction),
@@ -102,7 +102,7 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 	)
 	// fmt.Println(str)
 
-	_, err = fmt.Fprint(w, str)
+	_, err = fmt.Fprint(w, s.String())
 	if err != nil {
 		log.Println("Error on NoteForm render:", err)
 	}

@@ -3,29 +3,34 @@ package web
 import (
 	"fmt"
 	"go_notes/note"
+	"go_notes/utils"
 	"html"
 	"io"
+	"log"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/rohanthewiz/element"
 	blackfriday "github.com/rohanthewiz/go_markdown"
 )
 
-func NotesListDetailed(w io.Writer, notes []note.Note, optsStr map[string]string) (err error) {
+func NotesList(w io.Writer, notes []note.Note, optsStr map[string]string) (err error) {
+	const NumOfNotesForDetails = 2
 	notesCount := len(notes)
+	showDetails := notesCount <= NumOfNotesForDetails
 
 	s := &strings.Builder{}
 	e := func(el string, p ...string) element.Element {
 		return element.New(s, el, p...)
 	}
-	t := func(p ...string) element.Element {
+	t := func(p ...string) int {
 		return element.Text(s, p...)
 	}
 
 	e("html").R(
 		e("head").R(
-			e("title").R(t("Detailed Notes List")),
+			e("title").R(t("Notes List")),
 			e("style").R(t(`
 body { background-color: tan }
     ul { list-style-type:none; margin: 0; padding: 0; }
@@ -41,6 +46,7 @@ body { background-color: tan }
     .count { font-size: 0.8em; color:#401020; padding-left: 0.5em; padding-right: 0.5em }
     .tool { font-size: 0.7em; color:#401020; padding-left: 0.5em }
     .note-body { padding-left:1em; margin-top: 0.1em}
+	.time-label { font-size: 0.7rem }
 	.small { font-size: 0.8em }
     code { -webkit-border-radius: 0.3em;
           -moz-border-radius: 0.3em;
@@ -68,26 +74,52 @@ body { background-color: tan }
 				t("]"),
 			),
 			e("ul", "class", "topmost").R(
-				func() (out element.Element) {
+				func() (r int) {
 					for _, n := range notes {
 						strId := strconv.FormatUint(n.Id, 10)
 						e("li").R(
 							e("a", "class", "title", "href", "/show/"+strId).R(t(html.EscapeString(n.Title))),
-							t(" "),
-							e("a", "class", "small", "href", "/edit/"+strId).R(t("edit")),
-							t(" | "),
-							e("a", "class", "small", "href", "/del/"+strId,
-								"onclick", "return confirm('Are you sure you want to delete this note?')",
-							).R(t("delete")),
-							func() (o element.Element) {
+							e("span", "class", "small").R(
+								t(" ["),
+								func() (r int) {
+									localLoc, err := time.LoadLocation("Local")
+									if err != nil {
+										log.Println(`In NotesList Failed to load location "Local"`)
+									} else {
+										localDateTime := n.UpdatedAt.In(localLoc)
+										e("span", "class", "time-label").R(
+											t("upd: ", localDateTime.Format("2006-01-02"), " "))
+									}
+									return
+								}(),
+								e("a", "href", "/edit/"+strId).R(t("edit")),
+								t(" | "),
+								e("a", "href", "/del/"+strId,
+									"onclick", "return confirm('Are you sure you want to delete this note?')",
+								).R(t("del")),
+								func() (r int) {
+									if showDetails {
+										e("span", "class", "small").R(t(" GUID: ", utils.TruncString(n.Guid, 15)))
+									}
+									return
+								}(),
+								t("] "),
+								func() (r int) {
+									if showDetails {
+										e("br") // single tags don't need an `.R()`
+									}
+									return
+								}(),
+							),
+							func() (r int) {
 								if n.Description != "" {
 									t(" ", html.EscapeString(n.Description))
 								}
 								return
 							}(),
-							func() (o element.Element) {
-								if n.Body != "" {
-									o = e("div", "class", "note-body").R(
+							func() (r int) {
+								if showDetails && n.Body != "" {
+									e("div", "class", "note-body").R(
 										t(string(blackfriday.MarkdownCommon([]byte(n.Body)))),
 									)
 								}
@@ -95,7 +127,7 @@ body { background-color: tan }
 							}(),
 						)
 					}
-					return out
+					return
 				}(),
 			),
 			e("script", "type", "text/javascript").R(t(
