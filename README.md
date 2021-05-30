@@ -173,7 +173,7 @@ The client and server must point to different databases whether remote or local.
 # Remote
 $ ./go_notes -synch_server # Start the server
 # Local
-$ ./go_notes -synch_client server_address $ Start the client. server_address is the IP address or name of server
+$ ./go_notes -synch_client server_address # Start the client. server_address is the IP address or name of server
 ```
 
 Example - synch between two local databases
