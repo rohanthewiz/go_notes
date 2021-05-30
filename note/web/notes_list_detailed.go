@@ -32,15 +32,16 @@ body { background-color: tan }
     ul.topmost > li:first-child { border-top: 1px solid #531C1C}
     ul.topmost > li { border-top:none; border-bottom: 1px solid #8A2E2E; padding: 0.3em 0.3em}
     li { border-top: 1px solid #B89c72; line-height:1.2em; padding: 1.2em, 4em }
-    .h1 { font-size: 1.2em; margin-bottom: 0.1em; padding: 0.1em }
+	li a {text-decoration:none}
+	li a:link, li a:visited {color:black}
+    .h1 { font-size: 1.2em; margin-right: 0.2em; margin-bottom: 0.1em; padding: 0.1em }
 	.h1 a {text-decoration:none}
-	.h1 a:visited {color:black}
-	.li a {text-decoration:none}
-	.li a:visited {color:black}
+	.h1 a:visited, .h1 a:link {color:black}
     .title { font-weight: bold; color:darkgreen; padding-top: 0.4em }
     .count { font-size: 0.8em; color:#401020; padding-left: 0.5em; padding-right: 0.5em }
     .tool { font-size: 0.7em; color:#401020; padding-left: 0.5em }
     .note-body { padding-left:1em; margin-top: 0.1em}
+	.small { font-size: 0.8em }
     code { -webkit-border-radius: 0.3em;
           -moz-border-radius: 0.3em;
           border-radius: 0.3em; }			
@@ -73,9 +74,9 @@ body { background-color: tan }
 						e("li").R(
 							e("a", "class", "title", "href", "/show/"+strId).R(t(html.EscapeString(n.Title))),
 							t(" "),
-							e("a", "href", "/edit/"+strId).R(t("edit")),
+							e("a", "class", "small", "href", "/edit/"+strId).R(t("edit")),
 							t(" | "),
-							e("a", "href", "/del/"+strId,
+							e("a", "class", "small", "href", "/del/"+strId,
 								"onclick", "return confirm('Are you sure you want to delete this note?')",
 							).R(t("delete")),
 							func() (o element.Element) {

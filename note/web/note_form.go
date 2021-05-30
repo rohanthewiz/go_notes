@@ -47,53 +47,60 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
     td label {margin-right: 0.4em;}
     p label {margin-right: 0.4em; vertical-align: top;}
     li { border-top: 1px solid #B89c72; line-height:1.2em; padding: 1.2em 4em }
-    .h1 { font-size: 1.2em; margin-bottom: 0.1em; padding: 0.1em }
+    .h1 { font-size: 1.2em; margin-right: 0.2em; margin-bottom: 0.1em; padding: 0.1em }
+	.h1 a {text-decoration:none}
+	.h1 a:visited, .h1 a:link {color:black}
     .title { font-weight: bold; color:darkgreen; padding-top: 0.4em }
     .count { font-size: 0.8em; color:#401020; padding-left: 0.5em; padding-right: 0.5em }
     .tool { font-size: 0.7em; color:#401020; padding-left: 0.5em }
     .note-body { padding-left:1.5em; margin-top: 0.1em}
 	button {cursor: pointer; margin: 0.5em 0.1em; vertical-align: baseline;}
-	input { background-color: #EEE6D0 }
+	input { margin-right: 0.8em }
 	textarea { background-color: #ECE6D0 }`)),
 		),
 		e("body").R(
+			e("span", "class", "h1").R(
+				e("a", "href", "/").R(t("GoNotes  ")),
+			),
 			e("span", "class", "h1").R(t(pageHeadingPrefix, "Note")),
-			func() element.Element {
-				if note.Id > 0 {
-					e("button", "onclick", "javascript:window.location='/duplicate/"+strNoteId+"'").R(t("Duplicate"))
-				}
-				return t()
-			}(),
 			e("div", "class", "container").R(
 				e("form", "action", action, "method", "post").R(
 					e("table").R(
 						e("tr").R(
 							e("td").R(
 								e("label", "for", "title").R(t("Title")),
-								e("input", "name", "title", "type", "text", "size", "54", "value", html.EscapeString(note.Title)).R(),
+								e("input", "name", "title", "type", "text", "size", "54", "value", html.EscapeString(note.Title)),
 							),
 							e("td").R(
 								e("label", "for", "tag").R(t("&nbsp;&nbsp;Tags")),
-								e("input", "name", "tag", "type", "text", "size", "24", "value", html.EscapeString(note.Tag)).R(),
+								e("input", "name", "tag", "type", "text", "size", "24", "value", html.EscapeString(note.Tag)),
 							),
 						),
 					),
 					e("p").R(
 						e("label", "for", "descr").R(t("Description")),
-						e("input", "name", "descr", "size", "83", "value", html.EscapeString(note.Description)).R(),
+						e("input", "name", "descr", "size", "83", "value", html.EscapeString(note.Description)),
 					),
 					e("p").R(
 						e("label", "for", "body").R(t("Body")),
 						e("textarea", "name", "body", "rows", "20", "cols", "76").R(t(note.Body)),
 					),
 					e("p").R(
-						e("input", "type", "submit", "value", formAction).R(),
+						func() element.Element {
+							if note.Id > 0 {
+								e("input", "type", "submit", "value", "Duplicate", "formaction", "/dup/"+strNoteId)
+								// e("button", "onclick", "javascript:window.location='/duplicate/"+strNoteId+"'").R(t("Duplicate"))
+							}
+							return t()
+						}(),
+						e("input", "type", "submit", "value", "Cancel", "formaction", "/"),
+						e("input", "type", "submit", "value", formAction),
 					),
 				),
 			),
 		),
 	)
-	fmt.Println(str)
+	// fmt.Println(str)
 
 	_, err = fmt.Fprint(w, str)
 	if err != nil {

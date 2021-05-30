@@ -172,6 +172,25 @@ func WebCreateNote(w http.ResponseWriter, r *http.Request, _ httprouter.Params) 
 	http.Redirect(w, r, "/qi/"+strconv.FormatUint(id, 10), http.StatusFound)
 }
 
+func WebNoteDup(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	post_data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		HandleRequestErr(err, w)
+		return
+	}
+	v, err := url.ParseQuery(string(post_data))
+	if err != nil {
+		HandleRequestErr(err, w)
+		return
+	}
+
+	// TODO - Check that note with title below does not already exist
+	// 		and gracefully handle error
+	id := CreateNote("Copy of - "+trimWhitespace(v.Get("title")), "",
+		"", trimWhitespace(v.Get("tag")))
+	http.Redirect(w, r, "/edit/"+strconv.FormatUint(id, 10), http.StatusFound)
+}
+
 func WebDeleteNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id, err := strconv.ParseInt(p.ByName("id"), 10, 64)
 	if err != nil {

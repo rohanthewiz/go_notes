@@ -4,8 +4,9 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-func doRoutes(router * httprouter.Router) {
+func doRoutes(router *httprouter.Router) {
 	router.GET("/", Index)
+	router.POST("/", Index)
 	router.GET("/ql", QueryLast)
 	router.GET("/qi/:id", QueryId)
 	router.GET("/json/qi/:id", QueryIdAsJson)
@@ -26,4 +27,5 @@ func doRoutes(router * httprouter.Router) {
 	router.GET("/js/:file", ServeJS)
 	router.POST("/create", WebCreateNote)
 	router.POST("/note/:id", WebUpdateNote)
+	router.POST("/dup/:id", WebNoteDup)
 }
