@@ -170,7 +170,7 @@ $ gn -q all -s  # list all notes with the short list option. Note that here go_n
 Each GoNotes database is synchronizable with another. Just call one as the server and the other as a client.
 The client and server must point to different databases whether remote or local.
 ```
-# Remote
+# Remote - Hint get the server's IP first (`sudo ifconfig`)
 $ ./go_notes -synch_server # Start the server
 # Local
 $ ./go_notes -synch_client server_address # Start the client. server_address is the IP address or name of server
