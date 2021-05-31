@@ -6,8 +6,6 @@ import (
 	"strings"
 )
 
-const CS = false // share codebase with central server
-
 //Setup commandline options and other configuration for Go Notes
 func getOpts() (map[string]string, map[string]interface{}) {
 	opts_str := make(map[string]string)
@@ -22,7 +20,7 @@ func getOpts() (map[string]string, map[string]interface{}) {
 	bPtr := flag.String("b", "", "Create note Body")
 	gPtr := flag.String("g", "", "Comma separated list of Tags for new note")
 	qPtr := flag.String("q", "", "Query for notes based on a LIKE search. \"all\" will return all notes")
-	pPtr := flag.String("port", "8080", "Specify webserver port")
+	pPtr := flag.String("port", "8092", "Specify webserver port")
 	adminPtr := flag.String("admin", "", "Privileged actions like 'delete_table'")
 	dbPtr := flag.String("db", "", "Sqlite DB path")
 	expPtr := flag.String("exp", "", "Export the notes queried to the format of the file given")
@@ -45,7 +43,7 @@ func getOpts() (map[string]string, map[string]interface{}) {
 	getServerSecretPtr := flag.Bool("get_server_secret", false, "Show Server Secret")
 	synchServerPtr := flag.Bool("synch_server", false, "Synch server mode")
 	verbosePtr := flag.Bool("verbose", true, "verbose mode") // Todo - turn off for production
-	debugPtr := flag.Bool("debug", true, "debug mode") // Todo - turn off for production
+	debugPtr := flag.Bool("debug", true, "debug mode")       // Todo - turn off for production
 
 	flag.Parse()
 

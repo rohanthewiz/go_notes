@@ -77,17 +77,15 @@ $ ./go_notes -svr
 
 Examples:
 ```
-    http://localhost:8080/ql
-    http://localhost:8080/qi/5  # Show note with an index of 5
-    http://localhost:8080/qg/todo # All notes with a tag of 'todo'
-    http://localhost:8080/qt/cassandra # All notes with a title of 'cassandra'
-    http://localhost:8080/q/test # All notes containing 'test' in any field
-    http://localhost:8080/q/test/l/1 # Same as above but limit 1
-    http://localhost:8080/qg/test/q/setup # All notes with a tag of 'test' and 'setup' in any other field
-    http://localhost:8080/qt/cassandra/q/cluster # All notes with 'cassandra' in the title and 'cluster' in any other field
+    http://localhost:8092/ql
+    http://localhost:8092/qi/5  # Show note with an index of 5
+    http://localhost:8092/qg/todo # All notes with a tag of 'todo'
+    http://localhost:8092/qt/cassandra # All notes with a title of 'cassandra'
+    http://localhost:8092/q/test # All notes containing 'test' in any field
+    http://localhost:8092/q/test/l/1 # Same as above but limit 1
+    http://localhost:8092/qg/test/q/setup # All notes with a tag of 'test' and 'setup' in any other field
+    http://localhost:8092/qt/cassandra/q/cluster # All notes with 'cassandra' in the title and 'cluster' in any other field
 ```
-You can delete by clicking the title of the note. This you to single note view.
-From there you can click the 'Delete' link
 
 ## Using GoNotes at Command Line
 

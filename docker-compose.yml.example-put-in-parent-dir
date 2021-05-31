@@ -3,7 +3,7 @@ services:
   gn:
     build: ./go_notes
     ports:
-     - "8092:8080"
+     - "8092:8092"
     volumes:
       - $PWD/gnDir:/app
       #- /c/Users/RAllison3/go_notes:/app
