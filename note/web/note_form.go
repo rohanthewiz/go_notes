@@ -88,7 +88,7 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 					e("p").R(
 						func() (r int) {
 							if note.Id > 0 {
-								e("input", "type", "submit", "value", "Duplicate", "formaction", "/dup/"+strNoteId)
+								e("input", "type", "submit", "value", "Dup", "formaction", "/dup/"+strNoteId)
 								// e("button", "onclick", "javascript:window.location='/duplicate/"+strNoteId+"'").R(t("Duplicate"))
 							}
 							return

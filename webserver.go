@@ -200,7 +200,7 @@ func WebUpdateNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 		}
 
 		nte = note.Note{Id: id, Title: trimWhitespace(v.Get("title")),
-			Description: trimWhitespace(v.Get("description")),
+			Description: trimWhitespace(v.Get("descr")),
 			Body:        trimWhitespace(v.Get("body")), Tag: trimWhitespace(v.Get("tag")),
 		}
 		pf("Updating note with: %v ...\n", nte)
