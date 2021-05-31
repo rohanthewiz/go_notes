@@ -68,6 +68,7 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 			e("span", "class", "h1").R(t(pageHeadingPrefix, "Note")),
 			e("div", "class", "container").R(
 				e("form", "action", action, "method", "post").R(
+					// careful not to change any name attributes below, or form may break
 					e("table").R(
 						e("tr").R(
 							e("td").R(
