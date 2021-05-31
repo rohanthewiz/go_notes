@@ -28,4 +28,5 @@ func doRoutes(router *httprouter.Router) {
 	router.POST("/create", WebCreateNote)
 	router.POST("/note/:id", WebUpdateNote)
 	router.POST("/dup/:id", WebNoteDup)
+	router.GET("/dup/:id", WebNoteDup)
 }

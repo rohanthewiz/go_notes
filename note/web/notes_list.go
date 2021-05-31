@@ -30,7 +30,7 @@ func NotesList(w io.Writer, notes []note.Note, optsStr map[string]string) (err e
 
 	e("html").R(
 		e("head").R(
-			e("title").R(t("Notes List")),
+			e("title").R(t("GoNotes List")),
 			e("style").R(t(`
 body { background-color: tan }
     ul { list-style-type:none; margin: 0; padding: 0; }
@@ -101,6 +101,8 @@ body { background-color: tan }
 								}(),
 								t("&nbsp;&nbsp;"),
 								e("a", "class", "text-menu", "href", "/edit/"+strId).R(t("edit")),
+								t(" | "),
+								e("a", "class", "text-menu", "href", "/dup/"+strId).R(t("dup")),
 								t(" | "),
 								e("a", "class", "text-menu", "href", "/del/"+strId,
 									"onclick", "return confirm('Are you sure you want to delete this note?')",

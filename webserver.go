@@ -156,23 +156,27 @@ func WebCreateNote(w http.ResponseWriter, r *http.Request, _ httprouter.Params) 
 	http.Redirect(w, r, "/qi/"+strconv.FormatUint(id, 10), http.StatusFound)
 }
 
-func WebNoteDup(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	post_data, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		HandleRequestErr(err, w)
-		return
-	}
-	v, err := url.ParseQuery(string(post_data))
+func WebNoteDup(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	origId, err := strconv.ParseInt(p.ByName("id"), 10, 64)
 	if err != nil {
 		HandleRequestErr(err, w)
 		return
 	}
 
+	nte := findNoteById(origId)
+	if nte.Id < 1 {
+		http.Redirect(w, r, "/q/all/l/100", http.StatusFound)
+	}
+
 	// TODO - Check that note with title below does not already exist
 	// 		and gracefully handle error
-	id := CreateNote("Copy of - "+trimWhitespace(v.Get("title")), "",
-		"", trimWhitespace(v.Get("tag")))
-	http.Redirect(w, r, "/edit/"+strconv.FormatUint(id, 10), http.StatusFound)
+	id := CreateNote("Copy of - "+nte.Title, "",
+		"", nte.Tag)
+	if id > 0 {
+		http.Redirect(w, r, "/edit/"+strconv.FormatUint(id, 10), http.StatusFound)
+	} else {
+		http.Redirect(w, r, "/q/all/l/100", http.StatusFound)
+	}
 }
 
 func WebDeleteNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
