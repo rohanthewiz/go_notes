@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 )
 
 const LineSeparator string = "---------------------------------------------------------"
@@ -54,6 +55,7 @@ func AllFieldsUpdate(nte note.Note) { // note is an unsaved note prepared with I
 	// Actual update
 	db.Table("notes").Where("id = ?", nte.Id).Updates(map[string]interface{}{
 		"title": nte.Title, "description": nte.Description, "body": nte.Body, "tag": nte.Tag,
+		"updated_at": time.Now(),
 	})
 	var nf NoteFragment = NoteFragment{}
 	if orig.Title != nte.Title { //Build NoteFragment
