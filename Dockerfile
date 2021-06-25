@@ -1,33 +1,19 @@
-FROM golang
+FROM golang:1.16.4-alpine3.13 as buildStage
+WORKDIR /root
+ADD . .
+RUN apk add build-base
+RUN go build -o app
+# For later - RUN go test -c -coverpkg=../root/... -covermode=atomic ./api_tests
 
-ENV WORKDIR /go/src/github.com/rohanthewiz/go_notes
-#ENV APPDIR /app
-ENV GLIDE_VERSION 0.12.3
-ENV GLIDE_DOWNLOAD_URL https://github.com/Masterminds/glide/releases/download/v${GLIDE_VERSION}/glide-v${GLIDE_VERSION}-linux-amd64.tar.gz
+FROM alpine:3.13
 
-RUN curl -fsSL "$GLIDE_DOWNLOAD_URL" -o glide.tar.gz \
-    && tar -xzf glide.tar.gz \
-    && mv linux-amd64/glide /usr/bin/ \
-    && rm -r linux-amd64 \
-    && rm glide.tar.gz
+RUN mkdir /gn
+WORKDIR /gn
 
-WORKDIR $WORKDIR
-
-COPY glide.* $WORKDIR/
-RUN glide install --force
-
-# Copy the local package files to the container's workspace.
-ADD . $WORKDIR
-
-RUN go install github.com/rohanthewiz/go_notes
-
-VOLUME ["/app"]
-#COPY /go/bin/go_notes $APPDIR
-#COPY config/options.yml.sample config/options.yml
-
-#WORKDIR $APPDIR
-
-# Document that the service listens on the specified.
+COPY --from=buildStage /root/app app
+COPY --from=buildStage /root/js js
+# Document that the service listens on the specified port.
 EXPOSE 8092
 
-CMD ["/go/bin/go_notes", "-svr", "-db", "/app/go_notes.sqlite"]
+# (For persistence setup an external volume mount and point `-db` there)
+CMD ["/gn/app", "-svr", "-db", "/gn/go_notes.sqlite"]

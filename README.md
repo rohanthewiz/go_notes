@@ -146,9 +146,10 @@ D:\GoProjs\src\gotut.org\go_notes>go_notes -db "D:\xfr\gn.sqlite" -t "Test New D
 $ gn -q all -s  # list all notes with the short list option. Note that here go_notes is aliased to *gn*
 ```
 
-### Docker / Docker Compose
-- Put docker-compose.yml (based on example) into the parent dir of the project
-- Also create a dir off of the parent called `gnDir` for mounting the database file
+### Docker
+- Build with `docker build --no-cache -t go_notes .`
+- Run with `docker run --rm -p 8092:8092 go_notes:latest`
+- Access the server at http://localhost:8092
 
 ### Synchronizing
 Each GoNotes database is synchronizable with another. Just call one as the server and the other as a client.
