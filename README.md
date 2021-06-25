@@ -7,16 +7,19 @@ Markdown can be used for syntax highlighting in the body of the note.
 ## Getting Setup
 
 ### Download
-Get Go for your operating system: http://golang.org/dl/ and install. The installation should set the GOROOT environment variable to the Golang toplevel folder.
-If your installed Go to the folder ```~/apps/``` then your GOROOT env. var should contain: ```~/apps/go```.
+Get Go for your operating system: http://golang.org/dl/ and install.
+Make sure the full path to `<installation_folder>/bin` is in your PATH.
+(The installation should set the GOROOT environment variable to the Golang toplevel folder.
+If you installed Go to the folder ```~/apps/``` then your GOROOT env. var should contain: ```~/apps/go```).
 
 ### Go Workspace Setup
-The environment variable *GOPATH* must point to your Go project workspace. Google 'environment variable set Windows', for example, to do that for your operating system.
+**Note:** this section is no longer necessary with go mods (you are using go mods, right? ;-) )
+
+The environment variable *GOPATH* must point to your Go project workspace. Google 'set environment variable on Windows', for example, to do that for your operating system.
 Your can check your current GOPATH and GOROOT environment variables by running the following command
 ```
 go env
 ```
-
 Your Go projects should live under a folder path of this format:
 ```
 GOPATH/src/yourdomain.com/your_project
@@ -31,29 +34,12 @@ cd go_notes
 go build # this will produce the executable 'go_notes' in the current directory
 ```
 
-Switching this over to element, removing Ego...
-
-### Old stuff
-(Old: You will require the ego package to make changes to the template files)
-Install it with
-
-```
-go get github.com/benbjohnson/ego/...  # yes the three dots at the end are necessary
-```
-
-If you make changes to an ego template file, you will need to 'compile' it before the main build.
-For example if you updated *query.ego* you will need to run
-
-```
-$GOPATH/bin/ego -package main  # compile the template before doing 'go build'
-```
-
 ## Using GoNotes via Web Browser
 GoNotes stores notes in four simple fields:
 -   Title
 -   Description
 -   Body
--   Tags (Comma, separated, list)
+-   Tags (Comma separated, list)
 
 ### Starting the Web Server
 
@@ -96,7 +82,7 @@ Creating a Note (quote option values with double-quotes if they contain spaces)
     -t Title
     -d Description
     -b Body
-    -g "Comma, separated, list, of, Tags"
+    -g "Comma separated, list, of, Tags"
 
 Example:
 
@@ -148,7 +134,7 @@ $ ./go_notes -q trash -del
 ### Other Options
     
     -h -- List available options with defaults
-    -db "" -- Sqlite DB path. It will try to create the database 'go_notes.sqlite' in your home directory by default
+    -db "" -- SQLite DB path. It will try to create the database 'go_notes.sqlite' in your home directory by default
     -l "-1" -- (formerly -ql) Limit the number of notes returned - default: -1 (no limit)
     -s Short Listing -- don't show the body
     -admin="" -- Privileged actions like 'delete_table' (drops the notes table)
@@ -199,10 +185,11 @@ $ ./go_notes -db db2.sqlite -q all # should now show the test note synched from 
 - For less typing, you might want to do 'go build -o gn' (gn.exe on Windows) to produce the executable 'gn'
 - This is a sweet way to learn a modern, highly performant language - The Go Programming Language using a database with an ORM (object relational manager) while building a useful tool!
 I recommend using git to checkout an early version of go_notes so you can start out simple
-- Firefox has a great addon called SQLite Manager which you can use to peek into the database file
+- If you want to tinker with Go code and you are short on cast VSCode with the Go extension is your way to go. You ought to find a SQLite extension there also to peak into the SQLite file.
+- If you are serious, and want to invest in first-class industrial strength tools, use JetBrains products. In this case Goland -- that is my tool of choice for Go, bar none.
 - Feel free to create a pull request if you'd like to pitch in.
 
 ### Credits
 - Go -- http://golang.org/  Thanks Google!!
-- GORM -- https://github.com/jinzhu/gorm  - Who needs sluggish ActiveRecord, or other interpreted code interfacing to your database.
-- SQLite -- http://www.sqlite.org/ - A great place to start. Actually GORM includes all the things needed for SQLite so SQLite gets compiled into GoNotes!
+- GORM -- https://github.com/jinzhu/gorm  - a decent abstraction over SQL.
+- SQLite -- http://www.sqlite.org/ - A great place to start. SQLite is supported by GORM. 
