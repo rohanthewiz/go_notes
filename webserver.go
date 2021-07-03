@@ -1,20 +1,23 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"go_notes/note"
 	"go_notes/note/web"
 	"net/http"
+	"strings"
 
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 
-	"github.com/julienschmidt/httprouter"
-	//	"github.com/microcosm-cc/bluemonday"
 	"log"
 	"net/url"
 	"path"
 	"strconv"
+
+	"github.com/julienschmidt/httprouter"
 )
 
 // Good reading: http://www.alexedwards.net/blog/golang-response-snippets
@@ -140,19 +143,42 @@ func WebNoteForm(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 }
 
 func WebCreateNote(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	post_data, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		HandleRequestErr(err, w)
-		return
-	}
-	v, err := url.ParseQuery(string(post_data))
+	postData, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		HandleRequestErr(err, w)
 		return
 	}
 
+	v, err := url.ParseQuery(string(postData))
+	if err != nil {
+		HandleRequestErr(err, w)
+		return
+	}
+
+	// Prepend CliffNotes on Create only, hardwired ON for now
+	nb := trimWhitespace(v.Get("note_body"))
+	if nb != "" {
+		var cliffNotes []string
+		scnr := bufio.NewScanner(bytes.NewReader([]byte(nb)))
+
+		for scnr.Scan() { // ~ Scanner splits by default on lines
+			line := strings.TrimSpace(scnr.Text())
+			if strings.HasPrefix(line, "// ~") || strings.HasPrefix(line, "//~") {
+				tokens := strings.SplitN(line, "~", 2)
+				if len(tokens) == 2 {
+					cliffNotes = append(cliffNotes, "- "+tokens[1])
+				}
+			}
+		}
+		if len(cliffNotes) > 0 {
+			strCliffNotes := strings.Join(cliffNotes, "\n")
+			nb = "## Key Notes\n\n" + strCliffNotes + "\n\n" + nb
+		}
+	}
+
+	// TODO ! Add additional empty string validation on Title here
 	id := CreateNote(trimWhitespace(v.Get("title")), trimWhitespace(v.Get("descr")),
-		trimWhitespace(v.Get("note_body")), trimWhitespace(v.Get("tag")))
+		nb, trimWhitespace(v.Get("tag")))
 	http.Redirect(w, r, "/qi/"+strconv.FormatUint(id, 10), http.StatusFound)
 }
 
