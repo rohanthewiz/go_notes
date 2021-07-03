@@ -134,7 +134,7 @@ $ ./go_notes -q trash -del
 ### Other Options
     
     -h -- List available options with defaults
-    -db "" -- SQLite DB path. It will try to create the database 'go_notes.sqlite' in your home directory by default
+    -db "" -- SQLite DB path. The DB file will be created if it does not exist. (GoNotes will by default try to create the database 'go_notes.sqlite' in your home directory.)
     -l "-1" -- (formerly -ql) Limit the number of notes returned - default: -1 (no limit)
     -s Short Listing -- don't show the body
     -admin="" -- Privileged actions like 'delete_table' (drops the notes table)
