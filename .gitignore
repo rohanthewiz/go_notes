@@ -3,5 +3,6 @@
 *.csv
 go_notes.exe
 go_notes
-test/*
+test/
+test_db/
 *.gob
