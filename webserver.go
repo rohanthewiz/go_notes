@@ -3,14 +3,14 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"go_notes/note"
 	"go_notes/note/web"
+	"io/ioutil"
 	"net/http"
 	"strings"
-
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
 
 	"log"
 	"net/url"
@@ -20,7 +20,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-// Good reading: http://www.alexedwards.net/blog/golang-response-snippets
+// TODO - Break up this file
 
 func webserver(listen_port string) {
 	router := httprouter.New()
@@ -122,7 +122,7 @@ func WebNoteForm(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 	if id, err := strconv.ParseInt(p.ByName("id"), 10, 64); err == nil {
 		var nte note.Note
 		db.Where("id = ?", id).First(&nte) // get the original for comparision
-		fmt.Printf("note at WebNoteForm %#v\n", nte)
+		fmt.Printf("note at WebNoteForm %#v\n", nte.Guid)
 		if nte.Id > 0 {
 			err = web.NoteForm(w, nte)
 			if err != nil {
@@ -142,6 +142,96 @@ func WebNoteForm(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 	}
 }
 
+// Aggregate comments of the format "// ~" into a KeyNote section in the note
+func upsertKeyNotes(nb string) string {
+	lnNb := len(nb)
+	if lnNb == 0 {
+		return nb
+	}
+
+	const keyNoteHdrPrefix = "## Key Notes (auto generated)"
+	var keyNotes []string
+	var inKeyNotes, atKeyNoteHdr bool
+	var pastKeyNotes bool
+	linesBeforeKeyNote := make([]string, 0, 4) // guesstimates here
+	linesAfterKeyNote := make([]string, 0, len(nb)/2)
+	sbOut := strings.Builder{}
+
+	scnr := bufio.NewScanner(bytes.NewReader([]byte(nb)))
+	for scnr.Scan() { // ~ Scanner splits by default on lines
+		line := scnr.Text()
+		lineTrimmed := strings.TrimSpace(line)
+
+		// ~ Mark that we are in keynotes
+		if strings.HasPrefix(line, keyNoteHdrPrefix) {
+			atKeyNoteHdr = true
+			atKeyNoteHdr = true
+			inKeyNotes = true
+			continue
+		}
+
+		if lineTrimmed == "" && inKeyNotes && !atKeyNoteHdr { // skip this check immediately after keyNoteHdr
+			inKeyNotes = false
+			pastKeyNotes = true
+		}
+
+		atKeyNoteHdr = false
+
+		// ~ Skip original keynotes
+		if inKeyNotes {
+			continue
+		}
+
+		// ~ Agg lines before keynote
+		if !pastKeyNotes {
+			linesBeforeKeyNote = append(linesBeforeKeyNote, line)
+		} else {
+			linesAfterKeyNote = append(linesAfterKeyNote, line)
+		}
+
+		// ~ Agg key notes
+		tokens := strings.SplitN(line, "// ~", 2)
+		if len(tokens) == 2 {
+			keyNotes = append(keyNotes, "- "+tokens[1])
+		}
+	}
+
+	fmt.Println("keynotes", len(keyNotes), "linesBefore", len(linesBeforeKeyNote),
+		"linesAfter", len(linesAfterKeyNote),
+	)
+
+	// ~ Reassemble the note with the keynotes upserted
+	// ~ If no keynotes already existed or we got to the end
+	// 		write keynotes + linesBefore
+	if !pastKeyNotes {
+		if len(keyNotes) > 0 {
+			sbOut.WriteString(keyNoteHdrPrefix + "\n\n")
+			sbOut.WriteString(strings.Join(keyNotes, "\n") + "\n\n")
+		}
+
+		if len(linesBeforeKeyNote) > 0 {
+			sbOut.WriteString(strings.Join(linesBeforeKeyNote, "\n"))
+		}
+	} else { // linesBefore + keynote + linesAfter
+		if len(linesBeforeKeyNote) > 0 {
+			sbOut.WriteString(strings.Join(linesBeforeKeyNote, "\n") + "\n")
+			// if len(keyNotes) > 0 {
+			// 	sbOut.WriteRune('\n')
+			// }
+		}
+		// ~ Add the keynotes (rem. we discard the original)
+		if len(keyNotes) > 0 {
+			sbOut.WriteString(keyNoteHdrPrefix + "\n\n")
+			sbOut.WriteString(strings.Join(keyNotes, "\n") + "\n")
+		}
+		if len(linesAfterKeyNote) > 0 {
+			sbOut.WriteString(strings.Join(linesAfterKeyNote, "\n"))
+		}
+	}
+
+	return sbOut.String()
+}
+
 func WebCreateNote(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	postData, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -155,29 +245,16 @@ func WebCreateNote(w http.ResponseWriter, r *http.Request, _ httprouter.Params) 
 		return
 	}
 
-	// Prepend CliffNotes on Create only, hardwired ON for now
 	nb := trimWhitespace(v.Get("note_body"))
-	if nb != "" {
-		var cliffNotes []string
-		scnr := bufio.NewScanner(bytes.NewReader([]byte(nb)))
+	nb = upsertKeyNotes(nb) // prepend KeyNotes - hardwired ON for now
 
-		for scnr.Scan() { // ~ Scanner splits by default on lines
-			line := strings.TrimSpace(scnr.Text())
-			if strings.HasPrefix(line, "// ~") || strings.HasPrefix(line, "//~") {
-				tokens := strings.SplitN(line, "~", 2)
-				if len(tokens) == 2 {
-					cliffNotes = append(cliffNotes, "- "+tokens[1])
-				}
-			}
-		}
-		if len(cliffNotes) > 0 {
-			strCliffNotes := strings.Join(cliffNotes, "\n")
-			nb = "## Key Notes\n\n" + strCliffNotes + "\n\n" + nb
-		}
+	tl := trimWhitespace(v.Get("title"))
+	if tl == "" {
+		HandleRequestErr(errors.New("title should not be empty"), w)
+		return
 	}
 
-	// TODO ! Add additional empty string validation on Title here
-	id := CreateNote(trimWhitespace(v.Get("title")), trimWhitespace(v.Get("descr")),
+	id := CreateNote(tl, trimWhitespace(v.Get("descr")),
 		nb, trimWhitespace(v.Get("tag")))
 	http.Redirect(w, r, "/qi/"+strconv.FormatUint(id, 10), http.StatusFound)
 }
@@ -229,10 +306,14 @@ func WebUpdateNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 			return
 		}
 
+		nb := trimWhitespace(v.Get("note_body"))
+		nb = upsertKeyNotes(nb) // prepend KeyNotes - hardwired ON for now
+
 		nte = note.Note{Id: id, Title: trimWhitespace(v.Get("title")),
 			Description: trimWhitespace(v.Get("descr")),
-			Body:        trimWhitespace(v.Get("note_body")), Tag: trimWhitespace(v.Get("tag")),
+			Body:        nb, Tag: trimWhitespace(v.Get("tag")),
 		}
+
 		pf("Updating note with: %v ...\n", nte)
 		AllFieldsUpdate(nte)
 		http.Redirect(w, r, "/qi/"+strconv.FormatUint(nte.Id, 10), http.StatusFound)
