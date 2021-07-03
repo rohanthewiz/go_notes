@@ -11,7 +11,7 @@ import (
 )
 
 const app_name = "GoNotes"
-const version string = "0.10.4"
+const version string = "0.13.8"
 
 // Get Commandline Options and Flags
 var optsStr, optsIntf = getOpts() //returns map[string]string, map[string]interface{}
@@ -75,7 +75,7 @@ func main() {
 		return
 	}
 
-	db.LogMode(optsIntf["debug"].(bool)) // Set debug mode for Gorm db
+	// db.LogMode(optsIntf["debug"].(bool)) // Set debug mode for Gorm db
 
 	if optsStr["admin"] == "delete_tables" {
 		fmt.Println("Are you sure you want to delete all data? (N/y)")
