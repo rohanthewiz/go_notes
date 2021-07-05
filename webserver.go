@@ -1,26 +1,20 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"go_notes/note"
 	"go_notes/note/web"
 	"io/ioutil"
-	"net/http"
-	"strings"
-
 	"log"
+	"net/http"
 	"net/url"
 	"path"
 	"strconv"
 
 	"github.com/julienschmidt/httprouter"
 )
-
-// TODO - Break up this file
 
 func webserver(listen_port string) {
 	router := httprouter.New()
@@ -142,96 +136,6 @@ func WebNoteForm(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 	}
 }
 
-// Aggregate comments of the format "// ~" into a KeyNote section in the note
-func upsertKeyNotes(nb string) string {
-	lnNb := len(nb)
-	if lnNb == 0 {
-		return nb
-	}
-
-	const keyNoteHdrPrefix = "## Key Notes (auto generated)"
-	var keyNotes []string
-	var inKeyNotes, atKeyNoteHdr bool
-	var pastKeyNotes bool
-	linesBeforeKeyNote := make([]string, 0, 4) // guesstimates here
-	linesAfterKeyNote := make([]string, 0, len(nb)/2)
-	sbOut := strings.Builder{}
-
-	scnr := bufio.NewScanner(bytes.NewReader([]byte(nb)))
-	for scnr.Scan() { // ~ Scanner splits by default on lines
-		line := scnr.Text()
-		lineTrimmed := strings.TrimSpace(line)
-
-		// ~ Mark that we are in keynotes
-		if strings.HasPrefix(line, keyNoteHdrPrefix) {
-			atKeyNoteHdr = true
-			atKeyNoteHdr = true
-			inKeyNotes = true
-			continue
-		}
-
-		if lineTrimmed == "" && inKeyNotes && !atKeyNoteHdr { // skip this check immediately after keyNoteHdr
-			inKeyNotes = false
-			pastKeyNotes = true
-		}
-
-		atKeyNoteHdr = false
-
-		// ~ Skip original keynotes
-		if inKeyNotes {
-			continue
-		}
-
-		// ~ Agg lines before keynote
-		if !pastKeyNotes {
-			linesBeforeKeyNote = append(linesBeforeKeyNote, line)
-		} else {
-			linesAfterKeyNote = append(linesAfterKeyNote, line)
-		}
-
-		// ~ Agg key notes
-		tokens := strings.SplitN(line, "// ~", 2)
-		if len(tokens) == 2 {
-			keyNotes = append(keyNotes, "- "+tokens[1])
-		}
-	}
-
-	fmt.Println("keynotes", len(keyNotes), "linesBefore", len(linesBeforeKeyNote),
-		"linesAfter", len(linesAfterKeyNote),
-	)
-
-	// ~ Reassemble the note with the keynotes upserted
-	// ~ If no keynotes already existed or we got to the end
-	// 		write keynotes + linesBefore
-	if !pastKeyNotes {
-		if len(keyNotes) > 0 {
-			sbOut.WriteString(keyNoteHdrPrefix + "\n\n")
-			sbOut.WriteString(strings.Join(keyNotes, "\n") + "\n\n")
-		}
-
-		if len(linesBeforeKeyNote) > 0 {
-			sbOut.WriteString(strings.Join(linesBeforeKeyNote, "\n"))
-		}
-	} else { // linesBefore + keynote + linesAfter
-		if len(linesBeforeKeyNote) > 0 {
-			sbOut.WriteString(strings.Join(linesBeforeKeyNote, "\n") + "\n")
-			// if len(keyNotes) > 0 {
-			// 	sbOut.WriteRune('\n')
-			// }
-		}
-		// ~ Add the keynotes (rem. we discard the original)
-		if len(keyNotes) > 0 {
-			sbOut.WriteString(keyNoteHdrPrefix + "\n\n")
-			sbOut.WriteString(strings.Join(keyNotes, "\n") + "\n")
-		}
-		if len(linesAfterKeyNote) > 0 {
-			sbOut.WriteString(strings.Join(linesAfterKeyNote, "\n"))
-		}
-	}
-
-	return sbOut.String()
-}
-
 func WebCreateNote(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	postData, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -246,7 +150,7 @@ func WebCreateNote(w http.ResponseWriter, r *http.Request, _ httprouter.Params) 
 	}
 
 	nb := trimWhitespace(v.Get("note_body"))
-	nb = upsertKeyNotes(nb) // prepend KeyNotes - hardwired ON for now
+	nb = note.UpsertKeyNotes(nb) // prepend KeyNotes - hardwired ON for now
 
 	tl := trimWhitespace(v.Get("title"))
 	if tl == "" {
@@ -307,7 +211,7 @@ func WebUpdateNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 		}
 
 		nb := trimWhitespace(v.Get("note_body"))
-		nb = upsertKeyNotes(nb) // prepend KeyNotes - hardwired ON for now
+		nb = note.UpsertKeyNotes(nb) // prepend KeyNotes - hardwired ON for now
 
 		nte = note.Note{Id: id, Title: trimWhitespace(v.Get("title")),
 			Description: trimWhitespace(v.Get("descr")),

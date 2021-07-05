@@ -42,7 +42,8 @@ body { background-color: tan }
     .h1 { font-size: 1.2em; margin-right: 0.2em; margin-bottom: 0.1em; padding: 0.1em }
 	.h1 a {text-decoration:none}
 	.h1 a:visited, .h1 a:link {color:black}
-    .title { font-weight: bold; color:darkgreen; padding-top: 0.4em }
+    .h3 { font-size: 1em; font-weight:bold; margin-bottom: 0.1em; padding: 0.1em }
+    .title { font-size:1.1em; font-weight: bold; color:darkgreen; padding-top: 0.4em }
     .count { font-size: 0.8em; color:#401020; padding-left: 0.5em; padding-right: 0.5em }
     .tool { font-size: 0.7em; color:#401020; padding-left: 0.5em }
     .note-body { padding-left:1em; margin-top: 0.1em}
