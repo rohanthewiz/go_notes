@@ -15,6 +15,7 @@ func UpsertKeyNotes(nb string) string {
 	}
 
 	const keyNoteHdrPrefix = "### Key Notes (auto generated)"
+	const codeSampleLen = 84
 	var keyNotes []string
 	var inKeyNotes, atKeyNoteHdr bool
 	var pastKeyNotes bool
@@ -57,7 +58,18 @@ func UpsertKeyNotes(nb string) string {
 		// ~ Agg key notes
 		tokens := strings.SplitN(line, "// ~", 2)
 		if len(tokens) == 2 {
-			keyNotes = append(keyNotes, "- "+tokens[1])
+			keyNote := "- " + tokens[1]
+
+			// ~ Fixup any actual code. We add it after the keyNote if not empty
+			actualCode := strings.TrimSpace(tokens[0])
+			if lnCode := len(actualCode); lnCode > 0 {
+				if lnCode > codeSampleLen { // ~ limit the length of code lines
+					actualCode = actualCode[:codeSampleLen] + "..."
+				}
+				keyNote += " - `" + actualCode + "`"
+			}
+
+			keyNotes = append(keyNotes, keyNote)
 		}
 	}
 
