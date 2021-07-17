@@ -50,9 +50,9 @@ body { background-color: tan }
 	.time-label { font-size: 0.7rem }
 	.text-menu { font-weight: bold }
 	.small { font-size: 0.8em }
-    code { -webkit-border-radius: 0.3em;
-          -moz-border-radius: 0.3em;
-          border-radius: 0.3em; }			
+    code { border-radius: 0.3em;
+    	background-color: #b2916e;
+    	padding: 0.1em 0.3em; }			
 			`)),
 			e("link", "rel", "stylesheet", "href",
 				"//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/zenburn.min.css").R(),

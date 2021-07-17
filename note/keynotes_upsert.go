@@ -3,7 +3,6 @@ package note
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"strings"
 )
 
@@ -66,16 +65,16 @@ func UpsertKeyNotes(nb string) string {
 				if lnCode > codeSampleLen { // ~ limit the length of code lines
 					actualCode = actualCode[:codeSampleLen] + "..."
 				}
-				keyNote += " - `" + actualCode + "`"
+				keyNote += " `" + actualCode + "`"
 			}
 
 			keyNotes = append(keyNotes, keyNote)
 		}
 	}
 
-	fmt.Println("keynotes", len(keyNotes), "linesBefore", len(linesBeforeKeyNote),
-		"linesAfter", len(linesAfterKeyNote),
-	)
+	// fmt.Println("keynotes", len(keyNotes), "linesBefore", len(linesBeforeKeyNote),
+	// 	"linesAfter", len(linesAfterKeyNote),
+	// )
 
 	// ~ Reassemble the note with the keynotes upserted
 	// ~ If no keynotes already existed or we got to the end
