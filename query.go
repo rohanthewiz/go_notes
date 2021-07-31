@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"go_notes/config"
 	"go_notes/note"
 )
 
@@ -75,6 +76,10 @@ func queryNotes() []note.Note {
 			"%"+optsStr["qd"]+"%",
 			"%"+optsStr["qb"]+"%",
 		).Order("updated_at desc").Limit(optsIntf["l"].(int)).Find(&notes)
+	}
+	// For now on remote webserver  filter out private notes
+	if config.Opts.IsRemoteSvr {
+		notes = note.FilterOutPrivate(notes)
 	}
 
 	return notes
