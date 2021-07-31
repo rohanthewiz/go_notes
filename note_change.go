@@ -25,6 +25,7 @@ const op_create int32 = 1
 const op_update int32 = 2
 const op_delete int32 = 3
 
+// These are changes for a note
 type NoteFragment struct {
 	Id      int64
 	Bitmask int16 // Indicate Active fields (allows for empty string update)

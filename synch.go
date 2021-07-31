@@ -191,13 +191,13 @@ func synchClient(host string, serverSecret string) {
 	defer fmt.Println("Synch Operation complete")
 }
 
-func processChanges(peer_changes *[]NoteChange, local_changes *[]NoteChange) {
+func processChanges(peerChanges *[]NoteChange, localChanges *[]NoteChange) {
 	pl("Processing received changes...")
-	sort.Sort(byCreatedAt(*peer_changes)) // we will apply in created order
+	sort.Sort(byCreatedAt(*peerChanges)) // we will apply in created order
 	var localChange NoteChange
 	var skip bool
 
-	for _, peerChange := range *peer_changes {
+	for _, peerChange := range *peerChanges {
 		// If we already have this NoteChange locally then skip // same change
 		localChange = NoteChange{} // make sure local_change is inited here
 		// otherwise GORM uses its id in the query - weird!
@@ -207,7 +207,7 @@ func processChanges(peer_changes *[]NoteChange, local_changes *[]NoteChange) {
 			continue // we already have that NC
 		}
 		// If there is a newer local change of the same note and field then skip
-		for _, localChange = range *local_changes {
+		for _, localChange = range *localChanges {
 			if localChange.NoteGuid == peerChange.NoteGuid && // same note
 				localChange.CreatedAt.After(peerChange.CreatedAt) && ( // local newer
 			// any field in peer_change matches a field in local_change
