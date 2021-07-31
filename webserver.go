@@ -19,7 +19,7 @@ import (
 func webserver(listen_port string) {
 	router := httprouter.New()
 	doRoutes(router)
-	pf("Server listening on %s... Ctrl-C to quit", listen_port)
+	pf("Web server listening on %s... Ctrl-C to quit\n", listen_port)
 	log.Fatal(http.ListenAndServe(":"+listen_port, router))
 }
 

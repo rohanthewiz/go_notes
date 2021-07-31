@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"go_notes/config"
 	"go_notes/note"
 	"os"
 	"strings"
@@ -11,10 +12,10 @@ import (
 )
 
 const app_name = "GoNotes"
-const version string = "0.13.8"
+const version string = "0.14.0"
 
 // Get Commandline Options and Flags
-var optsStr, optsIntf = getOpts() //returns map[string]string, map[string]interface{}
+var optsStr, optsIntf = getOpts() // returns map[string]string, map[string]interface{}
 
 // Init db
 var db, dbErr = gorm.Open("sqlite3", optsStr["db_path"])
@@ -22,10 +23,10 @@ var db, dbErr = gorm.Open("sqlite3", optsStr["db_path"])
 func migrate() {
 	// Create or update the table structure as needed
 	pl("Migrating the DB...")
-	db.AutoMigrate(&note.Note{}, &NoteChange{}, &NoteFragment{}, &LocalSig{}, &Peer{})
-	//According to GORM: Feel free to change your struct, AutoMigrate will keep your database up-to-date.
-	// Fyi, AutoMigrate will only *add new columns*, it won't update column's type or delete unused columns for safety
 	// If the table is not existing, AutoMigrate will create the table automatically.
+	// Fyi, AutoMigrate will only *add new columns*, it won't update column's type or delete unused columns
+	// According to GORM: Feel free to change your struct, AutoMigrate will keep your database up-to-date.
+	db.AutoMigrate(&note.Note{}, &NoteChange{}, &NoteFragment{}, &LocalSig{}, &Peer{})
 
 	db.Model(&note.Note{}).AddUniqueIndex("idx_note_guid", "guid")
 	db.Model(&note.Note{}).AddUniqueIndex("idx_note_title", "title")
@@ -38,17 +39,17 @@ func migrate() {
 }
 
 func ensureDBSig() {
-	var local_sigs []LocalSig
-	db.Find(&local_sigs)
+	var localSigs []LocalSig
+	db.Find(&localSigs)
 
-	if len(local_sigs) == 1 && len(local_sigs[0].Guid) == 40 &&
-		len(local_sigs[0].ServerSecret) == 40 {
+	if len(localSigs) == 1 && len(localSigs[0].Guid) == 40 &&
+		len(localSigs[0].ServerSecret) == 40 {
 		return
 	} // all is good
 
-	if len(local_sigs) == 0 { // create the signature
+	if len(localSigs) == 0 { // create the signature
 		db.Create(&LocalSig{Guid: generateSHA1(), ServerSecret: generateSHA1()})
-		if db.Find(&local_sigs); len(local_sigs) == 1 && len(local_sigs[0].Guid) == 40 { // was it saved?
+		if db.Find(&localSigs); len(localSigs) == 1 && len(localSigs[0].Guid) == 40 { // was it saved?
 			pl("Local signature created")
 		}
 	} else {
@@ -64,7 +65,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	//Do we need to migrate?
+	// Do we need to migrate?
 	if !db.HasTable(&Peer{}) || !db.HasTable(&note.Note{}) || !db.HasTable(&NoteChange{}) ||
 		!db.HasTable(&NoteFragment{}) || !db.HasTable(&LocalSig{}) {
 		migrate()
@@ -131,14 +132,20 @@ func main() {
 
 	// CORE PROCESSING
 
-	if optsIntf["svr"].(bool) {
+	// when -remote require auth and start synch server in background
+
+	if config.Opts.IsLocalWebSvr { // local only webserver - security is relaxed
 		webserver(optsStr["port"])
 
-	} else if optsStr["synch_client"] != "" { // client to test synching
-		synchClient(optsStr["synch_client"], optsStr["server_secret"])
+	} else if config.Opts.IsSynchSvr {
+		synchServer()
 
-	} else if optsIntf["synch_server"].(bool) { // server to test synching
-		synch_server()
+	} else if config.Opts.IsRemoteSvr { // remote web server
+		go synchServer()
+		webserver(optsStr["port"])
+
+	} else if optsStr["synch_client"] != "" {
+		synchClient(optsStr["synch_client"], optsStr["server_secret"])
 
 	} else if optsIntf["setup_db"].(bool) { // Migrate the DB
 		migrate()

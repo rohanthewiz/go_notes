@@ -2,14 +2,15 @@ package main
 
 import (
 	"flag"
+	"go_notes/config"
 	"os"
 	"strings"
 )
 
-//Setup commandline options and other configuration for Go Notes
+// Setup commandline options and other configuration for Go Notes
 func getOpts() (map[string]string, map[string]interface{}) {
-	opts_str := make(map[string]string)
-	opts_intf := make(map[string]interface{})
+	strOpts := make(map[string]string, 32)
+	intfOpts := make(map[string]interface{}, 16)
 
 	qgPtr := flag.String("qg", "", "Query tags based on a LIKE search")
 	qtPtr := flag.String("qt", "", "Query title based on a LIKE search")
@@ -42,50 +43,54 @@ func getOpts() (map[string]string, map[string]interface{}) {
 	svrPtr := flag.Bool("svr", false, "Web server mode")
 	getServerSecretPtr := flag.Bool("get_server_secret", false, "Show Server Secret")
 	synchServerPtr := flag.Bool("synch_server", false, "Synch server mode")
-	verbosePtr := flag.Bool("verbose", true, "verbose mode") // Todo - turn off for production
-	debugPtr := flag.Bool("debug", true, "debug mode")       // Todo - turn off for production
+	ptrRemoteSvr := flag.Bool("remote_server", false, "Remote server mode") // run as a remote web server
+	verbosePtr := flag.Bool("verbose", true, "verbose mode")                // Todo - turn off for production
+	debugPtr := flag.Bool("debug", true, "debug mode")                      // Todo - turn off for production
 
 	flag.Parse()
 
 	// Store options in a couple of maps
-	opts_str["q"] = *qPtr
-	opts_str["port"] = *pPtr
-	opts_str["qg"] = *qgPtr
-	opts_str["qt"] = *qtPtr
-	opts_str["qd"] = *qdPtr
-	opts_str["qb"] = *qbPtr
-	opts_str["t"] = *tPtr
-	opts_str["d"] = *dPtr
-	opts_str["b"] = *bPtr
-	opts_str["g"] = *gPtr
-	opts_str["admin"] = *adminPtr
-	opts_str["db"] = *dbPtr
-	opts_str["exp"] = *expPtr
-	opts_str["imp"] = *impPtr
-	opts_str["synch_client"] = *synchClientPtr
-	opts_str["get_peer_token"] = *getPeerTokenPtr
-	opts_str["save_peer_token"] = *savePeerTokenPtr
-	opts_str["server_secret"] = *serverSecretPtr
-	opts_intf["qi"] = *qiPtr
-	opts_intf["l"] = *lPtr
-	opts_intf["s"] = *sPtr
-	opts_intf["ql"] = *qlPtr
-	opts_intf["v"] = *vPtr
-	opts_intf["whoami"] = *whoamiPtr
-	opts_intf["del"] = *delPtr
-	opts_intf["upd"] = *updPtr
-	opts_intf["svr"] = *svrPtr
-	opts_intf["synch_server"] = *synchServerPtr
-	opts_intf["get_server_secret"] = *getServerSecretPtr
-	opts_intf["setup_db"] = *setupDBPtr
-	opts_intf["verbose"] = *verbosePtr
-	opts_intf["debug"] = *debugPtr
+	strOpts["q"] = *qPtr
+	strOpts["port"] = *pPtr
+	strOpts["qg"] = *qgPtr
+	strOpts["qt"] = *qtPtr
+	strOpts["qd"] = *qdPtr
+	strOpts["qb"] = *qbPtr
+	strOpts["t"] = *tPtr
+	strOpts["d"] = *dPtr
+	strOpts["b"] = *bPtr
+	strOpts["g"] = *gPtr
+	strOpts["admin"] = *adminPtr
+	strOpts["db"] = *dbPtr
+	strOpts["exp"] = *expPtr
+	strOpts["imp"] = *impPtr
+	strOpts["synch_client"] = *synchClientPtr
+	strOpts["get_peer_token"] = *getPeerTokenPtr
+	strOpts["save_peer_token"] = *savePeerTokenPtr
+	strOpts["server_secret"] = *serverSecretPtr
+	intfOpts["qi"] = *qiPtr
+	intfOpts["l"] = *lPtr
+	intfOpts["s"] = *sPtr
+	intfOpts["ql"] = *qlPtr
+	intfOpts["v"] = *vPtr
+	intfOpts["whoami"] = *whoamiPtr
+	intfOpts["del"] = *delPtr
+	intfOpts["upd"] = *updPtr
+	intfOpts["get_server_secret"] = *getServerSecretPtr
+	intfOpts["setup_db"] = *setupDBPtr
+	intfOpts["verbose"] = *verbosePtr
+	intfOpts["debug"] = *debugPtr
+
+	// This is the better way to pass options
+	config.Opts.IsLocalWebSvr = *svrPtr
+	config.Opts.IsSynchSvr = *synchServerPtr
+	config.Opts.IsRemoteSvr = *ptrRemoteSvr
 
 	separator := "/"
 	if strings.Contains(strings.ToUpper(os.Getenv("OS")), "WINDOWS") {
 		separator = "\\"
 	}
-	opts_str["sep"] = separator
+	strOpts["sep"] = separator
 
 	db_file := "go_notes.sqlite"
 	var db_folder string
@@ -102,7 +107,7 @@ func getOpts() (map[string]string, map[string]interface{}) {
 	} else {
 		db_full_path = *dbPtr
 	}
-	opts_str["db_path"] = db_full_path
+	strOpts["db_path"] = db_full_path
 
-	return opts_str, opts_intf
+	return strOpts, intfOpts
 }

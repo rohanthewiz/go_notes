@@ -12,13 +12,13 @@ import (
 	"strconv"
 )
 
-func synch_server() { // WIP
+func synchServer() {
 	ln, err := net.Listen("tcp", ":"+SynchPort) // counterpart of net.Dial
 	if err != nil {
 		fmt.Println("Error setting up server listen on port", SynchPort)
 		return
 	}
-	fmt.Println("Server listening on port: " + SynchPort + " - CTRL-C to quit")
+	fmt.Println("Synch Server listening on port: " + SynchPort + " - CTRL-C to quit")
 
 	for {
 		conn, err := ln.Accept() // this blocks until connection or error
@@ -31,20 +31,22 @@ func synch_server() { // WIP
 
 func handleConnection(conn net.Conn) {
 	msg := Message{}
+
 	defer func(conn net.Conn) {
 		err := conn.Close()
 		if err != nil {
 			log.Println("Error closing conn", err)
 		}
 	}(conn)
+
 	enc := gob.NewEncoder(conn)
 	dec := gob.NewDecoder(conn)
 
-	var local_changes []NoteChange
-	var peer_id string
+	var localChanges []NoteChange
+	var peerId string
 	var peer Peer
 	var err error
-	var authorized bool = false // true so things will work while we develop auth
+	authorized := false // can set to true when developing auth
 
 	for {
 		msg = Message{}
@@ -75,11 +77,11 @@ func handleConnection(conn net.Conn) {
 			//     (c) The client saves this token with
 			//         ./go_notes -save_peer_token the_token (detail: the_token here is of the format "server_id-auth_token")
 		case "WhoAreYou":
-			peer_id = msg.Param // receive the client db signature
-			pd("Client id is:", shortSHA(peer_id))
+			peerId = msg.Param // receive the client db signature
+			pd("Client id is:", shortSHA(peerId))
 			pl("NoteChg.Guid is:", shortSHA(msg.NoteChg.Guid))
 			if msg.NoteChg.Guid == get_server_secret() { // then automatically generate a token
-				pt, err := getPeerToken(peer_id)
+				pt, err := getPeerToken(peerId)
 				if err != nil {
 					msg.NoteChg.Guid = ""
 				} else {
@@ -92,10 +94,11 @@ func handleConnection(conn net.Conn) {
 			// Always return the server's id
 			msg.Param = whoAmI() // reply with the server's db signature
 			msg.Type = "WhoIAm"
+
 			// Retrieve the actual peer object which represents the client
-			peer, err = getPeerByGuid(peer_id)
+			peer, err = getPeerByGuid(peerId)
 			if err != nil {
-				fmt.Println("Error retrieving peer object for peer:", shortSHA(peer_id))
+				fmt.Println("Error retrieving peer object for peer:", shortSHA(peerId))
 				msg.Type = "ERROR"
 				msg.Param = "There is no record for this client on the server."
 				return
@@ -126,9 +129,10 @@ func handleConnection(conn net.Conn) {
 				return
 			}
 			// msg.Param will include the synch_point, so send num of changes since synch point
-			local_changes = retrieveLocalNoteChangesFromSynchPoint(msg.Param)
-			msg.Param = strconv.Itoa(len(local_changes))
+			localChanges = retrieveLocalNoteChangesFromSynchPoint(msg.Param)
+			msg.Param = strconv.Itoa(len(localChanges))
 			sendMsg(enc, msg)
+
 		case "SendChanges":
 			if !authorized {
 				pl(authFailMsg)
@@ -137,10 +141,11 @@ func handleConnection(conn net.Conn) {
 			msg.Type = "NoteChange"
 			msg.Param = ""
 			var nte note.Note
-			var note_frag NoteFragment
-			for _, change := range local_changes {
+			var noteFrag NoteFragment
+
+			for _, change := range localChanges {
 				nte = note.Note{}
-				note_frag = NoteFragment{}
+				noteFrag = NoteFragment{}
 				// We have the change but now we need the NoteFragment or Note depending on the operation type
 				if change.Operation == 1 {
 					db.Where("id = ?", change.NoteId).First(&nte)
@@ -148,8 +153,8 @@ func handleConnection(conn net.Conn) {
 					change.Note = nte
 				}
 				if change.Operation == 2 {
-					db.Where("id = ?", change.NoteFragmentId).First(&note_frag)
-					change.NoteFragment = note_frag
+					db.Where("id = ?", change.NoteFragmentId).First(&noteFrag)
+					change.NoteFragment = noteFrag
 				}
 				msg.NoteChg = change
 				msg.NoteChg.Print()
@@ -170,25 +175,27 @@ func handleConnection(conn net.Conn) {
 				return
 			}
 			pl(numChanges, "changes")
-			peer_changes := make([]NoteChange, numChanges)
+
+			peerChanges := make([]NoteChange, numChanges)
 			sendMsg(enc, Message{Type: "SendChanges"}) // Send the actual changes
 			// Receive changes, extract the NoteChanges, save into peer_changes
 			for i := 0; i < numChanges; i++ {
 				msg = Message{}
 				rcxMsg(dec, &msg)
-				peer_changes[i] = msg.NoteChg
+				peerChanges[i] = msg.NoteChg
 			}
 			pf("\n%d peer changes received:\n", numChanges)
-			processChanges(&peer_changes, &local_changes)
+			processChanges(&peerChanges, &localChanges)
+
 		case "NewSynchPoint": // New synch point at the end of synching
 			if !authorized {
 				pl(authFailMsg)
 				return
 			}
-			synch_nc := msg.NoteChg
-			synch_nc.Id = 0 // so it will save
-			db.Save(&synch_nc)
-			peer.SynchPos = synch_nc.Guid
+			synchNC := msg.NoteChg
+			synchNC.Id = 0 // so it will save
+			db.Save(&synchNC)
+			peer.SynchPos = synchNC.Guid
 			db.Save(&peer)
 		default:
 			pl("Unknown message type received", msg.Type)
@@ -204,11 +211,9 @@ func sendMsg(encoder *gob.Encoder, msg Message) {
 		log.Println("Error on message encode:", err)
 	}
 	printMsg(msg, false)
-	//time.Sleep(10)
 }
 
 func rcxMsg(decoder *gob.Decoder, msg *Message) {
-	//time.Sleep(10)
 	err := decoder.Decode(&msg)
 	if err != nil {
 		log.Println("error on message decode:", err)
