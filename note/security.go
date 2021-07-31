@@ -10,7 +10,7 @@ func FilterOutPrivate(notes []Note) (filtered []Note) {
 		isPrivate := false
 
 		for _, t := range tags {
-			if strings.ToLower(strings.TrimSpace(t)) == "private" {
+			if tt := strings.ToLower(strings.TrimSpace(t)); tt == "private" || tt == "personal" {
 				isPrivate = true
 			}
 		}
