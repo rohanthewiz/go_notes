@@ -16,11 +16,11 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-func webserver(listen_port string) {
+func webserver(port string) {
 	router := httprouter.New()
 	doRoutes(router)
-	pf("Web server listening on %s... Ctrl-C to quit\n", listen_port)
-	log.Fatal(http.ListenAndServe(":"+listen_port, router))
+	pf("Web server listening on %s... Ctrl-C to quit\n", port)
+	log.Fatal(http.ListenAndServe(":"+port, router))
 }
 
 // Handlers for httprouter
@@ -28,39 +28,39 @@ func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	http.Redirect(w, r, "/q/all/l/100", http.StatusFound)
 }
 
-func webListNotes(w http.ResponseWriter) {
+func webListNotes(w http.ResponseWriter, r *http.Request) {
 	notes := queryNotes()
 
-	err := web.NotesList(w, notes, optsStr)
+	err := web.NotesList(w, r, notes, optsStr)
 	if err != nil {
 		log.Println("Error in notes list html gen:", err)
 	}
 }
 
-func Query(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
+func Query(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	resetOptions()
 	optsStr["q"] = p.ByName("query") // Overwrite the query param
 	limit, err := strconv.Atoi(p.ByName("limit"))
 	if err == nil {
 		optsIntf["l"] = limit
 	}
-	webListNotes(w)
+	webListNotes(w, r)
 }
 
-func QueryLast(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+func QueryLast(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	resetOptions()
 	optsIntf["ql"] = true
-	webListNotes(w)
+	webListNotes(w, r)
 }
 
-func QueryId(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
+func QueryId(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	resetOptions()
 	id, err := strconv.ParseInt(p.ByName("id"), 10, 64)
 	if err != nil {
 		id = 0
 	}
 	optsIntf["qi"] = id // qi is the highest priority
-	webListNotes(w)
+	webListNotes(w, r)
 }
 
 func QueryIdAsJson(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
@@ -81,35 +81,35 @@ func QueryIdAsJson(w http.ResponseWriter, _ *http.Request, p httprouter.Params) 
 	}
 }
 
-func QueryTag(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
+func QueryTag(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	resetOptions()
 	optsStr["qg"] = p.ByName("tag") // Overwrite the query param
 	optsIntf["qi"] = nil            // turn off unused option
 	optsStr["qt"] = ""              // turn off unused option
 	optsStr["q"] = ""               // turn off unused option
-	webListNotes(w)
+	webListNotes(w, r)
 }
 
-func QueryTitle(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
+func QueryTitle(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	resetOptions()
 	optsStr["qt"] = p.ByName("title") // Overwrite the query param
 	optsIntf["qi"] = nil              // turn off unused option
 	optsStr["qg"] = ""                // turn off unused option
-	webListNotes(w)
+	webListNotes(w, r)
 }
 
-func QueryTagAndWildCard(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
+func QueryTagAndWildCard(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	resetOptions()
 	optsStr["qg"] = p.ByName("tag")  // Overwrite the query param
 	optsStr["q"] = p.ByName("query") // Overwrite the query param
-	webListNotes(w)
+	webListNotes(w, r)
 }
 
-func QueryTitleAndWildCard(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
+func QueryTitleAndWildCard(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	resetOptions()
 	optsStr["qt"] = p.ByName("title") // Overwrite the query param
 	optsStr["q"] = p.ByName("query")  // Overwrite the query param
-	webListNotes(w)
+	webListNotes(w, r)
 }
 
 func WebNoteForm(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
@@ -187,13 +187,22 @@ func WebNoteDup(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 }
 
 func WebDeleteNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	returnPath := "/q/all/l/100"
 	id, err := strconv.ParseInt(p.ByName("id"), 10, 64)
 	if err != nil {
-		fmt.Println("Error deleting note.")
-	} else {
-		DoDelete(findNoteById(id))
+		fmt.Println("Error parsing id when deleting note.")
+		http.Redirect(w, r, returnPath, http.StatusFound)
+		return
 	}
-	http.Redirect(w, r, "/q/all/l/100", http.StatusFound)
+
+	DoDelete(findNoteById(id))
+
+	qs := r.URL.Query()
+	if qs != nil {
+		returnPath = qs.Get("return")
+	}
+
+	http.Redirect(w, r, returnPath, http.StatusFound)
 }
 
 func WebUpdateNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) {

@@ -34,6 +34,8 @@ func findNoteById(id int64) note.Note {
 }
 
 // Query by Id, return all notes, query all fields for one param, query a combination of fields and params
+// TODO - decentralize options here
+// TODO - Create QueryOpts
 func queryNotes() []note.Note {
 	var notes []note.Note
 	// The order of the if here is very important - esp. for the webserver!

@@ -7,6 +7,7 @@ import (
 	"html"
 	"io"
 	"log"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -15,10 +16,10 @@ import (
 	blackfriday "github.com/rohanthewiz/go_markdown"
 )
 
-func NotesList(w io.Writer, notes []note.Note, optsStr map[string]string) (err error) {
-	const NumOfNotesForDetails = 2
+func NotesList(w io.Writer, req *http.Request, notes []note.Note, optsStr map[string]string) (err error) {
+	const NotesDetailsThreshold = 2
 	notesCount := len(notes)
-	showDetails := notesCount <= NumOfNotesForDetails
+	showDetails := notesCount <= NotesDetailsThreshold
 
 	s := &strings.Builder{}
 	e := func(el string, p ...string) element.Element {
@@ -105,7 +106,7 @@ body { background-color: tan }
 								t(" | "),
 								e("a", "class", "text-menu", "href", "/dup/"+strId).R(t("dup")),
 								t(" | "),
-								e("a", "class", "text-menu", "href", "/del/"+strId,
+								e("a", "class", "text-menu", "href", "/del/"+strId+"?return="+ req.URL.Path,
 									"onclick", "return confirm('Are you sure you want to delete this note?')",
 								).R(t("del")),
 								t("] "),

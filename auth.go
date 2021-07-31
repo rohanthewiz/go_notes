@@ -24,7 +24,7 @@ func whoAmI() string {
 	return local_sig.Guid
 }
 
-func get_server_secret() string {
+func getServerSecret() string {
 	var local_sig LocalSig
 	db.First(&local_sig)
 	if local_sig.Id > 0 {

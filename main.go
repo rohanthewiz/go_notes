@@ -126,7 +126,7 @@ func main() {
 	// This is a master key and will allow any client to auth
 	// We probably want to use the methods above instead
 	if optsIntf["get_server_secret"].(bool) {
-		fmt.Println(get_server_secret())
+		fmt.Println(getServerSecret())
 		return
 	}
 

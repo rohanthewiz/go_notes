@@ -80,7 +80,7 @@ func handleConnection(conn net.Conn) {
 			peerId = msg.Param // receive the client db signature
 			pd("Client id is:", shortSHA(peerId))
 			pl("NoteChg.Guid is:", shortSHA(msg.NoteChg.Guid))
-			if msg.NoteChg.Guid == get_server_secret() { // then automatically generate a token
+			if msg.NoteChg.Guid == getServerSecret() { // then automatically generate a token
 				pt, err := getPeerToken(peerId)
 				if err != nil {
 					msg.NoteChg.Guid = ""
