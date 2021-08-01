@@ -6,6 +6,7 @@ import (
 	db "go_notes/dbhandle"
 	"go_notes/dbutil"
 	"go_notes/migration"
+	"go_notes/user"
 	"os"
 	"strings"
 
@@ -69,6 +70,13 @@ func main() {
 	if optsIntf["get_server_secret"].(bool) {
 		fmt.Println(getServerSecret())
 		return
+	}
+
+	if config.Opts.CreateUser != "" {
+		_ = user.CreateUser(user.User{
+			Email:    config.Opts.Email,
+			Username: config.Opts.CreateUser,
+		}, config.Opts.Password)
 	}
 
 	// CORE PROCESSING

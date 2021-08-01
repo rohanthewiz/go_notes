@@ -32,9 +32,11 @@ func Migrate() {
 	// According to GORM: Feel free to change your struct, AutoMigrate will keep your database up-to-date.
 	dbhandle.DB.AutoMigrate(
 		&note.Note{}, &note_change.NoteChange{}, &note_change.NoteFragment{},
-		&localsig.LocalSig{}, &user.User{}, &peer.Peer{}, &session.Session{})
+		&localsig.LocalSig{}, &user.User{}, &peer.Peer{}, &session.Session{},
+	)
 
 	dbhandle.DB.Model(&user.User{}).AddUniqueIndex("idx_user_guid", "guid")
+	dbhandle.DB.Model(&user.User{}).AddUniqueIndex("idx_user_email", "email")
 	dbhandle.DB.Model(&session.Session{}).AddUniqueIndex("idx_session_key", "session_key")
 	dbhandle.DB.Model(&note.Note{}).AddUniqueIndex("idx_note_guid", "guid")
 	dbhandle.DB.Model(&note.Note{}).AddUniqueIndex("idx_note_title", "title")

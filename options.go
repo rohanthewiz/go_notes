@@ -30,6 +30,10 @@ func getOpts() (map[string]string, map[string]interface{}) {
 	getPeerTokenPtr := flag.String("get_peer_token", "", "Get a token for interacting with this as server")
 	savePeerTokenPtr := flag.String("save_peer_token", "", "Save a token for interacting with this as server")
 	serverSecretPtr := flag.String("server_secret", "", "Include Server Secret")
+	createUser := flag.String("create_user", "", "Create a user - works with -email and -password")
+	// username := flag.String("username", "", "username - given on user create")
+	email := flag.String("email", "", "user email - given on user create")
+	password := flag.String("password", "", "password - given on user create")
 
 	qiPtr := flag.Int64("qi", 0, "Query for notes based on ID")
 	lPtr := flag.Int("l", -1, "Limit the number of notes returned")
@@ -89,6 +93,9 @@ func getOpts() (map[string]string, map[string]interface{}) {
 	config.Opts.IsLocalWebSvr = *svrPtr
 	config.Opts.IsSynchSvr = *synchServerPtr
 	config.Opts.IsRemoteSvr = *ptrRemoteSvr
+	config.Opts.CreateUser = *createUser
+	config.Opts.Email = *email
+	config.Opts.Password = *password
 
 	separator := "/"
 	if strings.Contains(strings.ToUpper(os.Getenv("OS")), "WINDOWS") {
@@ -96,21 +103,23 @@ func getOpts() (map[string]string, map[string]interface{}) {
 	}
 	strOpts["sep"] = separator
 
-	dbFile := "go_notes.sqlite"
+	const dbFile = "go_notes.sqlite"
 	var dbFolder string
 	var dbFullPath string
+
 	if len(*dbPtr) == 0 {
 		if len(os.Getenv("HOME")) > 0 {
 			dbFolder = os.Getenv("HOME")
 		} else if len(os.Getenv("HOMEDRIVE")) > 0 && len(os.Getenv("HOMEPATH")) > 0 {
 			dbFolder = os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
 		} else {
-			dbFolder = separator /// last resort
+			dbFolder = separator // last resort
 		}
 		dbFullPath = dbFolder + separator + dbFile
 	} else {
 		dbFullPath = *dbPtr
 	}
+
 	config.Opts.DBPath = dbFullPath
 
 	return strOpts, intfOpts

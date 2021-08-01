@@ -14,5 +14,6 @@ require (
 	github.com/mattn/go-sqlite3 v1.2.0
 	github.com/rohanthewiz/element v0.2.2
 	github.com/rohanthewiz/go_markdown v0.0.0-20160315044756-cbcef778537c
+	golang.org/x/crypto v0.0.0-20190325154230-a5d413f7728c
 	golang.org/x/net v0.0.0-20170110034938-60c41d1de8da // indirect
 )

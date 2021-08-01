@@ -13,7 +13,7 @@ type User struct {
 	Id             int64
 	FirstName      string
 	LastName       string
-	Email          string // will be the users unique identifier
+	Email          string // will be the users unique identifier (user's email will never be public)
 	Username       string // this is the user's handle in the system // login will be done via email though
 	Guid           string `sql:"type:text"` // GUID could be hash of users email //todo - Add Index
 	HashedPassword string `sql:"type:text"`
