@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"go_notes/note"
+	"go_notes/utils"
 	"log"
 	"net"
 	"sort"
@@ -339,14 +340,14 @@ func verifyNoteChangeApplied(nc NoteChange) {
 		if err != nil {
 			fmt.Println("Error retrieving the note changed")
 		} else {
-			pf("Note created:\n%v\n", retrievedNote)
+			pf("Note created:\n%v\n", utils.TruncString(retrievedNote.Guid, 12), retrievedNote.Title)
 		}
 	} else if nc.Operation == 2 {
 		retrievedFrag, err := retrievedChange.RetrieveNoteFrag()
 		if err != nil {
 			fmt.Println("Error retrieving the note fragment")
 		} else {
-			pf("Note Fragment created:\n%v\n", retrievedFrag)
+			pf("Note Fragment created:\n%v\n", retrievedFrag.Id, retrievedFrag.Bitmask, "-", retrievedFrag.Title)
 		}
 	}
 }

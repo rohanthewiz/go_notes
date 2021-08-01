@@ -227,7 +227,7 @@ func WebUpdateNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 			Body:        nb, Tag: trimWhitespace(v.Get("tag")),
 		}
 
-		pf("Updating note with: %v ...\n", nte)
+		pf("Updating note: %s %s...\n", nte.Guid, nte.Title)
 		AllFieldsUpdate(nte)
 		http.Redirect(w, r, "/qi/"+strconv.FormatUint(nte.Id, 10), http.StatusFound)
 	}
