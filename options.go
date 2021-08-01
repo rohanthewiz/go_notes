@@ -78,7 +78,11 @@ func getOpts() (map[string]string, map[string]interface{}) {
 	intfOpts["upd"] = *updPtr
 	intfOpts["get_server_secret"] = *getServerSecretPtr
 	intfOpts["setup_db"] = *setupDBPtr
+
+	config.Opts.Verbose = *verbosePtr
 	intfOpts["verbose"] = *verbosePtr
+
+	config.Opts.Debug = *debugPtr
 	intfOpts["debug"] = *debugPtr
 
 	// This is the better way to pass options
@@ -92,22 +96,22 @@ func getOpts() (map[string]string, map[string]interface{}) {
 	}
 	strOpts["sep"] = separator
 
-	db_file := "go_notes.sqlite"
-	var db_folder string
-	var db_full_path string
+	dbFile := "go_notes.sqlite"
+	var dbFolder string
+	var dbFullPath string
 	if len(*dbPtr) == 0 {
 		if len(os.Getenv("HOME")) > 0 {
-			db_folder = os.Getenv("HOME")
+			dbFolder = os.Getenv("HOME")
 		} else if len(os.Getenv("HOMEDRIVE")) > 0 && len(os.Getenv("HOMEPATH")) > 0 {
-			db_folder = os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
+			dbFolder = os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
 		} else {
-			db_folder = separator /// last resort
+			dbFolder = separator /// last resort
 		}
-		db_full_path = db_folder + separator + db_file
+		dbFullPath = dbFolder + separator + dbFile
 	} else {
-		db_full_path = *dbPtr
+		dbFullPath = *dbPtr
 	}
-	strOpts["db_path"] = db_full_path
+	config.Opts.DBPath = dbFullPath
 
 	return strOpts, intfOpts
 }

@@ -1,8 +1,10 @@
-package main
+package note_change
 
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"go_notes/dbhandle"
 	"go_notes/note"
 	"time"
 )
@@ -10,7 +12,7 @@ import (
 // Record note changes so we can replay them on synch
 type NoteChange struct {
 	Id             int64
-	Guid           string `sql:"size:40"` //Guid of the change
+	Guid           string `sql:"size:40"` // Guid of the change // TODO - make this PG text
 	NoteGuid       string `sql:"size:40"` // Guid of the note
 	Operation      int32  // 1: Create, 2: Update, 3: Delete, 9: Synch
 	Note           note.Note
@@ -21,9 +23,9 @@ type NoteChange struct {
 	CreatedAt      time.Time // A note change is never altered once created
 }
 
-const op_create int32 = 1
-const op_update int32 = 2
-const op_delete int32 = 3
+const OpCreate int32 = 1
+const OpUpdate int32 = 2
+const OpDelete int32 = 3
 
 // These are changes for a note
 type NoteFragment struct {
@@ -36,21 +38,21 @@ type NoteFragment struct {
 	Tag         string `sql:"size:128"`
 }
 
-type byCreatedAt []NoteChange
+type ByCreatedAt []NoteChange
 
-func (ncs byCreatedAt) Len() int {
+func (ncs ByCreatedAt) Len() int {
 	return len(ncs)
 }
-func (ncs byCreatedAt) Less(i int, j int) bool {
+func (ncs ByCreatedAt) Less(i int, j int) bool {
 	return ncs[i].CreatedAt.Before(ncs[j].CreatedAt)
 }
-func (ncs byCreatedAt) Swap(i int, j int) {
+func (ncs ByCreatedAt) Swap(i int, j int) {
 	ncs[i], ncs[j] = ncs[j], ncs[i]
 }
 
 func (nc *NoteChange) Retrieve() (NoteChange, error) {
 	var noteChanges []NoteChange
-	db.Where("guid = ?", nc.Guid).Limit(1).Find(&noteChanges)
+	dbhandle.DB.Where("guid = ?", nc.Guid).Limit(1).Find(&noteChanges)
 	if len(noteChanges) == 1 {
 		return noteChanges[0], nil
 	} else {
@@ -60,7 +62,7 @@ func (nc *NoteChange) Retrieve() (NoteChange, error) {
 
 func (nc *NoteChange) RetrieveNote() (note.Note, error) {
 	var nte note.Note
-	db.Model(nc).Related(&nte)
+	dbhandle.DB.Model(nc).Related(&nte)
 	if nte.Id > 0 {
 		return nte, nil
 	} else {
@@ -70,7 +72,7 @@ func (nc *NoteChange) RetrieveNote() (note.Note, error) {
 
 func (nc *NoteChange) RetrieveNoteFrag() (NoteFragment, error) {
 	var noteFrag NoteFragment
-	db.Model(nc).Related(&noteFrag)
+	dbhandle.DB.Model(nc).Related(&noteFrag)
 	if noteFrag.Id > 0 {
 		return noteFrag, nil
 	} else {
@@ -81,9 +83,9 @@ func (nc *NoteChange) RetrieveNoteFrag() (NoteFragment, error) {
 func (nc *NoteChange) Print() {
 	j_str, err := json.Marshal(*nc)
 	if err != nil {
-		pl(string(j_str))
+		fmt.Println(string(j_str))
 	} else {
-		pf("%+v\n", nc)
+		fmt.Printf("%+v\n", nc)
 	}
 	//	pf("NoteChange: {Id: %d, Guid: %s, NoteGuid: %s, Oper: %d\nNote: {Id: %d, Guid: %s, Title: %s}\nNoteFragment: {Id: %d, Bitmask: %d, Title: %s, Description: %s, Body: %s, Tag: %s}}\n",
 	//		nc.Id, shortSHA(nc.Guid), shortSHA(nc.NoteGuid), nc.Operation, nc.NoteId, shortSHA(nc.Note.Guid), nc.Note.Title,

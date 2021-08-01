@@ -3,38 +3,20 @@ package main
 import (
 	"encoding/gob"
 	"fmt"
+	"go_notes/dbhandle"
 	"go_notes/note"
+	"go_notes/note/note_change"
 	"go_notes/utils"
 	"log"
 	"net"
 	"sort"
 	"strconv"
-	"time"
 )
-
-type LocalSig struct {
-	Id           int64
-	Guid         string `sql:"size:40"`
-	ServerSecret string `sql:"size:40"`
-	CreatedAt    time.Time
-}
-
-// A Peer represents a single client (db)
-type Peer struct {
-	Id        int64
-	Guid      string `sql:"size:40"`
-	Token     string `sql:"size:40"`
-	User      string // (GUID) has one user //todo - Add Index
-	Name      string `sql:"size:64"`
-	SynchPos  string `sql:"size:40"` // Last changeset applied
-	CreatedAt time.Time
-	UpdatedAt time.Time
-}
 
 type Message struct {
 	Type    string
 	Param   string
-	NoteChg NoteChange
+	NoteChg note_change.NoteChange
 }
 
 const SynchPort string = "8090"
@@ -53,17 +35,17 @@ func synchClient(host string, serverSecret string) {
 	msg := Message{} // init to empty struct
 	enc := gob.NewEncoder(conn)
 	dec := gob.NewDecoder(conn)
-	defer sendMsg(enc, Message{Type: "Hangup", Param: "", NoteChg: NoteChange{}})
+	defer sendMsg(enc, Message{Type: "Hangup", Param: "", NoteChg: note_change.NoteChange{}})
 
 	// Send handshake - Client initiates
 	sendMsg(enc, Message{
-		Type: "WhoAreYou", Param: whoAmI(), NoteChg: NoteChange{Guid: serverSecret}, // borrow NoteChange.Guid
+		Type: "WhoAreYou", Param: whoAmI(), NoteChg: note_change.NoteChange{Guid: serverSecret}, // borrow NoteChange.Guid
 	})
 
 	rcxMsg(dec, &msg) // Decode the response
 	if msg.Type == "WhoIAm" {
 		peerId := msg.Param // retrieve the server's guid
-		pl("The server's id is", shortSHA(peerId))
+		utils.Pl("The server's id is", utils.ShortSHA(peerId))
 		if len(peerId) != 40 {
 			fmt.Println("The server's id is invalid. Run the server once with the -setup_db option")
 			return
@@ -104,13 +86,13 @@ func synchClient(host string, serverSecret string) {
 				msg = Message{}
 				rcxMsg(dec, &msg)
 				if msg.NoteChg.Id > 0 && msg.NoteChg.Guid == peer.SynchPos {
-					pf("We are already in synch with peer: %s at note_change: %s\n",
-						shortSHA(peerId), shortSHA(lastChange.Guid))
+					utils.Pf("We are already in synch with peer: %s at note_change: %s\n",
+						utils.ShortSHA(peerId), utils.ShortSHA(lastChange.Guid))
 					return
 				}
 			} // else we probably have never synched so carry on
 		}
-		pf("Last known Synch position is \"%s\"\n", shortSHA(peer.SynchPos))
+		utils.Pf("Last known Synch position is \"%s\"\n", utils.ShortSHA(peer.SynchPos))
 
 		// Get Server Changes
 		sendMsg(enc, Message{Type: "NumberOfChanges", Param: peer.SynchPos}) // heads up on number of changes
@@ -120,20 +102,20 @@ func synchClient(host string, serverSecret string) {
 			fmt.Println("Could not decode the number of change messages")
 			return
 		}
-		pl(numChanges, "changes")
+		utils.Pl(numChanges, "changes")
 
-		peerChanges := make([]NoteChange, numChanges) // preallocate slice (optimization)
-		sendMsg(enc, Message{Type: "SendChanges"})    // please send the actual changes
+		peerChanges := make([]note_change.NoteChange, numChanges) // preallocate slice (optimization)
+		sendMsg(enc, Message{Type: "SendChanges"})                // please send the actual changes
 		for i := 0; i < numChanges; i++ {
 			msg = Message{}
 			rcxMsg(dec, &msg)
 			peerChanges[i] = msg.NoteChg
 		}
-		pf("\n%d server changes received:\n", numChanges)
+		utils.Pf("\n%d server changes received:\n", numChanges)
 
 		// Get Local Changes
 		localChanges := retrieveLocalNoteChangesFromSynchPoint(peer.SynchPos)
-		pf("%d local changes after synch point found\n", len(localChanges))
+		utils.Pf("%d local changes after synch point found\n", len(localChanges))
 		// Push local changes to server
 		if len(localChanges) > 0 {
 			sendMsg(enc, Message{Type: "NumberOfClientChanges",
@@ -143,18 +125,18 @@ func synchClient(host string, serverSecret string) {
 				msg.Type = "NoteChange"
 				msg.Param = ""
 				var nte note.Note
-				var noteFrag NoteFragment
+				var noteFrag note_change.NoteFragment
 				for _, change := range localChanges {
 					nte = note.Note{}
-					noteFrag = NoteFragment{}
+					noteFrag = note_change.NoteFragment{}
 					// We have the change but now we need the NoteFragment or Note depending on the operation type
 					if change.Operation == 1 {
-						db.Where("id = ?", change.NoteId).First(&nte)
+						dbhandle.DB.Where("id = ?", change.NoteId).First(&nte)
 						nte.Id = 0
 						change.Note = nte
 					}
 					if change.Operation == 2 {
-						db.Where("id = ?", change.NoteFragmentId).First(&noteFrag)
+						dbhandle.DB.Where("id = ?", change.NoteFragmentId).First(&noteFrag)
 						change.NoteFragment = noteFrag
 					}
 					msg.NoteChg = change
@@ -172,10 +154,10 @@ func synchClient(host string, serverSecret string) {
 		// Mark Synch Point with a special NoteChange (Operation: 9)
 		// Save on client and server
 		if len(peerChanges) > 0 || len(localChanges) > 0 {
-			synch_nc := NoteChange{Guid: generateSHA1(), Operation: 9}
-			db.Save(&synch_nc)
+			synch_nc := note_change.NoteChange{Guid: utils.GenerateSHA1(), Operation: 9}
+			dbhandle.DB.Save(&synch_nc)
 			peer.SynchPos = synch_nc.Guid
-			db.Save(&peer)
+			dbhandle.DB.Save(&peer)
 			// Mark the server with the same NoteChange
 			msg.NoteChg = synch_nc
 			msg.Type = "NewSynchPoint"
@@ -192,19 +174,19 @@ func synchClient(host string, serverSecret string) {
 	defer fmt.Println("Synch Operation complete")
 }
 
-func processChanges(peerChanges *[]NoteChange, localChanges *[]NoteChange) {
-	pl("Processing received changes...")
-	sort.Sort(byCreatedAt(*peerChanges)) // we will apply in created order
-	var localChange NoteChange
+func processChanges(peerChanges *[]note_change.NoteChange, localChanges *[]note_change.NoteChange) {
+	utils.Pl("Processing received changes...")
+	sort.Sort(note_change.ByCreatedAt(*peerChanges)) // we will apply in created order
+	var localChange note_change.NoteChange
 	var skip bool
 
 	for _, peerChange := range *peerChanges {
 		// If we already have this NoteChange locally then skip // same change
-		localChange = NoteChange{} // make sure local_change is inited here
+		localChange = note_change.NoteChange{} // make sure local_change is inited here
 		// otherwise GORM uses its id in the query - weird!
-		db.Where("guid = ?", peerChange.Guid).First(&localChange)
+		dbhandle.DB.Where("guid = ?", peerChange.Guid).First(&localChange)
 		if localChange.Id > 1 {
-			pf("We already have NoteChange: %s -- skipping\n", shortSHA(localChange.Guid))
+			utils.Pf("We already have NoteChange: %s -- skipping\n", utils.ShortSHA(localChange.Guid))
 			continue // we already have that NC
 		}
 		// If there is a newer local change of the same note and field then skip
@@ -225,51 +207,51 @@ func processChanges(peerChanges *[]NoteChange, localChanges *[]NoteChange) {
 		}
 
 		// Apply Changes
-		pl("____________________APPLYING CHANGE_________________________________")
+		utils.Pl("____________________APPLYING CHANGE_________________________________")
 		performNoteChange(peerChange)
 		verifyNoteChangeApplied(peerChange)
 	}
 }
 
-func retrieveLastChangeForNote(note_guid string) NoteChange {
-	var noteChange NoteChange
-	db.Where("note_guid = ?", note_guid).Order("created_at desc").Limit(1).Find(&noteChange)
+func retrieveLastChangeForNote(note_guid string) note_change.NoteChange {
+	var noteChange note_change.NoteChange
+	dbhandle.DB.Where("note_guid = ?", note_guid).Order("created_at desc").Limit(1).Find(&noteChange)
 	return noteChange
 }
 
-func retrieveLatestChange() NoteChange {
-	var noteChange NoteChange
-	db.Order("created_at desc").First(&noteChange)
+func retrieveLatestChange() note_change.NoteChange {
+	var noteChange note_change.NoteChange
+	dbhandle.DB.Order("created_at desc").First(&noteChange)
 	return noteChange
 }
 
 // Create, Update or Delete a note, while tracking the change
-func performNoteChange(nc NoteChange) bool {
+func performNoteChange(nc note_change.NoteChange) bool {
 	nc.Print()
 	// Get The latest change for the current note in the local changeset
 	lastNC := retrieveLastChangeForNote(nc.NoteGuid)
 
 	switch nc.Operation {
-	case op_create:
+	case note_change.OpCreate:
 		if lastNC.Id > 0 {
-			fmt.Println("Note - Title", lastNC.Note.Title, "Guid:", shortSHA(lastNC.NoteGuid), "already exists locally - cannot create")
+			fmt.Println("Note - Title", lastNC.Note.Title, "Guid:", utils.ShortSHA(lastNC.NoteGuid), "already exists locally - cannot create")
 			return false
 		}
 		nc.Note.Id = 0 // Make sure the embedded note object has a zero id for creation
-	case op_update:
+	case note_change.OpUpdate:
 		nte, err := getNote(nc.NoteGuid)
 		if err != nil {
-			fmt.Println("Cannot update a non-existent note:", shortSHA(nc.NoteGuid))
+			fmt.Println("Cannot update a non-existent note:", utils.ShortSHA(nc.NoteGuid))
 			return false
 		}
 		updateNote(nte, nc)
 		nc.NoteFragment.Id = 0 // Make sure the embedded note_fragment has a zero id for creation
-	case op_delete:
+	case note_change.OpDelete:
 		if lastNC.Id < 1 {
-			fmt.Printf("Cannot delete a non-existent note (Guid:%s)", shortSHA(nc.NoteGuid))
+			fmt.Printf("Cannot delete a non-existent note (Guid:%s)", utils.ShortSHA(nc.NoteGuid))
 			return false
 		} else {
-			db.Where("guid = ?", lastNC.NoteGuid).Delete(note.Note{})
+			dbhandle.DB.Where("guid = ?", lastNC.NoteGuid).Delete(note.Note{})
 		}
 	default:
 		return false
@@ -277,7 +259,7 @@ func performNoteChange(nc NoteChange) bool {
 	return saveNoteChange(nc)
 }
 
-func updateNote(n note.Note, nc NoteChange) {
+func updateNote(n note.Note, nc note_change.NoteChange) {
 	// Update bitmask allowed fields - this allows us to set a field to ""  // Updates are stored as note fragments
 	if nc.NoteFragment.Bitmask&0x8 == 8 {
 		n.Title = nc.NoteFragment.Title
@@ -291,63 +273,63 @@ func updateNote(n note.Note, nc NoteChange) {
 	if nc.NoteFragment.Bitmask&0x1 == 1 {
 		n.Tag = nc.NoteFragment.Tag
 	}
-	db.Save(&n)
+	dbhandle.DB.Save(&n)
 }
 
 // Save the change object which will create a Note on CreateOp or a NoteFragment on UpdateOp
-func saveNoteChange(nc NoteChange) bool {
-	pf("Saving change object...%s\n", shortSHA(nc.Guid))
+func saveNoteChange(nc note_change.NoteChange) bool {
+	utils.Pf("Saving change object...%s\n", utils.ShortSHA(nc.Guid))
 	// Make sure all ids are zeroed - A non-zero Id will not be created
 	nc.Id = 0
 
-	db.Create(&nc)         // will auto create contained objects too and it's smart - 'nil' children will not be created :-)
-	if !db.NewRecord(nc) { // was it saved?
-		pl("Note change saved:", shortSHA(nc.Guid), ", Operation:", nc.Operation)
+	dbhandle.DB.Create(&nc)         // will auto create contained objects too and it's smart - 'nil' children will not be created :-)
+	if !dbhandle.DB.NewRecord(nc) { // was it saved?
+		utils.Pl("Note change saved:", utils.ShortSHA(nc.Guid), ", Operation:", nc.Operation)
 		return true
 	}
 	fmt.Println("Failed to record note changes.", nc.Note.Title, "Changed note Guid:",
-		shortSHA(nc.NoteGuid), "NoteChange Guid:", shortSHA(nc.Guid))
+		utils.ShortSHA(nc.NoteGuid), "NoteChange Guid:", utils.ShortSHA(nc.Guid))
 	return false
 }
 
 // Get all local NCs later than the synchPoint
-func retrieveLocalNoteChangesFromSynchPoint(synch_guid string) []NoteChange {
-	var noteChange NoteChange
-	var noteChanges []NoteChange
+func retrieveLocalNoteChangesFromSynchPoint(synch_guid string) []note_change.NoteChange {
+	var noteChange note_change.NoteChange
+	var noteChanges []note_change.NoteChange
 
-	db.Where("guid = ?", synch_guid).First(&noteChange) // There should be only one
-	pf("Synch point note change is: %v\n", noteChange)
+	dbhandle.DB.Where("guid = ?", synch_guid).First(&noteChange) // There should be only one
+	utils.Pf("Synch point note change is: %v\n", noteChange)
 	if noteChange.Id < 1 {
-		pl("Can't find synch point locally - retrieving all note_changes", shortSHA(synch_guid))
-		db.Find(&noteChanges).Order("created_at, asc")
+		utils.Pl("Can't find synch point locally - retrieving all note_changes", utils.ShortSHA(synch_guid))
+		dbhandle.DB.Find(&noteChanges).Order("created_at, asc")
 	} else {
-		pl("Attempting to retrieve note_changes beyond synch_point")
-		db.Find(&noteChanges, "created_at > ?", noteChange.CreatedAt).Order("created_at asc")
+		utils.Pl("Attempting to retrieve note_changes beyond synch_point")
+		dbhandle.DB.Find(&noteChanges, "created_at > ?", noteChange.CreatedAt).Order("created_at asc")
 	}
 	return noteChanges
 }
 
 // VERIFICATION
 
-func verifyNoteChangeApplied(nc NoteChange) {
-	pl("----------------------------------")
+func verifyNoteChangeApplied(nc note_change.NoteChange) {
+	utils.Pl("----------------------------------")
 	retrievedChange, err := nc.Retrieve()
 	if err != nil {
 		fmt.Println("Error retrieving the note change")
 	} else if nc.Operation == 1 {
 		retrievedNote, err := retrievedChange.RetrieveNote()
-		pf("retrievedNote: %s\n", retrievedNote)
+		utils.Pf("retrievedNote: %s\n", retrievedNote)
 		if err != nil {
 			fmt.Println("Error retrieving the note changed")
 		} else {
-			pf("Note created:\n%v\n", utils.TruncString(retrievedNote.Guid, 12), retrievedNote.Title)
+			utils.Pf("Note created:\n%v\n", utils.TruncString(retrievedNote.Guid, 12), retrievedNote.Title)
 		}
 	} else if nc.Operation == 2 {
 		retrievedFrag, err := retrievedChange.RetrieveNoteFrag()
 		if err != nil {
 			fmt.Println("Error retrieving the note fragment")
 		} else {
-			pf("Note Fragment created:\n%v\n", retrievedFrag.Id, retrievedFrag.Bitmask, "-", retrievedFrag.Title)
+			utils.Pf("Note Fragment created:\n%v\n", retrievedFrag.Id, retrievedFrag.Bitmask, "-", retrievedFrag.Title)
 		}
 	}
 }

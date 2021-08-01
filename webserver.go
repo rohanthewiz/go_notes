@@ -4,14 +4,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"go_notes/dbhandle"
 	"go_notes/note"
 	"go_notes/note/web"
+	"go_notes/utils"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
 	"path"
 	"strconv"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -19,7 +22,7 @@ import (
 func webserver(port string) {
 	router := httprouter.New()
 	doRoutes(router)
-	pf("Web server listening on %s... Ctrl-C to quit\n", port)
+	utils.Pf("Web server listening on %s... Ctrl-C to quit\n", port)
 	log.Fatal(http.ListenAndServe(":"+port, router))
 }
 
@@ -115,7 +118,7 @@ func QueryTitleAndWildCard(w http.ResponseWriter, r *http.Request, p httprouter.
 func WebNoteForm(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
 	if id, err := strconv.ParseInt(p.ByName("id"), 10, 64); err == nil {
 		var nte note.Note
-		db.Where("id = ?", id).First(&nte) // get the original for comparision
+		dbhandle.DB.Where("id = ?", id).First(&nte) // get the original for comparision
 		fmt.Printf("note at WebNoteForm %#v\n", nte.Guid)
 		if nte.Id > 0 {
 			err = web.NoteForm(w, nte)
@@ -149,17 +152,17 @@ func WebCreateNote(w http.ResponseWriter, r *http.Request, _ httprouter.Params) 
 		return
 	}
 
-	nb := trimWhitespace(v.Get("note_body"))
+	nb := strings.TrimSpace(v.Get("note_body"))
 	nb = note.UpsertKeyNotes(nb) // prepend KeyNotes - hardwired ON for now
 
-	tl := trimWhitespace(v.Get("title"))
+	tl := strings.TrimSpace(v.Get("title"))
 	if tl == "" {
 		HandleRequestErr(errors.New("title should not be empty"), w)
 		return
 	}
 
-	id := CreateNote(tl, trimWhitespace(v.Get("descr")),
-		nb, trimWhitespace(v.Get("tag")))
+	id := CreateNote(tl, strings.TrimSpace(v.Get("descr")),
+		nb, strings.TrimSpace(v.Get("tag")))
 	http.Redirect(w, r, "/qi/"+strconv.FormatUint(id, 10), http.StatusFound)
 }
 
@@ -219,15 +222,15 @@ func WebUpdateNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 			return
 		}
 
-		nb := trimWhitespace(v.Get("note_body"))
+		nb := strings.TrimSpace(v.Get("note_body"))
 		nb = note.UpsertKeyNotes(nb) // prepend KeyNotes - hardwired ON for now
 
-		nte = note.Note{Id: id, Title: trimWhitespace(v.Get("title")),
-			Description: trimWhitespace(v.Get("descr")),
-			Body:        nb, Tag: trimWhitespace(v.Get("tag")),
+		nte = note.Note{Id: id, Title: strings.TrimSpace(v.Get("title")),
+			Description: strings.TrimSpace(v.Get("descr")),
+			Body:        nb, Tag: strings.TrimSpace(v.Get("tag")),
 		}
 
-		pf("Updating note: %s %s...\n", nte.Guid, nte.Title)
+		utils.Pf("Updating note: %s %s...\n", nte.Guid, nte.Title)
 		AllFieldsUpdate(nte)
 		http.Redirect(w, r, "/qi/"+strconv.FormatUint(nte.Id, 10), http.StatusFound)
 	}

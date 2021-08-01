@@ -4,6 +4,11 @@ package main
 import (
 	"errors"
 	"fmt"
+	db "go_notes/dbhandle"
+	"go_notes/localsig"
+	"go_notes/migration"
+	"go_notes/peer"
+	"go_notes/utils"
 	"strings"
 )
 
@@ -11,11 +16,11 @@ const authFailMsg = "Authentication failure. Generate authorization token with -
 
 // Get local DB signature
 func whoAmI() string {
-	var local_sig LocalSig
-	db.First(&local_sig)
+	var local_sig localsig.LocalSig
+	db.DB.First(&local_sig)
 	if local_sig.Id < 1 {
-		ensureDBSig()
-		db.First(&local_sig)
+		migration.EnsureDBSig()
+		db.DB.First(&local_sig)
 		if local_sig.Id < 1 {
 			fmt.Println("Could not locate or create local database signature.\nYou should back up your notes, delete the local database, import your notes then try again")
 			return ""
@@ -25,8 +30,8 @@ func whoAmI() string {
 }
 
 func getServerSecret() string {
-	var local_sig LocalSig
-	db.First(&local_sig)
+	var local_sig localsig.LocalSig
+	db.DB.First(&local_sig)
 	if local_sig.Id > 0 {
 		return local_sig.ServerSecret
 	}
@@ -35,13 +40,13 @@ func getServerSecret() string {
 
 // We no longer create Peer here
 // since peer needs to have been created to have an auth token
-func getPeerByGuid(peer_id string) (Peer, error) {
-	var peer Peer
-	db.Where("guid = ?", peer_id).First(&peer)
-	if peer.Id < 1 {
-		return peer, errors.New("Could not create peer")
+func getPeerByGuid(peer_id string) (peer.Peer, error) {
+	var p peer.Peer
+	db.DB.Where("guid = ?", peer_id).First(&p)
+	if p.Id < 1 {
+		return p, errors.New("Could not create peer")
 	}
-	return peer, nil
+	return p, nil
 }
 
 // Create Peer entry on server returning peer's auth token
@@ -49,26 +54,26 @@ func getPeerByGuid(peer_id string) (Peer, error) {
 // This should be called on the server before first synch
 // So the server will know of the peer and the token needed for access ahead of time
 func getPeerToken(peer_id string) (string, error) {
-	var peer Peer
-	db.Where("guid = ?", peer_id).First(&peer)
-	if peer.Id < 1 {
-		token := generateSHA1()
-		db.Create(&Peer{Guid: peer_id, Token: token})
-		pl("Creating new peer entry for:", shortSHA(peer_id))
-		db.Where("guid = ?", peer_id).First(&peer) // read it back
-		if peer.Id < 1 {
+	var p peer.Peer
+	db.DB.Where("guid = ?", peer_id).First(&p)
+	if p.Id < 1 {
+		token := utils.GenerateSHA1()
+		db.DB.Create(peer.Peer{Guid: peer_id, Token: token})
+		utils.Pl("Creating new peer entry for:", utils.ShortSHA(peer_id))
+		db.DB.Where("guid = ?", peer_id).First(&p) // read it back
+		if p.Id < 1 {
 			return "", errors.New("Could not create peer entry")
 		} else {
 			return token, nil
 		}
 		// Peer already exists - make sure it has an auth token
-	} else if len(peer.Token) == 0 {
-		token := generateSHA1()
-		peer.Token = token
-		db.Save(&peer)
+	} else if len(p.Token) == 0 {
+		token := utils.GenerateSHA1()
+		p.Token = token
+		db.DB.Save(&p)
 		return token, nil
 	} else {
-		return peer.Token, nil
+		return p.Token, nil
 	}
 }
 
@@ -76,28 +81,28 @@ func getPeerToken(peer_id string) (string, error) {
 func savePeerToken(compound string) {
 	arr := strings.Split(strings.TrimSpace(compound), "-")
 	peer_id, token := arr[0], arr[1]
-	pf("Peer: %s, Auth Token: %s\n", peer_id, token)
+	utils.Pf("Peer: %s, Auth Token: %s\n", peer_id, token)
 	err := setPeerToken(peer_id, token) // todo pull the error msg out of the err object
 	if err != nil {
-		pl(err)
+		utils.Pl(err)
 	}
 }
 
 func setPeerToken(peer_id string, token string) error {
-	var peer Peer
-	db.Where("guid = ?", peer_id).First(&peer)
-	if peer.Id < 1 {
-		pl("Creating new peer entry for:", shortSHA(peer_id))
-		db.Create(&Peer{Guid: peer_id, Token: token})
+	var p peer.Peer
+	db.DB.Where("guid = ?", peer_id).First(&p)
+	if p.Id < 1 {
+		utils.Pl("Creating new peer entry for:", utils.ShortSHA(peer_id))
+		db.DB.Create(&peer.Peer{Guid: peer_id, Token: token})
 		// Verify
-		db.Where("guid = ?", peer_id).First(&peer)
-		if peer.Id < 1 {
+		db.DB.Where("guid = ?", peer_id).First(&p)
+		if p.Id < 1 {
 			return errors.New("Could not create peer entry")
 		}
 	} else { // Peer already exists - make sure it has an auth token
-		peer.Token = token // always update
-		db.Save(&peer)
-		pf("Updated token for peer entry: %s", shortSHA(peer_id))
+		p.Token = token // always update
+		db.DB.Save(&p)
+		utils.Pf("Updated token for peer entry: %s", utils.ShortSHA(peer_id))
 	}
 	return nil
 }

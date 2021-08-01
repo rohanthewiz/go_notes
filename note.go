@@ -3,7 +3,10 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"go_notes/dbhandle"
 	"go_notes/note"
+	"go_notes/note/note_change"
+	"go_notes/utils"
 	"log"
 	"os"
 	"strings"
@@ -15,12 +18,12 @@ const LineSeparator string = "--------------------------------------------------
 func CreateNote(title string, desc string, body string, tag string) uint64 {
 	if title != "" {
 		var notes []note.Note
-		db.Where("title = ?", title).Find(&notes)
+		dbhandle.DB.Where("title = ?", title).Find(&notes)
 		if len(notes) > 0 {
 			_, _ = fmt.Println("Error: Title", title, "is not unique!")
 			return 0
 		}
-		return DoCreate(note.Note{Guid: generateSHA1(), Title: title, Description: desc,
+		return DoCreate(note.Note{Guid: utils.GenerateSHA1(), Title: title, Description: desc,
 			Body: body, Tag: tag})
 	} else {
 		_, _ = fmt.Println("Title (-t) is required if creating a note. Remember to precede option flags with '-'")
@@ -30,20 +33,20 @@ func CreateNote(title string, desc string, body string, tag string) uint64 {
 
 // The core create method
 func DoCreate(nte note.Note) (id uint64) {
-	pl("Creating new note...")
+	utils.Pl("Creating new note...")
 	performNoteChange(
-		NoteChange{
-			Guid: generateSHA1(), Operation: 1,
+		note_change.NoteChange{
+			Guid: utils.GenerateSHA1(), Operation: 1,
 			NoteGuid:     nte.Guid,
 			Note:         nte,
-			NoteFragment: NoteFragment{},
+			NoteFragment: note_change.NoteFragment{},
 		})
 
 	if n, err := getNote(nte.Guid); err != nil {
-		pf("Error creating note %v\n", nte)
+		utils.Pf("Error creating note %v\n", nte)
 		return 0
 	} else {
-		pf("Record saved: [%d] %s\n", n.Id, n.Title)
+		utils.Pf("Record saved: [%d] %s\n", n.Id, n.Title)
 		id = n.Id
 	}
 	return id
@@ -51,13 +54,13 @@ func DoCreate(nte note.Note) (id uint64) {
 
 func AllFieldsUpdate(nte note.Note) { // note is an unsaved note prepared with Id and all other fields even if not changed
 	var orig note.Note
-	db.Where("id = ?", nte.Id).First(&orig) // get the original for comparision
+	dbhandle.DB.Where("id = ?", nte.Id).First(&orig) // get the original for comparision
 	// Actual update
-	db.Table("notes").Where("id = ?", nte.Id).Updates(map[string]interface{}{
+	dbhandle.DB.Table("notes").Where("id = ?", nte.Id).Updates(map[string]interface{}{
 		"title": nte.Title, "description": nte.Description, "body": nte.Body, "tag": nte.Tag,
 		"updated_at": time.Now(),
 	})
-	var nf NoteFragment = NoteFragment{}
+	var nf note_change.NoteFragment = note_change.NoteFragment{}
 	if orig.Title != nte.Title { //Build NoteFragment
 		nf.Title = nte.Title
 		nf.Bitmask |= 8
@@ -74,10 +77,10 @@ func AllFieldsUpdate(nte note.Note) { // note is an unsaved note prepared with I
 		nf.Tag = nte.Tag
 		nf.Bitmask |= 1
 	}
-	nc := NoteChange{Guid: generateSHA1(), NoteGuid: orig.Guid, Operation: op_update, NoteFragment: nf}
-	db.Save(&nc)
+	nc := note_change.NoteChange{Guid: utils.GenerateSHA1(), NoteGuid: orig.Guid, Operation: note_change.OpUpdate, NoteFragment: nf}
+	dbhandle.DB.Save(&nc)
 	if nc.Id > 0 {
-		pf("NoteChange (%s) created successfully\n", shortSHA(nc.Guid))
+		utils.Pf("NoteChange (%s) created successfully\n", utils.ShortSHA(nc.Guid))
 	}
 }
 
@@ -93,7 +96,7 @@ func UpdateNotes(notes []note.Note) {
 		} // Get keyboard input
 		if input == "y" || input == "Y" {
 			reader := bufio.NewReader(os.Stdin)
-			var nf = NoteFragment{}
+			var nf = note_change.NoteFragment{}
 
 			_, _ = fmt.Println("\nTitle-->" + n.Title)
 			fmt.Println("Enter new Title (or '+ blah' to append, or <ENTER> for no change)")
@@ -165,11 +168,11 @@ func UpdateNotes(notes []note.Note) {
 				nf.Bitmask |= 1
 			}
 
-			db.Save(&n)
-			nc := NoteChange{Guid: generateSHA1(), NoteGuid: n.Guid, Operation: op_update, NoteFragment: nf}
-			db.Save(&nc)
+			dbhandle.DB.Save(&n)
+			nc := note_change.NoteChange{Guid: utils.GenerateSHA1(), NoteGuid: n.Guid, Operation: note_change.OpUpdate, NoteFragment: nf}
+			dbhandle.DB.Save(&nc)
 			if nc.Id > 0 {
-				pf("NoteChange (%s) created successfully\n", shortSHA(nc.Guid))
+				utils.Pf("NoteChange (%s) created successfully\n", utils.ShortSHA(nc.Guid))
 			}
 
 			listNotes([]note.Note{n}, false) // [:] means all of the slice
@@ -196,13 +199,13 @@ func DeleteNotes(notes []note.Note) {
 
 func DoDelete(nte note.Note) {
 	if nte == (note.Note{}) {
-		pf("Internal error: cannot delete non-existent note")
+		utils.Pf("Internal error: cannot delete non-existent note")
 		return
 	}
-	db.Delete(&nte)
-	nc := NoteChange{Guid: generateSHA1(), NoteGuid: nte.Guid, Operation: op_delete}
-	db.Save(&nc)
+	dbhandle.DB.Delete(&nte)
+	nc := note_change.NoteChange{Guid: utils.GenerateSHA1(), NoteGuid: nte.Guid, Operation: note_change.OpDelete}
+	dbhandle.DB.Save(&nc)
 	if nc.Id > 0 { // Hopefully nc was reloaded
-		pf("NoteChange (%s) created successfully\n", shortSHA(nc.Guid))
+		utils.Pf("NoteChange (%s) created successfully\n", utils.ShortSHA(nc.Guid))
 	}
 }

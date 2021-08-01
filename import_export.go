@@ -4,7 +4,9 @@ import (
 	"encoding/csv"
 	"encoding/gob"
 	"fmt"
+	"go_notes/dbhandle"
 	"go_notes/note"
+	"go_notes/utils"
 	"log"
 	"os"
 )
@@ -87,18 +89,18 @@ func importGob(in_file string) {
 		if exists {
 			fmt.Println("This note already exists: ", nte.Title)
 			if n.UpdatedAt.After(nte.UpdatedAt) {
-				pl("The imported note is newer, updating...")
+				utils.Pl("The imported note is newer, updating...")
 				nte.Description = n.Description
 				nte.Body = n.Body
 				nte.Tag = n.Tag
-				db.Save(&nte)
+				dbhandle.DB.Save(&nte)
 				listNotes([]note.Note{nte}, false) // [:] means all of the slice
 			} else {
 				fmt.Println("The imported note is not newer, ignoring...")
 			}
 		} else {
-			DoCreate(note.Note{Guid: generateSHA1(), Title: n.Title, Description: n.Description, Body: n.Body, Tag: n.Tag})
-			fmt.Printf("Created -->Guid: %s, Title: %s - Desc: %s\nBody: %s\nTags: %s\n", shortSHA(n.Guid), n.Title, n.Description, n.Body, n.Tag)
+			DoCreate(note.Note{Guid: utils.GenerateSHA1(), Title: n.Title, Description: n.Description, Body: n.Body, Tag: n.Tag})
+			fmt.Printf("Created -->Guid: %s, Title: %s - Desc: %s\nBody: %s\nTags: %s\n", utils.ShortSHA(n.Guid), n.Title, n.Description, n.Body, n.Tag)
 		}
 	}
 }
@@ -133,7 +135,7 @@ func importCsv(in_file string) {
 			// we could check an 'update on import' option here, set the corresponding fields, then save
 			// or we could decide to update based on last_updated, but the export would have to save updated times - this would be a gob format
 		} else {
-			DoCreate(note.Note{Guid: generateSHA1(), Title: f[0], Description: f[1], Body: f[2], Tag: f[3]})
+			DoCreate(note.Note{Guid: utils.GenerateSHA1(), Title: f[0], Description: f[1], Body: f[2], Tag: f[3]})
 			fmt.Printf("Created -->Title: %s - Desc: %s\nBody: %s\nTags: %s\n", f[0], f[1], f[2], f[3])
 		}
 	}

@@ -4,12 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"go_notes/config"
+	"go_notes/dbhandle"
 	"go_notes/note"
 )
 
 func getNote(guid string) (note.Note, error) {
 	var n note.Note
-	db.Where("guid = ?", guid).First(&n)
+	dbhandle.DB.Where("guid = ?", guid).First(&n)
 	if n.Id != 0 {
 		return n, nil
 	} else {
@@ -19,7 +20,7 @@ func getNote(guid string) (note.Note, error) {
 
 func findNoteByTitle(title string) (bool, note.Note) {
 	var notes []note.Note
-	db.Where("title = ?", title).Limit(1).Find(&notes)
+	dbhandle.DB.Where("title = ?", title).Limit(1).Find(&notes)
 	if len(notes) == 1 {
 		return true, notes[0]
 	} else {
@@ -29,7 +30,7 @@ func findNoteByTitle(title string) (bool, note.Note) {
 
 func findNoteById(id int64) note.Note {
 	var n note.Note
-	db.First(&n, id)
+	dbhandle.DB.First(&n, id)
 	return n
 }
 
@@ -40,12 +41,12 @@ func queryNotes() []note.Note {
 	var notes []note.Note
 	// The order of the if here is very important - esp. for the webserver!
 	if optsIntf["ql"] == true {
-		db.Order("updated_at desc").Limit(1).Find(&notes)
+		dbhandle.DB.Order("updated_at desc").Limit(1).Find(&notes)
 	} else if optsIntf["qi"] != nil && optsIntf["qi"].(int64) != 0 {
-		db.Find(&notes, optsIntf["qi"].(int64))
+		dbhandle.DB.Find(&notes, optsIntf["qi"].(int64))
 		// TAG and wildcard
 	} else if optsStr["qg"] != "" && optsStr["q"] != "" {
-		db.Where("tag LIKE ? AND (title LIKE ? OR description LIKE ? OR body LIKE ?)",
+		dbhandle.DB.Where("tag LIKE ? AND (title LIKE ? OR description LIKE ? OR body LIKE ?)",
 			"%"+optsStr["qg"]+"%",
 			"%"+optsStr["q"]+"%",
 			"%"+optsStr["q"]+"%",
@@ -53,7 +54,7 @@ func queryNotes() []note.Note {
 		).Order("updated_at desc").Limit(optsIntf["l"].(int)).Find(&notes)
 		// TITLE and wildcard
 	} else if optsStr["qt"] != "" && optsStr["q"] != "" {
-		db.Where("title LIKE ? AND (tag LIKE ? OR description LIKE ? OR body LIKE ?)",
+		dbhandle.DB.Where("title LIKE ? AND (tag LIKE ? OR description LIKE ? OR body LIKE ?)",
 			"%"+optsStr["qt"]+"%",
 			"%"+optsStr["q"]+"%",
 			"%"+optsStr["q"]+"%",
@@ -61,10 +62,10 @@ func queryNotes() []note.Note {
 		).Order("updated_at desc").Limit(optsIntf["l"].(int)).Find(&notes)
 		//
 	} else if optsStr["q"] == "all" {
-		db.Order("updated_at desc").Limit(optsIntf["l"].(int)).Find(&notes)
+		dbhandle.DB.Order("updated_at desc").Limit(optsIntf["l"].(int)).Find(&notes)
 		// General query
 	} else if optsStr["q"] != "" {
-		db.Where("tag LIKE ? OR title LIKE ? OR description LIKE ? OR body LIKE ?",
+		dbhandle.DB.Where("tag LIKE ? OR title LIKE ? OR description LIKE ? OR body LIKE ?",
 			"%"+optsStr["q"]+"%",
 			"%"+optsStr["q"]+"%",
 			"%"+optsStr["q"]+"%",
@@ -72,7 +73,7 @@ func queryNotes() []note.Note {
 		).Order("updated_at desc").Limit(optsIntf["l"].(int)).Find(&notes)
 		// ANY combination - without q
 	} else {
-		db.Where("tag LIKE ? AND title LIKE ? AND description LIKE ? AND body LIKE ?",
+		dbhandle.DB.Where("tag LIKE ? AND title LIKE ? AND description LIKE ? AND body LIKE ?",
 			"%"+optsStr["qg"]+"%",
 			"%"+optsStr["qt"]+"%",
 			"%"+optsStr["qd"]+"%",
