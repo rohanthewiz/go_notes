@@ -1,10 +1,10 @@
-package main
+package web
 
 import (
 	"github.com/julienschmidt/httprouter"
 )
 
-func doRoutes(router *httprouter.Router) {
+func DoRoutes(router *httprouter.Router) {
 	router.GET("/", Index)
 	router.POST("/", Index)
 	router.GET("/ql", QueryLast)

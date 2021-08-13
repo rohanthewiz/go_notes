@@ -2,6 +2,7 @@ package web
 
 import (
 	"fmt"
+	"go_notes/config"
 	"go_notes/note"
 	"go_notes/utils"
 	"html"
@@ -16,8 +17,10 @@ import (
 	blackfriday "github.com/rohanthewiz/go_markdown"
 )
 
-func NotesList(w io.Writer, req *http.Request, notes []note.Note, optsStr map[string]string) (err error) {
+func NotesList(w io.Writer, req *http.Request, notes []note.Note) (err error) {
 	const NotesDetailsThreshold = 2
+	o := config.Opts
+
 	notesCount := len(notes)
 	showDetails := notesCount <= NotesDetailsThreshold
 
@@ -72,9 +75,9 @@ body { background-color: #3a3939; color: #b7b9be }
 					t(strconv.Itoa(notesCount), " found"),
 				),
 				t("["),
-				e("a", "class", "tool", "href", "http://127.0.0.1:"+optsStr["port"]+"/new").R(t("New")),
+				e("a", "class", "tool", "href", "http://127.0.0.1:"+o.Port+"/new").R(t("New")),
 				t(" | "),
-				e("a", "class", "tool", "href", "http://127.0.0.1:"+optsStr["port"]+"/q/all").R(t("All")),
+				e("a", "class", "tool", "href", "http://127.0.0.1:"+o.Port+"/q/all").R(t("All")),
 				t("]"),
 			),
 			e("ul", "class", "topmost").R(

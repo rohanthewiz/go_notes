@@ -6,7 +6,6 @@ import (
 	"go_notes/dbhandle"
 	"go_notes/localsig"
 	"go_notes/note"
-	"go_notes/note/note_change"
 	"go_notes/peer"
 	"go_notes/user"
 	"go_notes/utils"
@@ -15,8 +14,8 @@ import (
 func MigrateIfNeeded() {
 	// Do we need to migrate?
 	if !dbhandle.DB.HasTable(&peer.Peer{}) || !dbhandle.DB.HasTable(&note.Note{}) ||
-		!dbhandle.DB.HasTable(&note_change.NoteChange{}) ||
-		!dbhandle.DB.HasTable(&note_change.NoteFragment{}) ||
+		!dbhandle.DB.HasTable(&note.NoteChange{}) ||
+		!dbhandle.DB.HasTable(&note.NoteFragment{}) ||
 		!dbhandle.DB.HasTable(&localsig.LocalSig{}) ||
 		!dbhandle.DB.HasTable(&user.User{}) ||
 		!dbhandle.DB.HasTable(&session.Session{}) {
@@ -31,7 +30,7 @@ func Migrate() {
 	// Fyi, AutoMigrate will only *add new columns*, it won't update column's type or delete unused columns
 	// According to GORM: Feel free to change your struct, AutoMigrate will keep your database up-to-date.
 	dbhandle.DB.AutoMigrate(
-		&note.Note{}, &note_change.NoteChange{}, &note_change.NoteFragment{},
+		&note.Note{}, &note.NoteChange{}, &note.NoteFragment{},
 		&localsig.LocalSig{}, &user.User{}, &peer.Peer{}, &session.Session{},
 	)
 
@@ -41,9 +40,9 @@ func Migrate() {
 	dbhandle.DB.Model(&note.Note{}).AddUniqueIndex("idx_note_guid", "guid")
 	dbhandle.DB.Model(&note.Note{}).AddUniqueIndex("idx_note_title", "title")
 	dbhandle.DB.Model(&note.Note{}).AddIndex("idx_note_user", "user")
-	dbhandle.DB.Model(&note_change.NoteChange{}).AddUniqueIndex("idx_note_change_guid", "guid")
-	dbhandle.DB.Model(&note_change.NoteChange{}).AddIndex("idx_note_change_note_guid", "note_guid")
-	dbhandle.DB.Model(&note_change.NoteChange{}).AddIndex("idx_note_change_created_at", "created_at")
+	dbhandle.DB.Model(&note.NoteChange{}).AddUniqueIndex("idx_note_change_guid", "guid")
+	dbhandle.DB.Model(&note.NoteChange{}).AddIndex("idx_note_change_note_guid", "note_guid")
+	dbhandle.DB.Model(&note.NoteChange{}).AddIndex("idx_note_change_created_at", "created_at")
 
 	EnsureDBSig() // Initialize local with a SHA1 signature if it doesn't already have one
 	fmt.Println("Migration complete")

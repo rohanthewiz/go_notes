@@ -1,4 +1,4 @@
-package main
+package web
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"go_notes/dbhandle"
 	"go_notes/note"
+	"go_notes/note/note_ops"
 	"go_notes/note/web"
 	"go_notes/utils"
 	"io/ioutil"
@@ -19,9 +20,9 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-func webserver(port string) {
+func Webserver(port string) {
 	router := httprouter.New()
-	doRoutes(router)
+	DoRoutes(router)
 	utils.Pf("Web server listening on %s... Ctrl-C to quit\n", port)
 	log.Fatal(http.ListenAndServe(":"+port, router))
 }
@@ -31,49 +32,47 @@ func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	http.Redirect(w, r, "/q/all/l/100", http.StatusFound)
 }
 
-func webListNotes(w http.ResponseWriter, r *http.Request) {
-	notes := queryNotes()
+func WebListNotes(w http.ResponseWriter, r *http.Request, nf *note.NotesFilter) {
+	notes := note.QueryNotes(nf)
 
-	err := web.NotesList(w, r, notes, optsStr)
+	err := web.NotesList(w, r, notes)
 	if err != nil {
 		log.Println("Error in notes list html gen:", err)
 	}
 }
 
 func Query(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	resetOptions()
-	optsStr["q"] = p.ByName("query") // Overwrite the query param
 	limit, err := strconv.Atoi(p.ByName("limit"))
-	if err == nil {
-		optsIntf["l"] = limit
+	if err != nil {
+		limit = 50
 	}
-	webListNotes(w, r)
+
+	nf := note.NotesFilter{
+		QueryStr: p.ByName("query"),
+		Limit:    limit,
+	}
+	WebListNotes(w, r, &nf)
 }
 
 func QueryLast(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	resetOptions()
-	optsIntf["ql"] = true
-	webListNotes(w, r)
+	WebListNotes(w, r, &note.NotesFilter{Last: true})
 }
 
 func QueryId(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	resetOptions()
 	id, err := strconv.ParseInt(p.ByName("id"), 10, 64)
 	if err != nil {
 		id = 0
 	}
-	optsIntf["qi"] = id // qi is the highest priority
-	webListNotes(w, r)
+	WebListNotes(w, r, &note.NotesFilter{Id: id})
 }
 
 func QueryIdAsJson(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
-	resetOptions()
 	id, err := strconv.ParseInt(p.ByName("id"), 10, 64)
 	if err != nil {
 		id = 0
 	}
-	optsIntf["qi"] = id // qi is the highest priority
-	jNotes, err := json.Marshal(queryNotes())
+	notes := note.QueryNotes(&note.NotesFilter{Id: id})
+	jNotes, err := json.Marshal(notes)
 	if err != nil {
 		log.Println("Error marshalling Note id:", strconv.FormatInt(id, 10))
 	}
@@ -85,34 +84,22 @@ func QueryIdAsJson(w http.ResponseWriter, _ *http.Request, p httprouter.Params) 
 }
 
 func QueryTag(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	resetOptions()
-	optsStr["qg"] = p.ByName("tag") // Overwrite the query param
-	optsIntf["qi"] = nil            // turn off unused option
-	optsStr["qt"] = ""              // turn off unused option
-	optsStr["q"] = ""               // turn off unused option
-	webListNotes(w, r)
+	tags := p.ByName("tag")
+	WebListNotes(w, r, &note.NotesFilter{Tags: strings.Split(tags, ",")})
 }
 
 func QueryTitle(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	resetOptions()
-	optsStr["qt"] = p.ByName("title") // Overwrite the query param
-	optsIntf["qi"] = nil              // turn off unused option
-	optsStr["qg"] = ""                // turn off unused option
-	webListNotes(w, r)
+	WebListNotes(w, r, &note.NotesFilter{Title: p.ByName("title")})
 }
 
 func QueryTagAndWildCard(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	resetOptions()
-	optsStr["qg"] = p.ByName("tag")  // Overwrite the query param
-	optsStr["q"] = p.ByName("query") // Overwrite the query param
-	webListNotes(w, r)
+	tags := strings.Split(p.ByName("tag"), ",")
+	WebListNotes(w, r, &note.NotesFilter{Tags: tags, QueryStr: p.ByName("query")})
 }
 
 func QueryTitleAndWildCard(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	resetOptions()
-	optsStr["qt"] = p.ByName("title") // Overwrite the query param
-	optsStr["q"] = p.ByName("query")  // Overwrite the query param
-	webListNotes(w, r)
+	WebListNotes(w, r,
+		&note.NotesFilter{Title: p.ByName("title"), QueryStr: p.ByName("query")})
 }
 
 func WebNoteForm(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
@@ -161,7 +148,7 @@ func WebCreateNote(w http.ResponseWriter, r *http.Request, _ httprouter.Params) 
 		return
 	}
 
-	id := CreateNote(tl, strings.TrimSpace(v.Get("descr")),
+	id := note_ops.CreateNote(tl, strings.TrimSpace(v.Get("descr")),
 		nb, strings.TrimSpace(v.Get("tag")))
 	http.Redirect(w, r, "/qi/"+strconv.FormatUint(id, 10), http.StatusFound)
 }
@@ -173,14 +160,14 @@ func WebNoteDup(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		return
 	}
 
-	nte := findNoteById(origId)
+	nte := note.FindNoteById(origId)
 	if nte.Id < 1 {
 		http.Redirect(w, r, "/q/all/l/100", http.StatusFound)
 	}
 
 	// TODO - Check that note with title below does not already exist
 	// 		and gracefully handle error
-	id := CreateNote("Copy of - "+nte.Title, "",
+	id := note_ops.CreateNote("Copy of - "+nte.Title, "",
 		"", nte.Tag)
 	if id > 0 {
 		http.Redirect(w, r, "/edit/"+strconv.FormatUint(id, 10), http.StatusFound)
@@ -198,7 +185,7 @@ func WebDeleteNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 		return
 	}
 
-	DoDelete(findNoteById(id))
+	note.DoDelete(note.FindNoteById(id))
 
 	qs := r.URL.Query()
 	if qs != nil {
@@ -231,7 +218,7 @@ func WebUpdateNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 		}
 
 		utils.Pf("Updating note: %s %s...\n", nte.Guid, nte.Title)
-		AllFieldsUpdate(nte)
+		note.AllFieldsUpdate(nte)
 		http.Redirect(w, r, "/qi/"+strconv.FormatUint(nte.Id, 10), http.StatusFound)
 	}
 }
@@ -240,20 +227,7 @@ func ServeJS(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	http.ServeFile(w, r, path.Join("js", p.ByName("file")))
 }
 
-func resetOptions() {
-	optsIntf["qi"] = nil   // turn off unused option
-	optsIntf["ql"] = false // turn off unused option
-	optsIntf["l"] = -1     // turn off unused option
-	optsStr["qg"] = ""     // turn off higher priority option
-	optsStr["qt"] = ""     // turn off unused option
-	optsStr["qd"] = ""     // turn off unused option
-	optsStr["qb"] = ""     // turn off unused option
-	optsStr["q"] = ""      // turn off higher priority option
-}
-
 func HandleRequestErr(err error, w http.ResponseWriter) {
 	w.WriteHeader(http.StatusBadRequest)
 	_, _ = fmt.Fprint(w, err)
 }
-
-//	Only applies to GET request? //pl("p.Title", p.ByName("title"))

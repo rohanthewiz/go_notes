@@ -9,6 +9,8 @@ import (
 
 // Setup commandline options and other configuration for Go Notes
 func getOpts() (map[string]string, map[string]interface{}) {
+	o := config.Opts
+
 	strOpts := make(map[string]string, 32)
 	intfOpts := make(map[string]interface{}, 16)
 
@@ -21,7 +23,7 @@ func getOpts() (map[string]string, map[string]interface{}) {
 	bPtr := flag.String("b", "", "Create note Body")
 	gPtr := flag.String("g", "", "Comma separated list of Tags for new note")
 	qPtr := flag.String("q", "", "Query for notes based on a LIKE search. \"all\" will return all notes")
-	pPtr := flag.String("port", "8092", "Specify webserver port")
+	port := flag.String("port", "8092", "Specify webserver port")
 	adminPtr := flag.String("admin", "", "Privileged actions like 'delete_table'")
 	dbPtr := flag.String("db", "", "Sqlite DB path")
 	expPtr := flag.String("exp", "", "Export the notes queried to the format of the file given")
@@ -37,10 +39,10 @@ func getOpts() (map[string]string, map[string]interface{}) {
 
 	qiPtr := flag.Int64("qi", 0, "Query for notes based on ID")
 	lPtr := flag.Int("l", -1, "Limit the number of notes returned")
-	sPtr := flag.Bool("s", false, "Short Listing - don't show the body")
+	short := flag.Bool("s", false, "Short Listing - don't show the body")
 	qlPtr := flag.Bool("ql", false, "Query for the last note updated")
-	vPtr := flag.Bool("v", false, "Show version")
-	whoamiPtr := flag.Bool("whoami", false, "Show Client GUID")
+	version := flag.Bool("v", false, "Show version")
+	whoami := flag.Bool("whoami", false, "Show Client GUID")
 	setupDBPtr := flag.Bool("setup_db", false, "Setup the Database")
 	delPtr := flag.Bool("del", false, "Delete the notes queried")
 	updPtr := flag.Bool("upd", false, "Update the notes queried")
@@ -54,37 +56,59 @@ func getOpts() (map[string]string, map[string]interface{}) {
 	flag.Parse()
 
 	// Store options in a couple of maps
+	o.Short = *short
+	config.Opts.Port = *port
+	config.Opts.Version = *version
+	config.Opts.WhoAmI = *whoami
+	config.Opts.Q = *qPtr
 	strOpts["q"] = *qPtr
-	strOpts["port"] = *pPtr
+	config.Opts.QG = *qgPtr
 	strOpts["qg"] = *qgPtr
+	config.Opts.QT = *qtPtr
 	strOpts["qt"] = *qtPtr
+	config.Opts.QD = *qdPtr
 	strOpts["qd"] = *qdPtr
+	config.Opts.QB = *qbPtr
 	strOpts["qb"] = *qbPtr
+	config.Opts.Title = *qtPtr
 	strOpts["t"] = *tPtr
+	config.Opts.Descr = *qdPtr
 	strOpts["d"] = *dPtr
+	config.Opts.Body = *bPtr
 	strOpts["b"] = *bPtr
+	config.Opts.Tag = *tPtr
 	strOpts["g"] = *gPtr
 	strOpts["admin"] = *adminPtr
 	strOpts["db"] = *dbPtr
-	strOpts["exp"] = *expPtr
-	strOpts["imp"] = *impPtr
+	// strOpts["exp"] = *expPtr
+	// strOpts["imp"] = *impPtr
+	config.Opts.Export = *expPtr
+	config.Opts.Import = *impPtr
+	// strOpts["port"] = *pPtr
 	strOpts["synch_client"] = *synchClientPtr
 	strOpts["get_peer_token"] = *getPeerTokenPtr
 	strOpts["save_peer_token"] = *savePeerTokenPtr
 	strOpts["server_secret"] = *serverSecretPtr
+	config.Opts.QI = *qiPtr
 	intfOpts["qi"] = *qiPtr
+	config.Opts.Limit = *lPtr
 	intfOpts["l"] = *lPtr
-	intfOpts["s"] = *sPtr
+	// config.Opts.Short = *sPtr
+	// intfOpts["s"] = *sPtr
+	config.Opts.Last = *qlPtr
 	intfOpts["ql"] = *qlPtr
-	intfOpts["v"] = *vPtr
-	intfOpts["whoami"] = *whoamiPtr
-	intfOpts["del"] = *delPtr
-	intfOpts["upd"] = *updPtr
+	config.Opts.Verbose = *verbosePtr
+	// intfOpts["v"] = *vPtr
+	// intfOpts["whoami"] = *whoamiPtr
+	config.Opts.Delete = *delPtr
+	// intfOpts["del"] = *delPtr
+	config.Opts.Update = *updPtr
+	// intfOpts["upd"] = *updPtr
 	intfOpts["get_server_secret"] = *getServerSecretPtr
 	intfOpts["setup_db"] = *setupDBPtr
 
 	config.Opts.Verbose = *verbosePtr
-	intfOpts["verbose"] = *verbosePtr
+	// intfOpts["verbose"] = *verbosePtr
 
 	config.Opts.Debug = *debugPtr
 	intfOpts["debug"] = *debugPtr

@@ -1,22 +1,22 @@
-// GOB client server
-package main
+package synch
 
 import (
 	"encoding/gob"
 	"fmt"
+	"go_notes/authen"
 	"go_notes/dbhandle"
 	"go_notes/note"
-	"go_notes/note/note_change"
 	"go_notes/peer"
 	"go_notes/utils"
 	"log"
 	"net"
-
 	"os"
 	"strconv"
 )
 
-func synchServer() {
+const authFailMsg = "Authentication failure. Generate authorization token with -synch_auth\nThen store in peer entry on client with -store_synch_auth"
+
+func SynchServer() {
 	ln, err := net.Listen("tcp", ":"+SynchPort) // counterpart of net.Dial
 	if err != nil {
 		fmt.Println("Error setting up server listen on port", SynchPort)
@@ -46,7 +46,7 @@ func handleConnection(conn net.Conn) {
 	enc := gob.NewEncoder(conn)
 	dec := gob.NewDecoder(conn)
 
-	var localChanges []note_change.NoteChange
+	var localChanges []note.NoteChange
 	var peerId string
 	var pr peer.Peer
 	var err error
@@ -54,11 +54,11 @@ func handleConnection(conn net.Conn) {
 
 	for {
 		msg = Message{}
-		rcxMsg(dec, &msg)
+		RcxMsg(dec, &msg)
 
 		switch msg.Type {
 		case "Hangup":
-			printHangupMsg(conn)
+			PrintHangupMsg(conn)
 			return
 
 		case "Quit":
@@ -84,8 +84,8 @@ func handleConnection(conn net.Conn) {
 			peerId = msg.Param // receive the client db signature
 			utils.Pd("Client id is:", utils.ShortSHA(peerId))
 			utils.Pl("NoteChg.Guid is:", utils.ShortSHA(msg.NoteChg.Guid))
-			if msg.NoteChg.Guid == getServerSecret() { // then automatically generate a token
-				pt, err := getPeerToken(peerId)
+			if msg.NoteChg.Guid == authen.GetServerSecret() { // then automatically generate a token
+				pt, err := peer.GetPeerToken(peerId)
 				if err != nil {
 					msg.NoteChg.Guid = ""
 				} else {
@@ -96,18 +96,18 @@ func handleConnection(conn net.Conn) {
 				msg.NoteChg.Guid = "" // no token
 			}
 			// Always return the server's id
-			msg.Param = whoAmI() // reply with the server's db signature
+			msg.Param = authen.WhoAmI() // reply with the server's db signature
 			msg.Type = "WhoIAm"
 
 			// Retrieve the actual peer object which represents the client
-			pr, err = getPeerByGuid(peerId)
+			pr, err = peer.GetPeerByGuid(peerId)
 			if err != nil {
 				fmt.Println("Error retrieving peer object for peer:", utils.ShortSHA(peerId))
 				msg.Type = "ERROR"
 				msg.Param = "There is no record for this client on the server."
 				return
 			}
-			sendMsg(enc, msg)
+			SendMsg(enc, msg)
 
 		case "AuthMe":
 			if pr.Token == msg.Param {
@@ -116,7 +116,7 @@ func handleConnection(conn net.Conn) {
 			} else {
 				msg.Param = "Declined"
 			}
-			sendMsg(enc, msg)
+			SendMsg(enc, msg)
 
 		// How client determines if we need to synch
 		case "LatestChange":
@@ -124,8 +124,8 @@ func handleConnection(conn net.Conn) {
 				utils.Pl(authFailMsg)
 				return
 			}
-			msg.NoteChg = retrieveLatestChange() // Return server's last local Note Change
-			sendMsg(enc, msg)
+			msg.NoteChg = note.RetrieveLatestChange() // Return server's last local Note Change
+			SendMsg(enc, msg)
 
 		case "NumberOfChanges":
 			if !authorized {
@@ -133,9 +133,9 @@ func handleConnection(conn net.Conn) {
 				return
 			}
 			// msg.Param will include the synch_point, so send num of changes since synch point
-			localChanges = retrieveLocalNoteChangesFromSynchPoint(msg.Param)
+			localChanges = note.RetrieveLocalNoteChangesFromSynchPoint(msg.Param)
 			msg.Param = strconv.Itoa(len(localChanges))
-			sendMsg(enc, msg)
+			SendMsg(enc, msg)
 
 		case "SendChanges":
 			if !authorized {
@@ -145,11 +145,11 @@ func handleConnection(conn net.Conn) {
 			msg.Type = "NoteChange"
 			msg.Param = ""
 			var nte note.Note
-			var noteFrag note_change.NoteFragment
+			var noteFrag note.NoteFragment
 
 			for _, change := range localChanges {
 				nte = note.Note{}
-				noteFrag = note_change.NoteFragment{}
+				noteFrag = note.NoteFragment{}
 				// We have the change but now we need the NoteFragment or Note depending on the operation type
 				if change.Operation == 1 {
 					dbhandle.DB.Where("id = ?", change.NoteId).First(&nte)
@@ -162,7 +162,7 @@ func handleConnection(conn net.Conn) {
 				}
 				msg.NoteChg = change
 				msg.NoteChg.Print()
-				sendMsg(enc, msg)
+				SendMsg(enc, msg)
 			}
 		case "NumberOfClientChanges":
 			if !authorized {
@@ -180,16 +180,16 @@ func handleConnection(conn net.Conn) {
 			}
 			utils.Pl(numChanges, "changes")
 
-			peerChanges := make([]note_change.NoteChange, numChanges)
-			sendMsg(enc, Message{Type: "SendChanges"}) // Send the actual changes
+			peerChanges := make([]note.NoteChange, numChanges)
+			SendMsg(enc, Message{Type: "SendChanges"}) // Send the actual changes
 			// Receive changes, extract the NoteChanges, save into peer_changes
 			for i := 0; i < numChanges; i++ {
 				msg = Message{}
-				rcxMsg(dec, &msg)
+				RcxMsg(dec, &msg)
 				peerChanges[i] = msg.NoteChg
 			}
 			utils.Pf("\n%d peer changes received:\n", numChanges)
-			processChanges(&peerChanges, &localChanges)
+			ProcessChanges(&peerChanges, &localChanges)
 
 		case "NewSynchPoint": // New synch point at the end of synching
 			if !authorized {
@@ -203,33 +203,33 @@ func handleConnection(conn net.Conn) {
 			dbhandle.DB.Save(&pr)
 		default:
 			utils.Pl("Unknown message type received", msg.Type)
-			printHangupMsg(conn)
+			PrintHangupMsg(conn)
 			return
 		}
 	}
 }
 
-func sendMsg(encoder *gob.Encoder, msg Message) {
+func SendMsg(encoder *gob.Encoder, msg Message) {
 	err := encoder.Encode(msg)
 	if err != nil {
 		log.Println("Error on message encode:", err)
 	}
-	printMsg(msg, false)
+	PrintMsg(msg, false)
 }
 
-func rcxMsg(decoder *gob.Decoder, msg *Message) {
+func RcxMsg(decoder *gob.Decoder, msg *Message) {
 	err := decoder.Decode(&msg)
 	if err != nil {
 		log.Println("error on message decode:", err)
 	}
-	printMsg(*msg, true)
+	PrintMsg(*msg, true)
 }
 
-func printHangupMsg(conn net.Conn) {
+func PrintHangupMsg(conn net.Conn) {
 	fmt.Printf("Closing connection: %+v\n----------------------------------------------\n", conn)
 }
 
-func printMsg(msg Message, rcx bool) {
+func PrintMsg(msg Message, rcx bool) {
 	utils.Pl("\n----------------------------------------------")
 	if rcx {
 		print("Received: ")

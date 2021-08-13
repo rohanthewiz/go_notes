@@ -1,11 +1,10 @@
-package note_change
+package note
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
 	"go_notes/dbhandle"
-	"go_notes/note"
 	"time"
 )
 
@@ -15,7 +14,7 @@ type NoteChange struct {
 	Guid           string `sql:"size:40"` // Guid of the change // TODO - make this PG text
 	NoteGuid       string `sql:"size:40"` // Guid of the note
 	Operation      int32  // 1: Create, 2: Update, 3: Delete, 9: Synch
-	Note           note.Note
+	Note           Note
 	NoteId         int64
 	User           string // (GUID)  //todo - Add Index //A notechange always belongs to a single user
 	NoteFragment   NoteFragment
@@ -60,13 +59,13 @@ func (nc *NoteChange) Retrieve() (NoteChange, error) {
 	}
 }
 
-func (nc *NoteChange) RetrieveNote() (note.Note, error) {
-	var nte note.Note
+func (nc *NoteChange) RetrieveNote() (Note, error) {
+	var nte Note
 	dbhandle.DB.Model(nc).Related(&nte)
 	if nte.Id > 0 {
 		return nte, nil
 	} else {
-		return note.Note{}, errors.New("Note not found")
+		return Note{}, errors.New("Note not found")
 	}
 }
 

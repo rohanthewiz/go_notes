@@ -1,4 +1,4 @@
-package main
+package note_ops
 
 import (
 	"encoding/csv"
@@ -11,7 +11,7 @@ import (
 	"os"
 )
 
-func exportCsv(notes []note.Note, out_file string) {
+func ExportCsv(notes []note.Note, out_file string) {
 	csv_file, err := os.Create(out_file)
 	if err != nil {
 		fmt.Println("Error: ", err)
@@ -37,7 +37,7 @@ func exportCsv(notes []note.Note, out_file string) {
 	fmt.Println("Exported to", out_file)
 }
 
-func exportGob(notes []note.Note, out_file string) {
+func ExportGob(notes []note.Note, out_file string) {
 	gob_file, err := os.Create(out_file)
 	if err != nil {
 		fmt.Println("Error: ", err)
@@ -59,7 +59,7 @@ func exportGob(notes []note.Note, out_file string) {
 	fmt.Println("Exported to", out_file)
 }
 
-func importGob(in_file string) {
+func ImportGob(in_file string) {
 	var notes []note.Note
 
 	gob_file, err := os.Open(in_file)
@@ -80,12 +80,12 @@ func importGob(in_file string) {
 		fmt.Println("Error: ", err)
 		return
 	}
-	listNotes(notes, false)
+	note.ListNotes(notes, false)
 	fmt.Printf("%d note(s) retrieved from %s\n", len(notes), in_file)
 
 	// Update, create or discard?
 	for _, n := range notes {
-		exists, nte := findNoteByTitle(n.Title)
+		exists, nte := note.FindNoteByTitle(n.Title)
 		if exists {
 			fmt.Println("This note already exists: ", nte.Title)
 			if n.UpdatedAt.After(nte.UpdatedAt) {
@@ -94,7 +94,7 @@ func importGob(in_file string) {
 				nte.Body = n.Body
 				nte.Tag = n.Tag
 				dbhandle.DB.Save(&nte)
-				listNotes([]note.Note{nte}, false) // [:] means all of the slice
+				note.ListNotes([]note.Note{nte}, false) // [:] means all of the slice
 			} else {
 				fmt.Println("The imported note is not newer, ignoring...")
 			}
@@ -105,7 +105,7 @@ func importGob(in_file string) {
 	}
 }
 
-func importCsv(in_file string) {
+func ImportCsv(in_file string) {
 	csv_file, err := os.Open(in_file)
 	if err != nil {
 		fmt.Println("Error: ", err)
@@ -129,7 +129,7 @@ func importCsv(in_file string) {
 
 	// sanity check, display to standard output
 	for _, f := range rawCSVdata {
-		exists, nte := findNoteByTitle(f[0])
+		exists, nte := note.FindNoteByTitle(f[0])
 		if exists {
 			fmt.Println("This note already exists: ", nte.Title)
 			// we could check an 'update on import' option here, set the corresponding fields, then save
