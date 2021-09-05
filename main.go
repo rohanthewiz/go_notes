@@ -12,6 +12,7 @@ import (
 	"go_notes/user"
 	"go_notes/web"
 	"os"
+	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -23,8 +24,12 @@ const version string = "0.15.0"
 var optsStr, optsIntf = getOpts() // returns map[string]string, map[string]interface{}
 
 func main() {
-	o := config.Opts // alias
-	fmt.Printf("config.Opts %#v\n", config.Opts)
+	o := config.Opts // alias - note alias is a copy of config.Opts
+
+	if o.Verbose {
+		fmt.Printf("config.Opts ->%#v\n", config.Opts)
+		fmt.Println(strings.Repeat("-", 45))
+	}
 
 	err := db.InitDB()
 	if err != nil { // Can't err chk db conn outside method, so do it here
@@ -91,14 +96,14 @@ func main() {
 	// when -remote require auth and start synch server in background
 
 	if config.Opts.IsLocalWebSvr { // local only webserver - security is relaxed
-		web.Webserver(optsStr["port"])
+		web.Webserver(o.Port)
 
 	} else if config.Opts.IsSynchSvr {
 		synch.SynchServer()
 
 	} else if config.Opts.IsRemoteSvr { // remote web server
 		go synch.SynchServer()
-		web.Webserver(optsStr["port"])
+		web.Webserver(o.Port)
 
 	} else if optsStr["synch_client"] != "" {
 		synch.SynchClient(optsStr["synch_client"], optsStr["server_secret"])
@@ -121,7 +126,7 @@ func main() {
 		note_ops.CreateNote(optsStr["t"], optsStr["d"], optsStr["b"], optsStr["g"])
 
 	} else {
-		println("starting webserver")
+		fmt.Println("starting webserver", o.Port)
 		web.Webserver(o.Port)
 	}
 }

@@ -4,12 +4,13 @@ import (
 	"flag"
 	"go_notes/config"
 	"os"
-	"strings"
+	"path/filepath"
+
+	"github.com/rohanthewiz/rlog"
 )
 
 // Setup commandline options and other configuration for Go Notes
 func getOpts() (map[string]string, map[string]interface{}) {
-	o := config.Opts
 
 	strOpts := make(map[string]string, 32)
 	intfOpts := make(map[string]interface{}, 16)
@@ -41,7 +42,7 @@ func getOpts() (map[string]string, map[string]interface{}) {
 	lPtr := flag.Int("l", -1, "Limit the number of notes returned")
 	short := flag.Bool("s", false, "Short Listing - don't show the body")
 	qlPtr := flag.Bool("ql", false, "Query for the last note updated")
-	version := flag.Bool("v", false, "Show version")
+	version := flag.Bool("version", false, "Show version")
 	whoami := flag.Bool("whoami", false, "Show Client GUID")
 	setupDBPtr := flag.Bool("setup_db", false, "Setup the Database")
 	delPtr := flag.Bool("del", false, "Delete the notes queried")
@@ -50,13 +51,13 @@ func getOpts() (map[string]string, map[string]interface{}) {
 	getServerSecretPtr := flag.Bool("get_server_secret", false, "Show Server Secret")
 	synchServerPtr := flag.Bool("synch_server", false, "Synch server mode")
 	ptrRemoteSvr := flag.Bool("remote_server", false, "Remote server mode") // run as a remote web server
-	verbosePtr := flag.Bool("verbose", true, "verbose mode")                // Todo - turn off for production
-	debugPtr := flag.Bool("debug", true, "debug mode")                      // Todo - turn off for production
+	verbosePtr := flag.Bool("v", false, "verbose mode")
+	debugPtr := flag.Bool("debug", false, "debug mode")
 
 	flag.Parse()
 
 	// Store options in a couple of maps
-	o.Short = *short
+	config.Opts.Short = *short
 	config.Opts.Port = *port
 	config.Opts.Version = *version
 	config.Opts.WhoAmI = *whoami
@@ -93,7 +94,7 @@ func getOpts() (map[string]string, map[string]interface{}) {
 	intfOpts["qi"] = *qiPtr
 	config.Opts.Limit = *lPtr
 	intfOpts["l"] = *lPtr
-	// config.Opts.Short = *sPtr
+	// o.Short = *sPtr
 	// intfOpts["s"] = *sPtr
 	config.Opts.Last = *qlPtr
 	intfOpts["ql"] = *qlPtr
@@ -121,12 +122,6 @@ func getOpts() (map[string]string, map[string]interface{}) {
 	config.Opts.Email = *email
 	config.Opts.Password = *password
 
-	separator := "/"
-	if strings.Contains(strings.ToUpper(os.Getenv("OS")), "WINDOWS") {
-		separator = "\\"
-	}
-	strOpts["sep"] = separator
-
 	const dbFile = "go_notes.sqlite"
 	var dbFolder string
 	var dbFullPath string
@@ -137,14 +132,15 @@ func getOpts() (map[string]string, map[string]interface{}) {
 		} else if len(os.Getenv("HOMEDRIVE")) > 0 && len(os.Getenv("HOMEPATH")) > 0 {
 			dbFolder = os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
 		} else {
-			dbFolder = separator // last resort
+			dbFolder = "./" //todo - better default
 		}
-		dbFullPath = dbFolder + separator + dbFile
+		dbFullPath = filepath.Join(dbFolder, dbFile)
 	} else {
 		dbFullPath = *dbPtr
 	}
 
 	config.Opts.DBPath = dbFullPath
+	rlog.Log(rlog.Info, "Using db at: "+config.Opts.DBPath)
 
 	return strOpts, intfOpts
 }

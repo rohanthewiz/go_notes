@@ -91,14 +91,13 @@ Example:
 ```
 
 ### Searching Notes (Command Line)
-All searches are based on a LIKE (fuzzy) search
--q Query -- Retrieve notes based on a LIKE (fuzzy) search
--qi Integer -- Retrieve notes by ID (the number in square brackets on the left of the note is its ID)
--qg tag_to_search_for -- Retrieve notes by tag
--g tag_to_search_for -- Retrieve notes by tag (just a shorter form of the above)
--qg tag_to_search_for -q other_item -- Retrieve notes with tags that match tag_to_search_for and title, description or body that matches other_item
--qt title_to_search_for -q other_item -- Retrieve notes with title that match title_to_search_for and tag, description or body that matches other_item
--l number_of_notes -- Limit number of notes
+* `-q` Query -- Retrieve notes based on a LIKE (fuzzy) search
+* `-qi` Integer -- Retrieve notes by ID (the number in square brackets on the left of the note is its ID)
+* `-qg` tag_to_search_for -- Retrieve notes by tag
+* `-g` tag_to_search_for -- Retrieve notes by tag (just a shorter form of the above)
+* `-qg` tag_to_search_for -q other_item -- Retrieve notes with tags that match tag_to_search_for and title, description or body that matches other_item
+* `-qt` title_to_search_for -q other_item -- Retrieve notes with title that match title_to_search_for and tag, description or body that matches other_item
+* `-l` number_of_notes -- Limit number of notes
 
 Example:
 
@@ -118,8 +117,8 @@ Example:
 $ ./go_notes -q "old note" -upd
 ```
 #### Update Tips (Command Line)
-* if a _+_ is placed at the start of an input field, that field of the current note will be _appended_ to
-* if a _-_ is placed at the start of an input field, that field of the current note will be _blanked_
+* if a `+` is placed at the start of an input field, that field of the current note will be _appended_ to
+* if a `-` is placed at the start of an input field, that field of the current note will be _blanked_
 * if nothing is entered, the field will be unchanged
 
 ### Deleting (Command Line)

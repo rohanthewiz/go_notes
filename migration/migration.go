@@ -13,7 +13,8 @@ import (
 
 func MigrateIfNeeded() {
 	// Do we need to migrate?
-	if !dbhandle.DB.HasTable(&peer.Peer{}) || !dbhandle.DB.HasTable(&note.Note{}) ||
+	if !dbhandle.DB.HasTable(&peer.Peer{}) ||
+		!dbhandle.DB.HasTable(&note.Note{}) ||
 		!dbhandle.DB.HasTable(&note.NoteChange{}) ||
 		!dbhandle.DB.HasTable(&note.NoteFragment{}) ||
 		!dbhandle.DB.HasTable(&localsig.LocalSig{}) ||
