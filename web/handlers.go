@@ -17,19 +17,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gofiber/fiber"
 	"github.com/julienschmidt/httprouter"
 )
 
-func Webserver(port string) {
-	router := httprouter.New()
-	DoRoutes(router)
-	utils.Pf("Web server listening on %s... Ctrl-C to quit\n", port)
-	log.Fatal(http.ListenAndServe(":"+port, router))
-}
-
 // Handlers for httprouter
-func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	http.Redirect(w, r, "/q/all/l/100", http.StatusFound)
+func Index(c *fiber.Ctx) {
+	c.Redirect("/q/all/l/100", http.StatusTemporaryRedirect)
 }
 
 func WebListNotes(w http.ResponseWriter, r *http.Request, nf *note.NotesFilter) {

@@ -1,23 +1,22 @@
 package web
 
 import (
-	"fmt"
 	"go_notes/config"
 	"go_notes/note"
 	"go_notes/utils"
 	"html"
-	"io"
 	"log"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/gofiber/fiber"
 	"github.com/rohanthewiz/element"
 	blackfriday "github.com/rohanthewiz/go_markdown"
 )
 
-func NotesList(w io.Writer, req *http.Request, notes []note.Note) (err error) {
+func NotesList(c *fiber.Ctx, notes []note.Note) (err error) {
+	// TODO - Protect access via login
 	const NotesDetailsThreshold = 2
 	o := config.Opts
 
@@ -110,7 +109,7 @@ body { background-color: #3a3939; color: #b7b9be }
 								t(" | "),
 								e("a", "class", "text-menu", "href", "/dup/"+strId).R(t("dup")),
 								t(" | "),
-								e("a", "class", "text-menu", "href", "/del/"+strId+"?return="+req.URL.Path,
+								e("a", "class", "text-menu", "href", "/del/"+strId+"?return="+string(c.Fasthttp.Path()), //.URL.Path,
 									"onclick", "return confirm('Are you sure you want to delete this note?')",
 								).R(t("del")),
 								t("] "),
@@ -147,8 +146,7 @@ body { background-color: #3a3939; color: #b7b9be }
 			)),
 		),
 	)
-	_, err = fmt.Fprint(w, s.String())
-	// fmt.Println(s.String())
+	c.SendString(s.String())
 
 	return
 }

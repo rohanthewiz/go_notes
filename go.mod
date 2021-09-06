@@ -6,6 +6,7 @@ require (
 	github.com/denisenkom/go-mssqldb v0.10.0 // indirect
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5 // indirect
 	github.com/go-sql-driver/mysql v1.6.0 // indirect
+	github.com/gofiber/fiber v1.14.6
 	github.com/jinzhu/gorm v0.0.0-20160404144928-5174cc5c242a
 	github.com/jinzhu/inflection v0.0.0-20170102125226-1c35d901db3d // indirect
 	github.com/jinzhu/now v1.1.2 // indirect
@@ -16,5 +17,4 @@ require (
 	github.com/rohanthewiz/go_markdown v0.0.0-20160315044756-cbcef778537c
 	github.com/rohanthewiz/rlog v0.1.2
 	golang.org/x/crypto v0.0.0-20190325154230-a5d413f7728c
-	golang.org/x/net v0.0.0-20170110034938-60c41d1de8da // indirect
 )

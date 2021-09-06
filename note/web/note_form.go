@@ -1,18 +1,18 @@
 package web
 
 import (
-	"fmt"
 	"go_notes/note"
 	"html"
-	"io"
-	"log"
 	"strconv"
 	"strings"
 
+	"github.com/gofiber/fiber"
 	"github.com/rohanthewiz/element"
 )
 
-func NoteForm(w io.Writer, note note.Note) (err error) {
+func NoteForm(c *fiber.Ctx, note note.Note) (err error) {
+	// Protect access via login
+
 	var action, formAction, pageHeadingPrefix string
 	var strNoteId string
 
@@ -145,10 +145,7 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 	)
 	// fmt.Println(str)
 
-	_, err = fmt.Fprint(w, s.String())
-	if err != nil {
-		log.Println("Error on NoteForm render:", err)
-	}
+	c.SendString(s.String())
 
 	return
 }
