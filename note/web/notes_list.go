@@ -33,34 +33,35 @@ func NotesList(w io.Writer, req *http.Request, notes []note.Note, optsStr map[st
 		e("head").R(
 			e("title").R(t("GoNotes List")),
 			e("style").R(t(`
-body { background-color: tan }
+body { background-color: #706258; color: #c8c8c8 }
     ul { list-style-type:none; margin: 0; padding: 0; }
-    ul.topmost > li:first-child { border-top: 1px solid #531C1C}
-    ul.topmost > li { border-top:none; border-bottom: 1px solid #8A2E2E; padding: 0.3em 0.3em}
-    li { border-top: 1px solid #B89c72; line-height:1.2em; padding: 1.2em, 4em }
+    ul.topmost > li:first-child { border-top: 1px solid #654}
+    ul.topmost > li { border-top:none; border-bottom: 1px solid #654; padding: 0.3em 0.3em}
+    li { border-top: 1px solid #625440; line-height:1.2em; padding: 1.2em, 4em }
 	li a {text-decoration:none}
-	li a:link, li a:visited {color:black}
+	li a:link, li a:visited {color:#cac4c4}
     .h1 { font-size: 1.2em; margin-right: 0.2em; margin-bottom: 0.1em; padding: 0.1em }
 	.h1 a {text-decoration:none}
-	.h1 a:visited, .h1 a:link {color:black}
-    .h3 { font-size: 1em; font-weight:bold; margin-bottom: 0.1em; padding: 0.1em }
-    .title { font-size:1.1em; font-weight: bold; color:darkgreen; padding-top: 0.4em }
-    .count { font-size: 0.8em; color:#401020; padding-left: 0.5em; padding-right: 0.5em }
-    .tool { font-size: 0.7em; color:#401020; padding-left: 0.5em }
+	.h1 a:visited, .h1 a:link {color:#ccc}
+    .h3 { color:#b4b4b4; font-size: 0.9rem; font-weight:bold; margin-bottom: 0.1em;
+		padding: 0.1em;  font-size: 0.9rem;}
+    .title { font-size:1.1em; font-weight: bold; color:green; padding-top: 0.4em }
+    .count { font-size: 0.8em; color:#c4c4c6; padding-left: 0.5em; padding-right: 0.5em }
+    .tool { font-size: 0.7em; color:#c6c6c6; padding-left: 0.5em }
     .note-body { padding-left:1em; margin-top: 0.1em}
 	.time-label { font-size: 0.7rem }
 	.text-menu { font-weight: bold }
 	.small { font-size: 0.8em }
     code { border-radius: 0.3em;
-    	background-color: #b2916e;
-    	padding: 0.1em 0.3em; }			
+    	background-color: #b2916e; color: black;
+    	padding: 0.1em 0.3em; }
 			`)),
 			e("link", "rel", "stylesheet", "href",
-				"//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/zenburn.min.css").R(),
+				"//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/styles/agate.min.css").R(),
 			e("script", "type", "text/javascript", "src",
 				"https://code.jquery.com/jquery-2.1.3.min.js").R(),
 			e("script", "type", "text/javascript", "src",
-				"https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/highlight.min.js").R(),
+				"https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js").R(),
 		),
 		e("body").R(
 			e("p").R(
@@ -106,7 +107,7 @@ body { background-color: tan }
 								t(" | "),
 								e("a", "class", "text-menu", "href", "/dup/"+strId).R(t("dup")),
 								t(" | "),
-								e("a", "class", "text-menu", "href", "/del/"+strId+"?return="+ req.URL.Path,
+								e("a", "class", "text-menu", "href", "/del/"+strId+"?return="+req.URL.Path,
 									"onclick", "return confirm('Are you sure you want to delete this note?')",
 								).R(t("del")),
 								t("] "),
