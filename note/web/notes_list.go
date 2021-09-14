@@ -33,16 +33,16 @@ func NotesList(w io.Writer, req *http.Request, notes []note.Note, optsStr map[st
 		e("head").R(
 			e("title").R(t("GoNotes List")),
 			e("style").R(t(`
-body { background-color: #706258; color: #c8c8c8 }
+body { background-color: #3a3939; color: #b7b9be }
     ul { list-style-type:none; margin: 0; padding: 0; }
-    ul.topmost > li:first-child { border-top: 1px solid #654}
-    ul.topmost > li { border-top:none; border-bottom: 1px solid #654; padding: 0.3em 0.3em}
-    li { border-top: 1px solid #625440; line-height:1.2em; padding: 1.2em, 4em }
+    ul.topmost > li:first-child { border-top: 1px solid #515c57}
+    ul.topmost > li { border-top:none; border-bottom: 1px solid #515c57; padding: 0.3em 0.3em}
+    li { border-top: 1px solid #515c57; line-height:1.2em; padding: 1.2em, 4em }
 	li a {text-decoration:none}
-	li a:link, li a:visited {color:#cac4c4}
+	li a:link, li a:visited {color:#acb4b6}
     .h1 { font-size: 1.2em; margin-right: 0.2em; margin-bottom: 0.1em; padding: 0.1em }
 	.h1 a {text-decoration:none}
-	.h1 a:visited, .h1 a:link {color:#ccc}
+	.h1 a:visited, .h1 a:link {color:#7bb197}
     .h3 { color:#b4b4b4; font-size: 0.9rem; font-weight:bold; margin-bottom: 0.1em;
 		padding: 0.1em;  font-size: 0.9rem;}
     .title { font-size:1.1em; font-weight: bold; color:green; padding-top: 0.4em }
