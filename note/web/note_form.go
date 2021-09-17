@@ -41,6 +41,10 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 			e("style").R(t(`
 	body { background-color: tan }
 	.container { padding: 1em; border: 1px solid gray; border-radius: 0.5em }
+    #editor { 
+        position: relative;
+        height: 18rem;
+    }
     ul { list-style-type:none; margin: 0; padding: 0; }
     ul.topmost > li:first-child { border-top: 1px solid #531C1C}
     ul.topmost > li { border-top:none; border-bottom: 1px solid #8A2E2E; padding: 0.3em 0.3em}
@@ -62,13 +66,17 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 	input.action-btn { width: 10em; padding-left: 0.2em; padding-right: 0.2em; margin-right: 2em }
 	textarea { background-color: #ECE6D0 }`)),
 		),
+		e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.min.js").R(),
+		e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/mode-markdown.min.js").R(),
+		e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/theme-twilight.min.js").R(),
+		// e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/theme-solarized_dark.min.js").R(),
 		e("body").R(
 			e("span", "class", "h1").R(
 				e("a", "href", "/").R(t("GoNotes  ")),
 			),
 			e("span", "class", "h1").R(t(pageHeadingPrefix, "Note")),
 			e("div", "class", "container").R(
-				e("form", "action", action, "method", "post").R(
+				e("form", "action", action, "method", "post", "style", "display:grid").R(
 					// careful not to change any name attributes below, or form may break
 					e("table").R(
 						e("tr").R(
@@ -82,13 +90,15 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 							),
 						),
 					),
+
 					e("p").R(
 						e("label", "for", "descr").R(t("Description")),
 						e("input", "class", "descr", "name", "descr", "size", "83", "value", html.EscapeString(note.Description)),
 					),
-					e("p").R(
+					e("p", "style", "position: relative").R(
 						e("label", "for", "note_body").R(t("Body"), e("br")),
-						e("textarea", "class", "note-body", "name", "note_body", "rows", "20").R(t(note.Body)),
+						e("div", "id", "editor").R(t(note.Body)),
+						// e("textarea", "class", "note-body", "name", "note_body", "rows", "20").R(t(note.Body)),
 					),
 					e("div", "class", "action-btns").R(
 						e("p").R(
@@ -104,6 +114,13 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 						),
 					),
 				),
+			),
+			e("script", "type", "text/javascript").R(
+				t(`var editor = ace.edit("editor");
+					editor.setTheme("ace/theme/twilight");
+					editor.session.setMode("ace/mode/markdown");
+					document.getElementById('editor').style.fontSize='15px';
+`),
 			),
 		),
 	)
