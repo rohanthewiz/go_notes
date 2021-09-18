@@ -67,7 +67,7 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 	input.action-btn { width: 10em; padding-left: 0.2em; padding-right: 0.2em;
 		margin-right: 2em; background-color:#a29b90; }
 	input.action-btn.dup { width: 6em }
-	textarea { background-color: #ECE6D0 }`)),
+	textarea.note-body { display:none }`)),
 		),
 		e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.min.js").R(),
 		e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/mode-markdown.min.js").R(),
@@ -79,7 +79,7 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 			),
 			e("span", "class", "h1").R(t(pageHeadingPrefix, "Note")),
 			e("div", "class", "container").R(
-				e("form", "action", action, "method", "post", "style", "display:grid").R(
+				e("form", "id", "note_form", "action", action, "method", "post", "style", "display:grid").R(
 					// careful not to change any name attributes below, or form may break
 					e("table").R(
 						e("tr").R(
@@ -101,7 +101,7 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 					e("p", "style", "position: relative").R(
 						e("label", "for", "note_body").R(t("Body"), e("br")),
 						e("div", "id", "editor").R(t(note.Body)),
-						// e("textarea", "class", "note-body", "name", "note_body", "rows", "20").R(t(note.Body)),
+						e("textarea", "id", "note_body", "class", "note-body", "name", "note_body", "rows", "1").R(t("")),
 					),
 					e("div", "class", "action-btns").R(
 						e("p").R(
@@ -113,7 +113,8 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 								}
 								return
 							}(),
-							e("input", "type", "submit", "class", "action-btn", "value", formAction),
+							e("input", "type", "submit", "id", "create_update_btn", "class", "action-btn",
+								"onsubmit", "getEditorContents", "value", formAction),
 						),
 					),
 				),
@@ -122,8 +123,20 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 				t(`var editor = ace.edit("editor");
 					editor.setTheme("ace/theme/twilight");
 					editor.session.setMode("ace/mode/markdown");
+					console.log("JavaScript loaded");
+					
 					document.getElementById('editor').style.fontSize='15px';
-`),
+
+					var nf = document.getElementById("note_form");
+					nf.addEventListener("submit", getEditorContents);
+					function getEditorContents() {
+						var nb = document.getElementById("note_body");
+						if (typeof editor !== 'undefined' && nb !== null && typeof nb !== 'undefined') {
+							nb.value = editor.getValue();
+						}
+						return true;
+					}
+				`),
 			),
 		),
 	)
