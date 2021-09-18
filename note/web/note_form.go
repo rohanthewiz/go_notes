@@ -39,31 +39,34 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 		e("head").R(
 			e("title").R(t("GoNotes Form")),
 			e("style").R(t(`
-	body { background-color: tan }
+	body { background-color: #3a3939; color: #b7b9be }
 	.container { padding: 1em; border: 1px solid gray; border-radius: 0.5em }
     #editor { 
         position: relative;
         height: 18rem;
     }
     ul { list-style-type:none; margin: 0; padding: 0; }
-    ul.topmost > li:first-child { border-top: 1px solid #531C1C}
-    ul.topmost > li { border-top:none; border-bottom: 1px solid #8A2E2E; padding: 0.3em 0.3em}
-    td label {margin-right: 0.4em; font-size: 0.9em; color: #303030 }
-    p label {margin-right: 0.4em; vertical-align: top; font-size: 0.9em; color: #303030}
+    ul.topmost > li:first-child { border-top: 1px solid #515c57}
+    ul.topmost > li { border-top:none; border-bottom: 1px solid #515c57; padding: 0.3em 0.3em}
+    td label {margin-right: 0.4em; font-size: 0.9em; color: #858181 }
+    p label {margin-right: 0.4em; vertical-align: top; font-size: 0.9em; color: #858181}
     li { border-top: 1px solid #B89c72; line-height:1.2em; padding: 1.2em 4em }
     .h1 { font-size: 1.2em; margin-right: 0.2em; margin-bottom: 0.1em; padding: 0.1em }
 	.h1 a {text-decoration:none}
-	.h1 a:visited, .h1 a:link {color:black}
-    .h3 { font-size: 1em; font-weight:bold; margin-bottom: 0.1em; padding: 0.1em }
-    .title { font-size:1.1em; font-weight: bold; color:darkgreen; padding-top: 0.4em }
+	.h1 a:visited, .h1 a:link {color:7bb197}
+    .h3 { color:#b4b4b4; font-size: 0.9rem; font-weight:bold; margin-bottom: 0.1em;
+		padding: 0.1em;  font-size: 0.9rem;}
+    .title { font-size:1.1em; font-weight: bold; color:green; padding-top: 0.4em }
     .count { font-size: 0.8em; color:#401020; padding-left: 0.5em; padding-right: 0.5em }
     .tool { font-size: 0.7em; color:#401020; padding-left: 0.5em }
-	.descr { width:99% }
+	input.descr { width:99%; background-color:#a29b90; }
     .note-body { padding-left:1.5em; margin-top: 0.1em; width:99%}
 	button {cursor: pointer; margin: 0.5em 0.1em; vertical-align: baseline;}
-	td input { margin-right: 0.8em; width:96% }
+	td input { background-color:tan; margin-right: 0.8em; width:96% }
 	.action-btns { text-align: right }
-	input.action-btn { width: 10em; padding-left: 0.2em; padding-right: 0.2em; margin-right: 2em }
+	input.action-btn { width: 10em; padding-left: 0.2em; padding-right: 0.2em;
+		margin-right: 2em; background-color:#a29b90; }
+	input.action-btn.dup { width: 6em }
 	textarea { background-color: #ECE6D0 }`)),
 		),
 		e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.min.js").R(),
@@ -102,14 +105,14 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 					),
 					e("div", "class", "action-btns").R(
 						e("p").R(
+							e("input", "type", "submit", "class", "action-btn", "value", "Cancel", "formaction", "/"),
 							func() (r int) {
 								if note.Id > 0 {
-									e("input", "type", "submit", "class", "action-btn", "value", "Dup", "formaction", "/dup/"+strNoteId)
+									e("input", "type", "submit", "class", "action-btn dup", "value", "Dup", "formaction", "/dup/"+strNoteId)
 									// e("button", "onclick", "javascript:window.location='/duplicate/"+strNoteId+"'").R(t("Duplicate"))
 								}
 								return
 							}(),
-							e("input", "type", "submit", "class", "action-btn", "value", "Cancel", "formaction", "/"),
 							e("input", "type", "submit", "class", "action-btn", "value", formAction),
 						),
 					),
