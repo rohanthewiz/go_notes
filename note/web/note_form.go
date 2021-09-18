@@ -40,10 +40,12 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 			e("title").R(t("GoNotes Form")),
 			e("style").R(t(`
 	body { background-color: #3a3939; color: #b7b9be }
-	.container { padding: 1em; border: 1px solid gray; border-radius: 0.5em }
+	.container { padding: 1em; border: 1px solid gray; border-radius: 0.5em;
+		width: calc(100vw - 3rem); height: calc(100vh - 5rem);
+	}
     #editor { 
         position: relative;
-        height: 18rem;
+        height: calc(100vh - 17rem);
     }
     ul { list-style-type:none; margin: 0; padding: 0; }
     ul.topmost > li:first-child { border-top: 1px solid #515c57}
@@ -60,6 +62,7 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
     .count { font-size: 0.8em; color:#401020; padding-left: 0.5em; padding-right: 0.5em }
     .tool { font-size: 0.7em; color:#401020; padding-left: 0.5em }
 	input.descr { width:99%; background-color:#a29b90; }
+	#note_form { width: 100%; height: 100% }
     .note-body { padding-left:1.5em; margin-top: 0.1em; width:99%}
 	button {cursor: pointer; margin: 0.5em 0.1em; vertical-align: baseline;}
 	td input { background-color:tan; margin-right: 0.8em; width:96% }
@@ -79,7 +82,7 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 			),
 			e("span", "class", "h1").R(t(pageHeadingPrefix, "Note")),
 			e("div", "class", "container").R(
-				e("form", "id", "note_form", "action", action, "method", "post", "style", "display:grid").R(
+				e("form", "id", "note_form", "action", action, "method", "post").R(
 					// careful not to change any name attributes below, or form may break
 					e("table").R(
 						e("tr").R(
