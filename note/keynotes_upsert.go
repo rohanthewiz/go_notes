@@ -13,7 +13,7 @@ func UpsertKeyNotes(nb string) string {
 		return nb
 	}
 
-	const keyNoteHdrPrefix = "### Key Notes (auto generated)"
+	const keyNoteHdrPrefix = "#### Key Notes (auto)"
 	const codeSampleLen = 84
 	var keyNotes []string
 	var inKeyNotes, atKeyNoteHdr bool
