@@ -15,7 +15,7 @@ import (
 func Webserver(port string) {
 	const startMsg = "Web server listening on %s... Ctrl-C to quit"
 	app := fiber.New()
-	DoRoutes(app)
+	DoRoutes(app) // TODO add static file server to `dist/`
 
 	if config.Opts.IsRemoteSvr { // Create secure server
 		go func() { _ = http.ListenAndServe(":80", http.HandlerFunc(httpToHttps)) }()
@@ -45,7 +45,7 @@ func httpToHttps(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("redirecting to ", target)
 	http.Redirect(w, r, target, http.StatusPermanentRedirect)
 }
-func main() {
+func whatever() { // TODO seeing if we can have static server for ACME and http->https redirector
 	fs := http.FileServer(http.Dir("./static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
