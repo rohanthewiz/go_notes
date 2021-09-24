@@ -1,7 +1,7 @@
 package web
 
 import (
-	"github.com/gofiber/fiber"
+	"github.com/gofiber/fiber/v2"
 )
 
 func DoRoutes(router *fiber.App) {

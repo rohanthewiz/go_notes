@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber"
+	"github.com/gofiber/fiber/v2"
 	"github.com/rohanthewiz/element"
 	blackfriday "github.com/rohanthewiz/go_markdown"
 )
@@ -109,7 +109,7 @@ body { background-color: #3a3939; color: #b7b9be }
 								t(" | "),
 								e("a", "class", "text-menu", "href", "/dup/"+strId).R(t("dup")),
 								t(" | "),
-								e("a", "class", "text-menu", "href", "/del/"+strId+"?return="+string(c.Fasthttp.Path()), //.URL.Path,
+								e("a", "class", "text-menu", "href", "/del/"+strId+"?return="+string(c.Path()), //.URL.Path,
 									"onclick", "return confirm('Are you sure you want to delete this note?')",
 								).R(t("del")),
 								t("] "),
