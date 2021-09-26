@@ -59,8 +59,9 @@ func SynchClient(host string, serverSecret string) {
 				log.Println("Failed to set peer token:", err)
 			} // make sure to save new auth token
 		}
+
 		// Obtain the peer object which represents the server
-		pr, err := peer.GetPeerByGuid(peerId)
+		svr, err := peer.GetPeerByGuid(peerId)
 		if err != nil {
 			fmt.Println("Error retrieving peer object")
 			return
@@ -69,7 +70,7 @@ func SynchClient(host string, serverSecret string) {
 
 		// Auth
 		msg.Type = "AuthMe"
-		msg.Param = pr.Token // This is set for the server(peer) by some access granting mechanism
+		msg.Param = svr.Token // This is set for the server(peer) by some access granting mechanism
 		SendMsg(enc, msg)
 		RcxMsg(dec, &msg)
 		if msg.Param != "Authorized" {
@@ -77,28 +78,30 @@ func SynchClient(host string, serverSecret string) {
 			return
 		}
 
-		// Do we need to Synch?
+		// Are we in Synch?
 		// (SynchPos is the NoteChg.Guid of the last change applied in a synch operation)
-		if pr.SynchPos != "" { // Do we have a point of last synch with this peer?
+		if svr.SynchPos != "" { // Do we have a point of last synch with this peer?
 			lastChange := note.RetrieveLatestChange() // Retrieve last local Note Change
-			if lastChange.Id > 0 && lastChange.Guid == pr.SynchPos {
-				// Get server last change
+			if lastChange.Id > 0 && lastChange.Guid == svr.SynchPos {
+				// then our latest valid local change matches the point of last synch
+				// i.e. no new local changes
+				// See if the server has any further changes
 				msg.Type = "LatestChange"
 				SendMsg(enc, msg)
 				msg = Message{}
 				RcxMsg(dec, &msg)
-				if msg.NoteChg.Id > 0 && msg.NoteChg.Guid == pr.SynchPos {
+				if msg.NoteChg.Id > 0 && msg.NoteChg.Guid == svr.SynchPos {
 					utils.Pf("We are already in synch with peer: %s at note_change: %s\n",
 						utils.ShortSHA(peerId), utils.ShortSHA(lastChange.Guid))
-					return
+					return // we are completely in synch
 				}
 			} // else we probably have never synched so carry on
 		}
-		utils.Pf("Last known Synch position is \"%s\"\n", utils.ShortSHA(pr.SynchPos))
+		utils.Pf("Last known Synch position is \"%s\"\n", utils.ShortSHA(svr.SynchPos))
 
 		// Get Server Changes
-		SendMsg(enc, Message{Type: "NumberOfChanges", Param: pr.SynchPos}) // heads up on number of changes
-		RcxMsg(dec, &msg)                                                  // Decode the response
+		SendMsg(enc, Message{Type: "NumberOfChanges", Param: svr.SynchPos}) // heads up on number of changes
+		RcxMsg(dec, &msg)                                                   // Decode the response
 		numChanges, err := strconv.Atoi(msg.Param)
 		if err != nil {
 			fmt.Println("Could not decode the number of change messages")
@@ -106,8 +109,9 @@ func SynchClient(host string, serverSecret string) {
 		}
 		utils.Pl(numChanges, "changes")
 
-		peerChanges := make([]note.NoteChange, numChanges) // preallocate slice (optimization)
-		SendMsg(enc, Message{Type: "SendChanges"})         // please send the actual changes
+		peerChanges := make([]note.NoteChange, numChanges)
+		SendMsg(enc, Message{Type: "SendChanges"})
+
 		for i := 0; i < numChanges; i++ {
 			msg = Message{}
 			RcxMsg(dec, &msg)
@@ -116,7 +120,7 @@ func SynchClient(host string, serverSecret string) {
 		utils.Pf("\n%d server changes received:\n", numChanges)
 
 		// Get Local Changes
-		localChanges := note.RetrieveLocalNoteChangesFromSynchPoint(pr.SynchPos)
+		localChanges := note.RetrieveLocalNoteChangesFromSynchPoint(svr.SynchPos)
 		utils.Pf("%d local changes after synch point found\n", len(localChanges))
 		// Push local changes to server
 		if len(localChanges) > 0 {
@@ -156,12 +160,16 @@ func SynchClient(host string, serverSecret string) {
 		// Mark Synch Point with a special NoteChange (Operation: 9)
 		// Save on client and server
 		if len(peerChanges) > 0 || len(localChanges) > 0 {
-			synch_nc := note.NoteChange{Guid: utils.GenerateSHA1(), Operation: 9}
-			dbhandle.DB.Save(&synch_nc)
-			pr.SynchPos = synch_nc.Guid
-			dbhandle.DB.Save(&pr)
+			// Save a special note change
+			// this will help us know if a set of changes can be consolidated
+			// as we would not be able to consolidate changes across this marker
+			synchNC := note.NoteChange{Guid: utils.GenerateSHA1(), Operation: 9}
+			dbhandle.DB.Save(&synchNC)
+			// Also save it in the peer table
+			svr.SynchPos = synchNC.Guid
+			dbhandle.DB.Save(&svr)
 			// Mark the server with the same NoteChange
-			msg.NoteChg = synch_nc
+			msg.NoteChg = synchNC
 			msg.Type = "NewSynchPoint"
 			SendMsg(enc, msg)
 		}
