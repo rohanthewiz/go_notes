@@ -19,45 +19,50 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/julienschmidt/httprouter"
+	"github.com/rohanthewiz/rlog"
 )
 
 // Handlers for httprouter
-func Index(c *fiber.Ctx) {
-	c.Redirect("/q/all/l/100", http.StatusTemporaryRedirect)
+func Index(c *fiber.Ctx) error {
+	err := c.Redirect("/q/all/l/100", http.StatusTemporaryRedirect)
+	if err != nil {
+		rlog.LogErr(err, "Error redirecting to index route")
+	}
+	return err
 }
 
-func WebListNotes(w http.ResponseWriter, r *http.Request, nf *note.NotesFilter) {
+func WebListNotes(c *fiber.Ctx, nf *note.NotesFilter) {
 	notes := note.QueryNotes(nf)
 
-	err := web.NotesList(w, r, notes)
+	err := web.NotesList(c, notes)
 	if err != nil {
 		log.Println("Error in notes list html gen:", err)
 	}
 }
 
-func Query(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	limit, err := strconv.Atoi(p.ByName("limit"))
+func Query(c *fiber.Ctx) {
+	limit, err := strconv.Atoi(c.Params("limit"))
 	if err != nil {
-		limit = 50
+		limit = 100
 	}
 
 	nf := note.NotesFilter{
-		QueryStr: p.ByName("query"),
+		QueryStr: c.Params("query"),
 		Limit:    limit,
 	}
-	WebListNotes(w, r, &nf)
+	WebListNotes(c, &nf)
 }
 
 func QueryLast(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	WebListNotes(w, r, &note.NotesFilter{Last: true})
+	WebListNotes(c, &note.NotesFilter{Last: true})
 }
 
 func QueryId(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	id, err := strconv.ParseInt(p.ByName("id"), 10, 64)
+	id, err := strconv.c, nt(p.ByName("id"), 10, 64)
 	if err != nil {
 		id = 0
 	}
-	WebListNotes(w, r, &note.NotesFilter{Id: id})
+	WebListNotes(c, &note.NotesFilter{Id: id})
 }
 
 func QueryIdAsJson(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
@@ -77,26 +82,26 @@ func QueryIdAsJson(w http.ResponseWriter, _ *http.Request, p httprouter.Params) 
 	}
 }
 
-func QueryTag(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func QueryTag(c *fiber.Ctx, p httprouter.Params) {
 	tags := p.ByName("tag")
-	WebListNotes(w, r, &note.NotesFilter{Tags: strings.Split(tags, ",")})
+	WebListNotes(c, &note.NotesFilter{Tags: strings.Split(tags, ",")})
 }
 
-func QueryTitle(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	WebListNotes(w, r, &note.NotesFilter{Title: p.ByName("title")})
+func QueryTitle(c *fiber.Ctx, p httprouter.Params) {
+	WebListNotes(c, &note.NotesFilter{Title: p.ByName("title")})
 }
 
-func QueryTagAndWildCard(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func QueryTagAndWildCard(c *fiber.Ctx, p httprouter.Params) {
 	tags := strings.Split(p.ByName("tag"), ",")
-	WebListNotes(w, r, &note.NotesFilter{Tags: tags, QueryStr: p.ByName("query")})
+	WebListNotes(c, &note.NotesFilter{Tags: tags, QueryStr: p.ByName("query")})
 }
 
-func QueryTitleAndWildCard(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	WebListNotes(w, r,
+func QueryTitleAndWildCard(c *fiber.Ctx, p httprouter.Params) {
+	WebListNotes(c,
 		&note.NotesFilter{Title: p.ByName("title"), QueryStr: p.ByName("query")})
 }
 
-func WebNoteForm(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
+func WebNoteForm(c *fiber.Ctx, p httprouter.Params) {
 	if id, err := strconv.ParseInt(p.ByName("id"), 10, 64); err == nil {
 		var nte note.Note
 		dbhandle.DB.Where("id = ?", id).First(&nte) // get the original for comparision
@@ -189,10 +194,10 @@ func WebDeleteNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 	http.Redirect(w, r, returnPath, http.StatusFound)
 }
 
-func WebUpdateNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func WebUpdateNote(c *fiber.Ctx, p httprouter.Params) {
 	var nte note.Note
 	if id, err := strconv.ParseUint(p.ByName("id"), 10, 64); err == nil {
-		post_data, err := ioutil.ReadAll(r.Body)
+		post_data, err := ioutil.ReadAll(c.Body())
 		if err != nil {
 			HandleRequestErr(err, w)
 			return
