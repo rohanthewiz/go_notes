@@ -1,7 +1,6 @@
 package web
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"go_notes/dbhandle"
@@ -9,7 +8,6 @@ import (
 	"go_notes/note/note_ops"
 	"go_notes/note/web"
 	"go_notes/utils"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -20,6 +18,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/julienschmidt/httprouter"
 	"github.com/rohanthewiz/rlog"
+	"github.com/rohanthewiz/serr"
 )
 
 // Handlers for httprouter
@@ -53,33 +52,36 @@ func Query(c *fiber.Ctx) {
 	WebListNotes(c, &nf)
 }
 
-func QueryLast(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func QueryLast(c *fiber.Ctx) error {
 	WebListNotes(c, &note.NotesFilter{Last: true})
+	return nil
 }
 
-func QueryId(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	id, err := strconv.c, nt(p.ByName("id"), 10, 64)
+func QueryId(c *fiber.Ctx) {
+	id, err := c.ParamsInt("id")
 	if err != nil {
 		id = 0
 	}
-	WebListNotes(c, &note.NotesFilter{Id: id})
+	WebListNotes(c, &note.NotesFilter{Id: int64(id)})
 }
 
-func QueryIdAsJson(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
-	id, err := strconv.ParseInt(p.ByName("id"), 10, 64)
+func QueryIdAsJson(c *fiber.Ctx) {
+	id, err := c.ParamsInt("id")
 	if err != nil {
 		id = 0
 	}
-	notes := note.QueryNotes(&note.NotesFilter{Id: id})
-	jNotes, err := json.Marshal(notes)
+	notes := note.QueryNotes(&note.NotesFilter{Id: int64(id)})
+	err = c.JSON(notes)
 	if err != nil {
-		log.Println("Error marshalling Note id:", strconv.FormatInt(id, 10))
+		rlog.LogErr(serr.Wrap(err, "Error in notes JSON gen:"))
 	}
-	w.Header().Set("Content-Type", "application/json")
-	_, err = w.Write(jNotes)
-	if err != nil {
-		log.Println("Error in notes JSON gen:", err)
-	}
+	// jNotes, err := json.Marshal(notes)
+	// if err != nil {
+	// 	log.Println("Error marshalling Note id:", strconv.Itoa(id))
+	// }
+	//
+	// w.Header().Set("Content-Type", "application/json")
+	// _, err = w.Write(jNotes)
 }
 
 func QueryTag(c *fiber.Ctx, p httprouter.Params) {
@@ -107,34 +109,30 @@ func WebNoteForm(c *fiber.Ctx, p httprouter.Params) {
 		dbhandle.DB.Where("id = ?", id).First(&nte) // get the original for comparision
 		fmt.Printf("note at WebNoteForm %#v\n", nte.Guid)
 		if nte.Id > 0 {
-			err = web.NoteForm(w, nte)
+			err = web.NoteForm(c, nte)
 			if err != nil {
 				log.Println("Error in Render NoteForm:", err)
 			}
 		} else {
-			err := web.NoteForm(w, note.Note{})
+			err := web.NoteForm(c, note.Note{})
 			if err != nil {
 				log.Println("Error in Render NoteForm:", err)
 			}
 		}
 	} else {
-		err := web.NoteForm(w, note.Note{})
+		err := web.NoteForm(c, note.Note{})
 		if err != nil {
 			log.Println("Error in Render NoteForm:", err)
 		}
 	}
 }
 
-func WebCreateNote(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	postData, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		HandleRequestErr(err, w)
-		return
-	}
+func WebCreateNote(c *fiber.Ctx) {
+	postData := c.Body()
 
 	v, err := url.ParseQuery(string(postData))
 	if err != nil {
-		HandleRequestErr(err, w)
+		HandleRequestErr(err, c)
 		return
 	}
 
@@ -143,25 +141,25 @@ func WebCreateNote(w http.ResponseWriter, r *http.Request, _ httprouter.Params) 
 
 	tl := strings.TrimSpace(v.Get("title"))
 	if tl == "" {
-		HandleRequestErr(errors.New("title should not be empty"), w)
+		HandleRequestErr(errors.New("title should not be empty"), c)
 		return
 	}
 
 	id := note_ops.CreateNote(tl, strings.TrimSpace(v.Get("descr")),
 		nb, strings.TrimSpace(v.Get("tag")))
-	http.Redirect(w, r, "/qi/"+strconv.FormatUint(id, 10), http.StatusFound)
+	_ = c.Redirect("/qi/"+strconv.FormatUint(id, 10), http.StatusFound)
 }
 
-func WebNoteDup(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	origId, err := strconv.ParseInt(p.ByName("id"), 10, 64)
+func WebNoteDup(c *fiber.Ctx) {
+	origId, err := c.ParamsInt("id")
 	if err != nil {
-		HandleRequestErr(err, w)
+		HandleRequestErr(err, c)
 		return
 	}
 
-	nte := note.FindNoteById(origId)
+	nte := note.FindNoteById(int64(origId))
 	if nte.Id < 1 {
-		http.Redirect(w, r, "/q/all/l/100", http.StatusFound)
+		_ = c.Redirect("/q/all/l/100", http.StatusFound)
 	}
 
 	// TODO - Check that note with title below does not already exist
@@ -169,9 +167,9 @@ func WebNoteDup(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := note_ops.CreateNote("Copy of - "+nte.Title, "",
 		"", nte.Tag)
 	if id > 0 {
-		http.Redirect(w, r, "/edit/"+strconv.FormatUint(id, 10), http.StatusFound)
+		_ = c.Redirect("/edit/"+strconv.FormatUint(id, 10), http.StatusFound)
 	} else {
-		http.Redirect(w, r, "/q/all/l/100", http.StatusFound)
+		_ = c.Redirect("/q/all/l/100", http.StatusFound)
 	}
 }
 
@@ -194,31 +192,34 @@ func WebDeleteNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 	http.Redirect(w, r, returnPath, http.StatusFound)
 }
 
-func WebUpdateNote(c *fiber.Ctx, p httprouter.Params) {
+func WebUpdateNote(c *fiber.Ctx) {
 	var nte note.Note
-	if id, err := strconv.ParseUint(p.ByName("id"), 10, 64); err == nil {
-		post_data, err := ioutil.ReadAll(c.Body())
+	if id, err := c.ParamsInt("id"); err == nil {
+		postData := c.Body()
+
+		v, err := url.ParseQuery(string(postData))
 		if err != nil {
-			HandleRequestErr(err, w)
-			return
-		}
-		v, err := url.ParseQuery(string(post_data))
-		if err != nil {
-			HandleRequestErr(err, w)
+			HandleRequestErr(err, c)
 			return
 		}
 
 		nb := strings.TrimSpace(v.Get("note_body"))
 		nb = note.UpsertKeyNotes(nb) // prepend KeyNotes - hardwired ON for now
 
-		nte = note.Note{Id: id, Title: strings.TrimSpace(v.Get("title")),
+		nte = note.Note{Id: uint64(id), Title: strings.TrimSpace(v.Get("title")),
 			Description: strings.TrimSpace(v.Get("descr")),
 			Body:        nb, Tag: strings.TrimSpace(v.Get("tag")),
 		}
 
 		utils.Pf("Updating note: %s %s...\n", nte.Guid, nte.Title)
 		note.AllFieldsUpdate(nte)
-		http.Redirect(w, r, "/qi/"+strconv.FormatUint(nte.Id, 10), http.StatusFound)
+		err = c.Redirect("/qi/"+strconv.FormatUint(nte.Id, 10), http.StatusFound)
+		if err != nil {
+			rlog.LogErr(err, "Error on redirect to note after update")
+			_ = c.Redirect("/")
+		}
+	} else {
+		rlog.LogErr(err, "No id found in update URL path")
 	}
 }
 
@@ -226,7 +227,11 @@ func ServeJS(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	http.ServeFile(w, r, path.Join("js", p.ByName("file")))
 }
 
-func HandleRequestErr(err error, w http.ResponseWriter) {
-	w.WriteHeader(http.StatusBadRequest)
-	_, _ = fmt.Fprint(w, err)
+func HandleRequestErr(err error, c *fiber.Ctx) {
+	rlog.LogErr(err)
+	// fhr := c.Response()
+	// if fhr != nil {
+	// 	//
+	// }
+	_ = c.SendStatus(http.StatusBadRequest)
 }
