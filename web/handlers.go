@@ -8,15 +8,12 @@ import (
 	"go_notes/note/note_ops"
 	"go_notes/note/web"
 	"go_notes/utils"
-	"log"
 	"net/http"
 	"net/url"
-	"path"
 	"strconv"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/julienschmidt/httprouter"
 	"github.com/rohanthewiz/rlog"
 	"github.com/rohanthewiz/serr"
 )
@@ -30,16 +27,22 @@ func Index(c *fiber.Ctx) error {
 	return err
 }
 
-func WebListNotes(c *fiber.Ctx, nf *note.NotesFilter) {
+func WebListNotes(c *fiber.Ctx, nf *note.NotesFilter) (err error) {
 	notes := note.QueryNotes(nf)
-
-	err := web.NotesList(c, notes)
+	err = web.NotesList(c, notes)
 	if err != nil {
-		log.Println("Error in notes list html gen:", err)
+		return serr.Wrap(err, "Error in notes list html gen")
 	}
+	return
 }
 
-func Query(c *fiber.Ctx) {
+func Query(c *fiber.Ctx) (err error) {
+	defer func() {
+		if err != nil {
+			rlog.LogErr(err, "Error in web query")
+		}
+	}()
+
 	limit, err := strconv.Atoi(c.Params("limit"))
 	if err != nil {
 		limit = 100
@@ -49,85 +52,122 @@ func Query(c *fiber.Ctx) {
 		QueryStr: c.Params("query"),
 		Limit:    limit,
 	}
-	WebListNotes(c, &nf)
+	err = WebListNotes(c, &nf)
+	return
 }
 
-func QueryLast(c *fiber.Ctx) error {
-	WebListNotes(c, &note.NotesFilter{Last: true})
-	return nil
+func QueryLast(c *fiber.Ctx) (err error) {
+	err = WebListNotes(c, &note.NotesFilter{Last: true})
+	if err != nil {
+		rlog.LogErr(err, "Error in web queryLast")
+	}
+	return
 }
 
-func QueryId(c *fiber.Ctx) {
+func QueryId(c *fiber.Ctx) (err error) {
+	defer func() {
+		if err != nil {
+			rlog.LogErr(err, "Error in web query")
+		}
+	}()
 	id, err := c.ParamsInt("id")
 	if err != nil {
-		id = 0
+		return err
 	}
-	WebListNotes(c, &note.NotesFilter{Id: int64(id)})
+	err = WebListNotes(c, &note.NotesFilter{Id: int64(id)})
+	return
 }
 
-func QueryIdAsJson(c *fiber.Ctx) {
+func QueryIdAsJson(c *fiber.Ctx) (err error) {
+	defer func() {
+		if err != nil {
+			rlog.LogErr(err, "Error in QueryIdAsJson")
+		}
+	}()
+
 	id, err := c.ParamsInt("id")
 	if err != nil {
-		id = 0
+		return serr.Wrap(err, "Unable to parse id")
 	}
+
 	notes := note.QueryNotes(&note.NotesFilter{Id: int64(id)})
 	err = c.JSON(notes)
 	if err != nil {
-		rlog.LogErr(serr.Wrap(err, "Error in notes JSON gen:"))
+		return serr.Wrap(err, "Error in notes JSON gen:")
 	}
-	// jNotes, err := json.Marshal(notes)
-	// if err != nil {
-	// 	log.Println("Error marshalling Note id:", strconv.Itoa(id))
-	// }
-	//
-	// w.Header().Set("Content-Type", "application/json")
-	// _, err = w.Write(jNotes)
+	return
 }
 
-func QueryTag(c *fiber.Ctx, p httprouter.Params) {
-	tags := p.ByName("tag")
-	WebListNotes(c, &note.NotesFilter{Tags: strings.Split(tags, ",")})
+func QueryTag(c *fiber.Ctx) (err error) {
+	tags := c.Params("tag")
+	err = WebListNotes(c, &note.NotesFilter{Tags: strings.Split(tags, ",")})
+	if err != nil {
+		rlog.LogErr(err, "Error in web query by tag")
+	}
+	return
 }
 
-func QueryTitle(c *fiber.Ctx, p httprouter.Params) {
-	WebListNotes(c, &note.NotesFilter{Title: p.ByName("title")})
+func QueryTitle(c *fiber.Ctx) (err error) {
+	err = WebListNotes(c, &note.NotesFilter{Title: c.Params("title")})
+	if err != nil {
+		rlog.LogErr(err, "Error in web query by tag")
+	}
+	return
 }
 
-func QueryTagAndWildCard(c *fiber.Ctx, p httprouter.Params) {
-	tags := strings.Split(p.ByName("tag"), ",")
-	WebListNotes(c, &note.NotesFilter{Tags: tags, QueryStr: p.ByName("query")})
+func QueryTagAndWildCard(c *fiber.Ctx) (err error) {
+	tags := strings.Split(c.Params("tag"), ",")
+	err = WebListNotes(c, &note.NotesFilter{Tags: tags, QueryStr: c.Params("query")})
+	if err != nil {
+		rlog.LogErr(err, "Error in query by tag and wildcard")
+	}
+	return
 }
 
-func QueryTitleAndWildCard(c *fiber.Ctx, p httprouter.Params) {
-	WebListNotes(c,
-		&note.NotesFilter{Title: p.ByName("title"), QueryStr: p.ByName("query")})
+func QueryTitleAndWildCard(c *fiber.Ctx) (err error) {
+	err = WebListNotes(c, &note.NotesFilter{Title: c.Params("title"), QueryStr: c.Params("query")})
+	if err != nil {
+		rlog.LogErr(err, "Error in query title and wildcard")
+	}
+	return
 }
 
-func WebNoteForm(c *fiber.Ctx, p httprouter.Params) {
-	if id, err := strconv.ParseInt(p.ByName("id"), 10, 64); err == nil {
+func WebNoteForm(c *fiber.Ctx) (err error) {
+	defer func() {
+		if err != nil {
+			rlog.LogErr(err, "Error in WebNoteForm")
+		}
+	}()
+
+	if id, err := strconv.ParseInt(c.Params("id"), 10, 64); err == nil {
 		var nte note.Note
 		dbhandle.DB.Where("id = ?", id).First(&nte) // get the original for comparision
-		fmt.Printf("note at WebNoteForm %#v\n", nte.Guid)
+		rlog.Log(rlog.Debug, "note at WebNoteForm: "+nte.Guid)
+
+		var n note.Note
 		if nte.Id > 0 {
-			err = web.NoteForm(c, nte)
-			if err != nil {
-				log.Println("Error in Render NoteForm:", err)
-			}
-		} else {
-			err := web.NoteForm(c, note.Note{})
-			if err != nil {
-				log.Println("Error in Render NoteForm:", err)
-			}
+			n = nte
+		}
+
+		err := web.NoteForm(c, n)
+		if err != nil {
+			return serr.Wrap(err, "Error in Render of NoteForm")
 		}
 	} else {
 		err := web.NoteForm(c, note.Note{})
 		if err != nil {
-			log.Println("Error in Render NoteForm:", err)
+			return serr.Wrap(err)
 		}
 	}
+	return
 }
 
-func WebCreateNote(c *fiber.Ctx) {
+func WebCreateNote(c *fiber.Ctx) (err error) {
+	defer func() {
+		if err != nil {
+			rlog.LogErr(err, "Error in WebCreateNote")
+		}
+	}()
 	postData := c.Body()
 
 	v, err := url.ParseQuery(string(postData))
@@ -147,10 +187,18 @@ func WebCreateNote(c *fiber.Ctx) {
 
 	id := note_ops.CreateNote(tl, strings.TrimSpace(v.Get("descr")),
 		nb, strings.TrimSpace(v.Get("tag")))
-	_ = c.Redirect("/qi/"+strconv.FormatUint(id, 10), http.StatusFound)
+
+	err = c.Redirect("/qi/"+strconv.FormatUint(id, 10), http.StatusFound)
+	return
 }
 
-func WebNoteDup(c *fiber.Ctx) {
+func WebNoteDup(c *fiber.Ctx) (err error) {
+	defer func() {
+		if err != nil {
+			rlog.LogErr(err, "Error in WebNoteDup")
+		}
+	}()
+
 	origId, err := c.ParamsInt("id")
 	if err != nil {
 		HandleRequestErr(err, c)
@@ -159,7 +207,7 @@ func WebNoteDup(c *fiber.Ctx) {
 
 	nte := note.FindNoteById(int64(origId))
 	if nte.Id < 1 {
-		_ = c.Redirect("/q/all/l/100", http.StatusFound)
+		err = c.Redirect("/q/all/l/100", http.StatusFound)
 	}
 
 	// TODO - Check that note with title below does not already exist
@@ -167,32 +215,34 @@ func WebNoteDup(c *fiber.Ctx) {
 	id := note_ops.CreateNote("Copy of - "+nte.Title, "",
 		"", nte.Tag)
 	if id > 0 {
-		_ = c.Redirect("/edit/"+strconv.FormatUint(id, 10), http.StatusFound)
+		err = c.Redirect("/edit/"+strconv.FormatUint(id, 10), http.StatusFound)
 	} else {
-		_ = c.Redirect("/q/all/l/100", http.StatusFound)
+		err = c.Redirect("/q/all/l/100", http.StatusFound)
 	}
+	return
 }
 
-func WebDeleteNote(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	returnPath := "/q/all/l/100"
-	id, err := strconv.ParseInt(p.ByName("id"), 10, 64)
+func WebDeleteNote(c *fiber.Ctx) (err error) {
+	var returnPath = "/q/all/l/100"
+
+	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
 		fmt.Println("Error parsing id when deleting note.")
-		http.Redirect(w, r, returnPath, http.StatusFound)
+		_ = c.Redirect(returnPath, http.StatusFound)
 		return
 	}
 
 	note.DoDelete(note.FindNoteById(id))
 
-	qs := r.URL.Query()
-	if qs != nil {
-		returnPath = qs.Get("return")
+	qs := c.Query("return")
+	if qs != "" {
+		returnPath = qs
 	}
 
-	http.Redirect(w, r, returnPath, http.StatusFound)
+	return c.Redirect(returnPath, http.StatusFound)
 }
 
-func WebUpdateNote(c *fiber.Ctx) {
+func WebUpdateNote(c *fiber.Ctx) (err error) {
 	var nte note.Note
 	if id, err := c.ParamsInt("id"); err == nil {
 		postData := c.Body()
@@ -200,7 +250,7 @@ func WebUpdateNote(c *fiber.Ctx) {
 		v, err := url.ParseQuery(string(postData))
 		if err != nil {
 			HandleRequestErr(err, c)
-			return
+			return err
 		}
 
 		nb := strings.TrimSpace(v.Get("note_body"))
@@ -221,11 +271,12 @@ func WebUpdateNote(c *fiber.Ctx) {
 	} else {
 		rlog.LogErr(err, "No id found in update URL path")
 	}
+	return
 }
 
-func ServeJS(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	http.ServeFile(w, r, path.Join("js", p.ByName("file")))
-}
+// func ServeJS(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+// 	http.ServeFile(w, r, path.Join("js", p.ByName("file")))
+// }
 
 func HandleRequestErr(err error, c *fiber.Ctx) {
 	rlog.LogErr(err)

@@ -36,13 +36,14 @@ func Webserver(port string) {
 		go func() { _ = http.ListenAndServe(":80", http.HandlerFunc(handleHttp)) }()
 
 		// HTTPS
-		port = ":443"
+		port = "443"
 		rlog.Log(rlog.Info, fmt.Sprintf(startMsg, port))
-		log.Fatal(app.ListenTLS(tlsPort, certPath, keyPath))
+		log.Fatal(app.ListenTLS(":"+tlsPort, certPath, keyPath))
 
 	} else { // LOCAL server - no auth
+
 		rlog.Log(rlog.Info, fmt.Sprintf(startMsg, port))
-		log.Fatal(app.Listen(port))
+		log.Fatal(app.Listen(":" + port))
 	}
 }
 

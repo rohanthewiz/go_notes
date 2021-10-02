@@ -32,7 +32,7 @@ func DoRoutes(app *fiber.App) {
 	app.Get("/new", WebNoteForm)
 	app.Get("/edit/:id", WebNoteForm)
 	app.Get("/del/:id", WebDeleteNote)
-	app.Get("/js/:file", ServeJS)
+	// app.Get("/js/:file", ServeJS)
 	app.Post("/create", WebCreateNote)
 	app.Post("/note/:id", WebUpdateNote)
 	app.Post("/dup/:id", WebNoteDup)
