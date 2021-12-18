@@ -22,7 +22,7 @@ func Webserver(port string) {
 	const startMsg = "Web server listening on %s... Ctrl-C to quit"
 
 	app := fiber.New()
-	DoRoutes(app)
+	LoadRoutes(app)
 	// TODO add static file server to `dist/`
 
 	if config.Opts.IsRemoteSvr { // Create secure server
@@ -41,7 +41,6 @@ func Webserver(port string) {
 		log.Fatal(app.ListenTLS(":"+tlsPort, certPath, keyPath))
 
 	} else { // LOCAL server - no auth
-
 		rlog.Log(rlog.Info, fmt.Sprintf(startMsg, port))
 		log.Fatal(app.Listen(":" + port))
 	}

@@ -6,7 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func DoRoutes(app *fiber.App) {
+func LoadRoutes(app *fiber.App) {
 	app.Static("/assets", "./dist", fiber.Static{
 		Compress:      true,
 		Browse:        false,
