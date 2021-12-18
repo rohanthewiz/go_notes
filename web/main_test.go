@@ -6,11 +6,12 @@ import (
 	db "go_notes/dbhandle"
 	"go_notes/migration"
 	"os"
+	"strings"
 	"testing"
 )
 
 func TestMain(m *testing.M) {
-	println("Setting up tests...")
+	println(strings.Repeat("-", 20), "Setting up tests", strings.Repeat("-", 20))
 	const testDB = "/home/ro/goprojs/go_notes/test_db/test1.sqlite"
 
 	_, _ = config.GetOpts()
@@ -27,7 +28,7 @@ func TestMain(m *testing.M) {
 
 	migration.MigrateIfNeeded()
 
-	println("Running tests...")
+	println(strings.Repeat("-", 20), "Running tests", strings.Repeat("-", 20))
 	ret := m.Run()
 	println("Testing complete")
 	os.Exit(ret)
