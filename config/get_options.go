@@ -1,8 +1,7 @@
-package main
+package config
 
 import (
 	"flag"
-	"go_notes/config"
 	"os"
 	"path/filepath"
 
@@ -10,7 +9,8 @@ import (
 )
 
 // Setup commandline options and other configuration for Go Notes
-func getOpts() (map[string]string, map[string]interface{}) {
+// We are deprecating the map returns in favor of config.Opts
+func GetOpts() (map[string]string, map[string]interface{}) {
 
 	strOpts := make(map[string]string, 32)
 	intfOpts := make(map[string]interface{}, 16)
@@ -57,70 +57,70 @@ func getOpts() (map[string]string, map[string]interface{}) {
 	flag.Parse()
 
 	// Store options in a couple of maps
-	config.Opts.Short = *short
-	config.Opts.Port = *port
-	config.Opts.Version = *version
-	config.Opts.WhoAmI = *whoami
-	config.Opts.Q = *qPtr
+	Opts.Short = *short
+	Opts.Port = *port
+	Opts.Version = *version
+	Opts.WhoAmI = *whoami
+	Opts.Q = *qPtr
 	strOpts["q"] = *qPtr
-	config.Opts.QG = *qgPtr
+	Opts.QG = *qgPtr
 	strOpts["qg"] = *qgPtr
-	config.Opts.QT = *qtPtr
+	Opts.QT = *qtPtr
 	strOpts["qt"] = *qtPtr
-	config.Opts.QD = *qdPtr
+	Opts.QD = *qdPtr
 	strOpts["qd"] = *qdPtr
-	config.Opts.QB = *qbPtr
+	Opts.QB = *qbPtr
 	strOpts["qb"] = *qbPtr
-	config.Opts.Title = *qtPtr
+	Opts.Title = *qtPtr
 	strOpts["t"] = *tPtr
-	config.Opts.Descr = *qdPtr
+	Opts.Descr = *qdPtr
 	strOpts["d"] = *dPtr
-	config.Opts.Body = *bPtr
+	Opts.Body = *bPtr
 	strOpts["b"] = *bPtr
-	config.Opts.Tag = *tPtr
+	Opts.Tag = *tPtr
 	strOpts["g"] = *gPtr
 	strOpts["admin"] = *adminPtr
 	strOpts["db"] = *dbPtr
 	// strOpts["exp"] = *expPtr
 	// strOpts["imp"] = *impPtr
-	config.Opts.Export = *expPtr
-	config.Opts.Import = *impPtr
+	Opts.Export = *expPtr
+	Opts.Import = *impPtr
 	// strOpts["port"] = *pPtr
 	strOpts["synch_client"] = *synchClientPtr
 	strOpts["get_peer_token"] = *getPeerTokenPtr
 	strOpts["save_peer_token"] = *savePeerTokenPtr
 	strOpts["server_secret"] = *serverSecretPtr
-	config.Opts.QI = *qiPtr
+	Opts.QI = *qiPtr
 	intfOpts["qi"] = *qiPtr
-	config.Opts.Limit = *lPtr
+	Opts.Limit = *lPtr
 	intfOpts["l"] = *lPtr
 	// o.Short = *sPtr
 	// intfOpts["s"] = *sPtr
-	config.Opts.Last = *qlPtr
+	Opts.Last = *qlPtr
 	intfOpts["ql"] = *qlPtr
-	config.Opts.Verbose = *verbosePtr
+	Opts.Verbose = *verbosePtr
 	// intfOpts["v"] = *vPtr
 	// intfOpts["whoami"] = *whoamiPtr
-	config.Opts.Delete = *delPtr
+	Opts.Delete = *delPtr
 	// intfOpts["del"] = *delPtr
-	config.Opts.Update = *updPtr
+	Opts.Update = *updPtr
 	// intfOpts["upd"] = *updPtr
 	intfOpts["get_server_secret"] = *getServerSecretPtr
 	intfOpts["setup_db"] = *setupDBPtr
 
-	config.Opts.Verbose = *verbosePtr
+	Opts.Verbose = *verbosePtr
 	// intfOpts["verbose"] = *verbosePtr
 
-	config.Opts.Debug = *debugPtr
+	Opts.Debug = *debugPtr
 	intfOpts["debug"] = *debugPtr
 
 	// This is the better way to pass options
-	config.Opts.IsLocalWebSvr = *svrPtr
-	config.Opts.IsSynchSvr = *synchServerPtr
-	config.Opts.IsRemoteSvr = *ptrRemoteSvr
-	config.Opts.CreateUser = *createUser
-	config.Opts.Email = *email
-	config.Opts.Password = *password
+	Opts.IsLocalWebSvr = *svrPtr
+	Opts.IsSynchSvr = *synchServerPtr
+	Opts.IsRemoteSvr = *ptrRemoteSvr
+	Opts.CreateUser = *createUser
+	Opts.Email = *email
+	Opts.Password = *password
 
 	const dbFile = "go_notes.sqlite"
 	var dbFolder string
@@ -132,15 +132,15 @@ func getOpts() (map[string]string, map[string]interface{}) {
 		} else if len(os.Getenv("HOMEDRIVE")) > 0 && len(os.Getenv("HOMEPATH")) > 0 {
 			dbFolder = os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
 		} else {
-			dbFolder = "./" //todo - better default
+			dbFolder = "./" // todo - better default
 		}
 		dbFullPath = filepath.Join(dbFolder, dbFile)
 	} else {
 		dbFullPath = *dbPtr
 	}
 
-	config.Opts.DBPath = dbFullPath
-	rlog.Log(rlog.Info, "Using db at: "+config.Opts.DBPath)
+	Opts.DBPath = dbFullPath
+	rlog.Log(rlog.Info, "Configured db: "+Opts.DBPath)
 
 	return strOpts, intfOpts
 }

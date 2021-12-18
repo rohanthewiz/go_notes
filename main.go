@@ -21,9 +21,11 @@ const app_name = "GoNotes"
 const version string = "0.15.0"
 
 // Get Commandline Options and Flags
-var optsStr, optsIntf = getOpts() // returns map[string]string, map[string]interface{}
+var optsStr map[string]string
+var optsIntf map[string]interface{}
 
 func main() {
+	optsStr, optsIntf = config.GetOpts()
 	o := config.Opts // alias - note alias is a copy of config.Opts
 
 	if o.Verbose {
@@ -93,7 +95,7 @@ func main() {
 
 	// CORE PROCESSING
 
-	// when -remote require auth and start synch server in background
+	// when -remote - require auth and start synch server in background
 
 	if config.Opts.IsLocalWebSvr { // local only webserver - security is relaxed
 		web.Webserver(o.Port)
