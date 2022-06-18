@@ -16,6 +16,6 @@ require (
 	github.com/rohanthewiz/element v0.2.2
 	github.com/rohanthewiz/go_markdown v0.0.0-20160315044756-cbcef778537c
 	github.com/rohanthewiz/rlog v0.1.2
-	github.com/rohanthewiz/serr v1.0.0-rc.5 // indirect
+	github.com/rohanthewiz/serr v1.0.0-rc.5
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
 )

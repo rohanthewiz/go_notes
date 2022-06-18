@@ -12,7 +12,8 @@ import (
 
 func TestMain(m *testing.M) {
 	println(strings.Repeat("-", 20), "Setting up tests", strings.Repeat("-", 20))
-	const testDB = "/home/ro/goprojs/go_notes/test_db/test1.sqlite"
+	// TODO - configize this
+	const testDB = "/Users/rohanallison/projs/goprojs/go_notes/test_db/test1.sqlite"
 
 	_, _ = config.GetOpts()
 
