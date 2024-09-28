@@ -33,7 +33,7 @@ func NotesList(w io.Writer, req *http.Request, notes []note.Note, optsStr map[st
 		e("head").R(
 			e("title").R(t("GoNotes List")),
 			e("style").R(t(`
-body { background-color: #3a3939; color: #b7b9be }
+	body { background-color: #3a3939; color: #b7b9be }
     ul { list-style-type:none; margin: 0; padding: 0; }
     ul.topmost > li:first-child { border-top: 1px solid #515c57}
     ul.topmost > li { border-top:none; border-bottom: 1px solid #515c57; padding: 0.3em 0.3em}
@@ -55,6 +55,37 @@ body { background-color: #3a3939; color: #b7b9be }
     code { border-radius: 0.3em;
     	background-color: #b2916e; color: black;
     	padding: 0.1em 0.3em; }
+        .copy-btn {
+            margin-left: 2ch;
+            margin-right: 2ch;
+            float: right;
+            font-size: small;
+
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;        }
+        /*
+        .copy-btn:active {
+            background-color: #bc9355;
+        }
+        */
+        .copy-btn svg {
+            width: 16px;
+            height: 16px;
+            fill: #b8905a;
+        }
+
+        button:hover svg {
+            fill: #007BFF; /* Change color on hover */
+        }
+
+        button:active svg {
+            fill: #ffffe7; /* Change color on hover */
+        }
 			`)),
 			e("link", "rel", "stylesheet", "href",
 				"//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/styles/agate.min.css").R(),
@@ -137,10 +168,36 @@ body { background-color: #3a3939; color: #b7b9be }
 					return
 				}(),
 			),
+
+			e("script", "type", "text/javascript").R(t(`
+				function copyToClipboard(element) {
+						const codeBlock = element.innerText;
+						navigator.clipboard.writeText(codeBlock).then(() => {
+							// alert('Code copied to clipboard!');
+						}).catch(err => {
+							console.error('Failed to copy: ', err);
+						});
+				}
+
+				function addCopyBtn(pre) {
+							const button = document.createElement('button');
+							button.className = 'copy-btn';
+							button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>';
+							button.onclick = () => copyToClipboard(pre.querySelector('code'));
+							pre.parentNode.insertBefore(button, pre);
+				}				
+			`)),
+
 			e("script", "type", "text/javascript").R(t(
-				`$( function() {el = $('.note-body');
+				`$( function() {
+				el = $('.note-body');
+				el.find("pre").each( function(i, block) {
+					addCopyBtn(block);
+				});
 				el.find("pre code").each( function(i, block) {
-					hljs.highlightBlock( block ); }) });`,
+					hljs.highlightBlock( block );
+				});
+			});`,
 			)),
 		),
 	)
