@@ -103,8 +103,9 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 					),
 					e("p", "style", "position: relative").R(
 						e("label", "for", "note_body").R(t("Body"), e("br")),
-						e("div", "id", "editor").R(t(note.Body)),
-						e("textarea", "id", "note_body", "class", "note-body", "name", "note_body", "rows", "1").R(t("")),
+						e("div", "id", "editor").R(t("")),
+						e("textarea", "id", "note_body", "class", "note-body", "name", "note_body", "rows", "1").
+							R(t(note.Body)),
 					),
 					e("div", "class", "action-btns").R(
 						e("p").R(
@@ -126,9 +127,11 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 				t(`var editor = ace.edit("editor");
 					editor.setTheme("ace/theme/twilight");
 					editor.session.setMode("ace/mode/markdown");
+					editor.session.setUseWorker(false);
 					console.log("JavaScript loaded");
 					
 					document.getElementById('editor').style.fontSize='15px';
+					editor.getSession().setValue(document.getElementById("note_body").value);
 
 					var nf = document.getElementById("note_form");
 					nf.addEventListener("submit", getEditorContents);
