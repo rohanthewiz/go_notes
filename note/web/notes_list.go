@@ -79,6 +79,32 @@ func NotesList(w io.Writer, req *http.Request, notes []note.Note, optsStr map[st
             fill: #b8905a;
         }
 
+        .inline-copy-btn {
+			position: relative;
+			top: -0.5ch;
+            padding-left: 2px;
+            padding-right: 2px;
+            //float: right;
+            font-size: small;
+
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;        }
+        /*
+        .inline-copy-btn:active {
+            background-color: #bc9355;
+        }
+        */
+        .inline-copy-btn svg {
+            width: 12px;
+            height: 12px;
+            fill: #b8905a;
+        }
+
         button:hover svg {
             fill: #007BFF; /* Change color on hover */
         }
@@ -171,18 +197,24 @@ func NotesList(w io.Writer, req *http.Request, notes []note.Note, optsStr map[st
 
 			e("script", "type", "text/javascript").R(t(`
 				function copyToClipboard(element) {
-						const codeBlock = element.innerText;
-						navigator.clipboard.writeText(codeBlock).then(() => {
+						navigator.clipboard.writeText(element.innerText).then(() => {
 							// alert('Code copied to clipboard!');
 						}).catch(err => {
 							console.error('Failed to copy: ', err);
 						});
 				}
 
+				function addInlineCopyBtn(code) {
+							const button = document.createElement('button');
+							button.className = 'inline-copy-btn';
+							button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>';
+							button.onclick = () => copyToClipboard(code);
+							code.insertAdjacentElement('afterend', button);
+				}				
 				function addCopyBtn(pre) {
 							const button = document.createElement('button');
 							button.className = 'copy-btn';
-							button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>';
+							button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>';
 							button.onclick = () => copyToClipboard(pre.querySelector('code'));
 							pre.parentNode.insertBefore(button, pre);
 				}				
@@ -191,11 +223,17 @@ func NotesList(w io.Writer, req *http.Request, notes []note.Note, optsStr map[st
 			e("script", "type", "text/javascript").R(t(
 				`$( function() {
 				el = $('.note-body');
+
+				el.find("pre code").each( function(i, block) {
+					hljs.highlightBlock( block );
+				});
+
 				el.find("pre").each( function(i, block) {
 					addCopyBtn(block);
 				});
-				el.find("pre code").each( function(i, block) {
-					hljs.highlightBlock( block );
+
+				el.find("p > code").each( function(i, block) {
+					addInlineCopyBtn( block );
 				});
 			});`,
 			)),
