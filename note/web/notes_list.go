@@ -232,7 +232,7 @@ func NotesList(w io.Writer, req *http.Request, notes []note.Note, optsStr map[st
 					addCopyBtn(block);
 				});
 
-				el.find("p > code").each( function(i, block) {
+				el.find("p > code, li > code").each( function(i, block) {
 					addInlineCopyBtn( block );
 				});
 			});`,
