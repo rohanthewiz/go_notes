@@ -100,8 +100,8 @@ func NotesList(w io.Writer, req *http.Request, notes []note.Note, optsStr map[st
         }
         */
         .inline-copy-btn svg {
-            width: 12px;
-            height: 11px;
+            width: 10px;
+            height: 9px;
             fill: #b8905a;
         }
 
