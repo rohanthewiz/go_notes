@@ -47,6 +47,9 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
         position: relative;
         height: calc(100vh - 17rem);
     }
+    .monaco-editor .cursor {
+        background-color: cyan !important; /* It seems this is the only way to change the cursor color */
+    }
     ul { list-style-type:none; margin: 0; padding: 0; }
     ul.topmost > li:first-child { border-top: 1px solid #515c57}
     ul.topmost > li { border-top:none; border-bottom: 1px solid #515c57; padding: 0.3em 0.3em}
@@ -72,13 +75,9 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 	input.action-btn.dup { width: 6em }
 	textarea.note-body { display:none }`)),
 		),
-		e("link", "rel", "stylesheet", "href", "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.33.0/min/vs/editor/editor.main.css"),
-		// <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.33.0/min/vs/editor/editor.main.css">
-		e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.33.0/min/vs/loader.js").R(),
-		// e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.min.js").R(),
-		// e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/mode-markdown.min.js").R(),
-		// e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/theme-twilight.min.js").R(),
-		// e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/theme-solarized_dark.min.js").R(),
+		e("link", "rel", "stylesheet", "href", "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.0/min/vs/editor/editor.main.css"),
+		e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.0/min/vs/loader.js").R(),
+
 		e("body").R(
 			e("span", "class", "h1").R(
 				e("a", "href", "/").R(t("GoNotes  ")),
@@ -129,21 +128,31 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 			),
 			e("script", "type", "text/javascript").R(
 				t(`
-					// var editor = ace.edit("editor");
-					// editor.setTheme("ace/theme/twilight");
-					// editor.session.setMode("ace/mode/markdown");
-					// editor.session.setUseWorker(false);
-					// console.log("JavaScript loaded");
-					// document.getElementById('editor').style.fontSize='15px';
-					// editor.getSession().setValue(document.getElementById("note_body").value);
-
-					require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.33.0/min/vs' }});
+					require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.0/min/vs' }});
 					require(['vs/editor/editor.main'], function() {
+
+						// Make our own theme
+						monaco.editor.defineTheme('ro-dark', {
+							base: 'vs-dark',
+							inherit: true,
+							rules: [
+								{ background: '1d1f21' },
+								{ token: 'comment', foreground: '909090' },
+								{ token: 'string', foreground: 'b5bd68' },
+								{ token: 'variable', foreground: 'c5c8c6' },
+								{ token: 'keyword', foreground: 'ba7d57' },
+								{ token: 'number', foreground: 'de935f' },
+							],
+							colors: {
+								'editorBackground': '#1d1f21'
+							}
+						});
+
 						var init_val = document.getElementById("note_body").value;
 						var editor = monaco.editor.create(document.getElementById('editor'), {
 							value: init_val,
 							language: 'markdown',
-							theme: 'vs-dark',
+							theme: 'ro-dark',
 							lineNumbers: 'on',
 							minimap: {
 								enabled: false
@@ -163,17 +172,11 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 						editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyP, function() {
 							editor.trigger('keyboard', 'editor.action.quickCommand');
 						});
-
-						// document.getElementById('showCmdPal').addEventListener('click', function(event) {
-						// 	event.preventDefault();  // prevent form submission
-						// 	editor.trigger('keyboard', 'editor.action.quickCommand');
-						// });
 					});
 				`),
 			),
 		),
 	)
-	// fmt.Println(str)
 
 	_, err = fmt.Fprint(w, s.String())
 	if err != nil {
