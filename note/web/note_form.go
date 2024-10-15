@@ -63,7 +63,7 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
     .tool { font-size: 0.7em; color:#401020; padding-left: 0.5em }
 	input.descr { width:99%; background-color:#a29b90; }
 	#note_form { width: 100%; height: 100% }
-    .note-body { padding-left:1.5em; margin-top: 0.1em; width:99%}
+    .note-body {display:none; padding-left:1.5em; margin-top: 0.1em; width:99%}
 	button {cursor: pointer; margin: 0.5em 0.1em; vertical-align: baseline;}
 	td input { background-color:tan; margin-right: 0.8em; width:96% }
 	.action-btns { text-align: right }
@@ -72,9 +72,12 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 	input.action-btn.dup { width: 6em }
 	textarea.note-body { display:none }`)),
 		),
-		e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.min.js").R(),
-		e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/mode-markdown.min.js").R(),
-		e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/theme-twilight.min.js").R(),
+		e("link", "rel", "stylesheet", "href", "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.33.0/min/vs/editor/editor.main.css"),
+		// <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.33.0/min/vs/editor/editor.main.css">
+		e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.33.0/min/vs/loader.js").R(),
+		// e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.min.js").R(),
+		// e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/mode-markdown.min.js").R(),
+		// e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/theme-twilight.min.js").R(),
 		// e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/theme-solarized_dark.min.js").R(),
 		e("body").R(
 			e("span", "class", "h1").R(
@@ -102,7 +105,8 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 						e("input", "class", "descr", "name", "descr", "size", "83", "value", html.EscapeString(note.Description)),
 					),
 					e("p", "style", "position: relative").R(
-						e("label", "for", "note_body").R(t("Body"), e("br")),
+						e("label", "for", "note_body").R(t("Body (F1 for Cmd Palette)"), e("br")),
+						// e("button", "id", "showCmdPal").R(t("Show Cmd Palette")),
 						e("div", "id", "editor").R(t("")),
 						e("textarea", "id", "note_body", "class", "note-body", "name", "note_body", "rows", "1").
 							R(t(note.Body)),
@@ -124,24 +128,47 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 				),
 			),
 			e("script", "type", "text/javascript").R(
-				t(`var editor = ace.edit("editor");
-					editor.setTheme("ace/theme/twilight");
-					editor.session.setMode("ace/mode/markdown");
-					editor.session.setUseWorker(false);
-					console.log("JavaScript loaded");
-					
-					document.getElementById('editor').style.fontSize='15px';
-					editor.getSession().setValue(document.getElementById("note_body").value);
+				t(`
+					// var editor = ace.edit("editor");
+					// editor.setTheme("ace/theme/twilight");
+					// editor.session.setMode("ace/mode/markdown");
+					// editor.session.setUseWorker(false);
+					// console.log("JavaScript loaded");
+					// document.getElementById('editor').style.fontSize='15px';
+					// editor.getSession().setValue(document.getElementById("note_body").value);
 
-					var nf = document.getElementById("note_form");
-					nf.addEventListener("submit", getEditorContents);
-					function getEditorContents() {
-						var nb = document.getElementById("note_body");
-						if (typeof editor !== 'undefined' && nb !== null && typeof nb !== 'undefined') {
-							nb.value = editor.getValue();
-						}
-						return true;
-					}
+					require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.33.0/min/vs' }});
+					require(['vs/editor/editor.main'], function() {
+						var init_val = document.getElementById("note_body").value;
+						var editor = monaco.editor.create(document.getElementById('editor'), {
+							value: init_val,
+							language: 'markdown',
+							theme: 'vs-dark',
+							lineNumbers: 'on',
+							minimap: {
+								enabled: false
+							}
+						});
+						
+						var nf = document.getElementById("note_form");
+						nf.addEventListener("submit", function() {
+							var nb = document.getElementById("note_body");
+							if (typeof editor !== 'undefined' && nb !== null && typeof nb !== 'undefined') {
+								nb.value = editor.getValue();
+							}
+							return true;
+						});
+
+						// Optionally add a custom keyboard shortcut
+						editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyP, function() {
+							editor.trigger('keyboard', 'editor.action.quickCommand');
+						});
+
+						// document.getElementById('showCmdPal').addEventListener('click', function(event) {
+						// 	event.preventDefault();  // prevent form submission
+						// 	editor.trigger('keyboard', 'editor.action.quickCommand');
+						// });
+					});
 				`),
 			),
 		),
