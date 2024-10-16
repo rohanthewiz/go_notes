@@ -156,7 +156,8 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 							lineNumbers: 'on',
 							minimap: {
 								enabled: false
-							}
+							},
+							renderLineHighlight: 'gutter'
 						});
 						
 						var nf = document.getElementById("note_form");
