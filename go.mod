@@ -1,6 +1,6 @@
 module go_notes
 
-go 1.12
+go 1.19
 
 require (
 	github.com/denisenkom/go-mssqldb v0.10.0 // indirect
