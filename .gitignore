@@ -1,4 +1,7 @@
-.idea/*
+.idea/
+.vscode/
+.zed/
+
 .DS_Store
 *.csv
 go_notes.exe
@@ -6,3 +9,6 @@ go_notes
 test/
 test_db/
 *.gob
+
+*.sqlite
+

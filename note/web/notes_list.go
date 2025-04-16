@@ -1,6 +1,7 @@
 package web
 
 import (
+	_ "embed"
 	"fmt"
 	"go_notes/note"
 	"go_notes/utils"
@@ -9,11 +10,15 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/rohanthewiz/element"
 	blackfriday "github.com/rohanthewiz/go_markdown"
+)
+
+var (
+	//go:embed embeds/notes_list.css
+	noteListStyles []byte
 )
 
 func NotesList(w io.Writer, req *http.Request, notes []note.Note, optsStr map[string]string) (err error) {
@@ -21,98 +26,11 @@ func NotesList(w io.Writer, req *http.Request, notes []note.Note, optsStr map[st
 	notesCount := len(notes)
 	showDetails := notesCount <= NotesDetailsThreshold
 
-	s := &strings.Builder{}
-	e := func(el string, p ...string) element.Element {
-		return element.New(s, el, p...)
-	}
-	t := func(p ...string) int {
-		return element.Text(s, p...)
-	}
-
+	b, e, t := element.Vars()
 	e("html").R(
 		e("head").R(
 			e("title").R(t("GoNotes List")),
-			e("style").R(t(`
-	body { background-color: #3a3939; color: #b7b9be }
-    ul { list-style-type:none; margin: 0; padding: 0; }
-    ul.topmost > li:first-child { border-top: 1px solid #515c57}
-    ul.topmost > li { border-top:none; border-bottom: 1px solid #515c57; padding: 0.3em 0.3em}
-    li { border-top: 1px solid #515c57; line-height:1.2em; padding: 1.2em, 4em }
-	li a {text-decoration:none}
-	li a:link, li a:visited {color:#acb4b6}
-    .h1 { font-size: 1.2em; margin-right: 0.2em; margin-bottom: 0.1em; padding: 0.1em }
-	.h1 a {text-decoration:none}
-	.h1 a:visited, .h1 a:link {color:#7bb197}
-    .h3 { color:#b4b4b4; font-size: 0.9rem; font-weight:bold; margin-bottom: 0.1em;
-		padding: 0.1em;  font-size: 0.9rem;}
-    .title { font-size:1.1em; font-weight: bold; color:green; padding-top: 0.4em }
-    .count { font-size: 0.8em; color:#c4c4c6; padding-left: 0.5em; padding-right: 0.5em }
-    .tool { font-size: 0.7em; color:#c6c6c6; padding-left: 0.5em }
-    .note-body { padding-left:1em; margin-top: 0.1em}
-	.time-label { font-size: 0.7rem }
-	.text-menu { font-weight: bold }
-	.small { font-size: 0.8em }
-    code { border-radius: 0.3em;
-    	background-color: #b2916e; color: black;
-    	padding: 0.1em 0.3em; }
-        .copy-btn {
-            margin-left: 2ch;
-            margin-right: 2ch;
-            float: right;
-            font-size: small;
-
-            background: none;
-            border: none;
-            padding: 0;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;        }
-        /*
-        .copy-btn:active {
-            background-color: #bc9355;
-        }
-        */
-        .copy-btn svg {
-            width: 16px;
-            height: 16px;
-            fill: #b8905a;
-        }
-
-        .inline-copy-btn {
-			position: relative;
-			top: -0.5ch;
-            padding-left: 2px;
-            padding-right: 2px;
-            //float: right;
-            font-size: small;
-
-            background: none;
-            border: none;
-            padding: 0;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;        }
-        /*
-        .inline-copy-btn:active {
-            background-color: #bc9355;
-        }
-        */
-        .inline-copy-btn svg {
-            width: 10px;
-            height: 9px;
-            fill: #b8905a;
-        }
-
-        button:hover svg {
-            fill: #007BFF; /* Change color on hover */
-        }
-
-        button:active svg {
-            fill: #ffffe7; /* Change color on hover */
-        }
-			`)),
+			e("style").R(t(string(noteListStyles))),
 			e("link", "rel", "stylesheet", "href",
 				"//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/styles/agate.min.css").R(),
 			e("script", "type", "text/javascript", "src",
@@ -239,8 +157,6 @@ func NotesList(w io.Writer, req *http.Request, notes []note.Note, optsStr map[st
 			)),
 		),
 	)
-	_, err = fmt.Fprint(w, s.String())
-	// fmt.Println(s.String())
-
+	_, err = fmt.Fprint(w, b.String())
 	return
 }

@@ -1,20 +1,36 @@
 package web
 
 import (
+	"embed"
+	"encoding/base64"
 	"fmt"
 	"go_notes/note"
 	"html"
 	"io"
 	"log"
 	"strconv"
-	"strings"
 
 	"github.com/rohanthewiz/element"
+	"github.com/rohanthewiz/serr"
+	"github.com/vmihailenco/msgpack/v5"
 )
+
+//go:embed embeds
+var embedFS embed.FS
 
 func NoteForm(w io.Writer, note note.Note) (err error) {
 	var action, formAction, pageHeadingPrefix string
 	var strNoteId string
+
+	noteFormStyles, err := embedFS.ReadFile("embeds/note_form.css")
+	if err != nil {
+		return serr.Wrap(err, "failed to load embedded note_form.css")
+	}
+
+	noteFormJS, err := embedFS.ReadFile("embeds/note_form.js")
+	if err != nil {
+		return serr.Wrap(err, "failed to load embedded note_form.js")
+	}
 
 	if note.Id > 0 {
 		strNoteId = strconv.FormatUint(note.Id, 10)
@@ -27,55 +43,32 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 		pageHeadingPrefix = "New "
 	}
 
-	s := &strings.Builder{}
-	e := func(el string, p ...string) element.Element {
-		return element.New(s, el, p...)
+	// CodeXfr is used to "escape" code to be sent to JS
+	type CodeXfr struct {
+		Code string `json:"code"`
 	}
-	t := func(p ...string) int {
-		return element.Text(s, p...)
+
+	mpkCode, err := msgpack.Marshal(CodeXfr{note.Body})
+	if err != nil {
+		return serr.Wrap(err, "Unable to marshal note body for frontend")
 	}
+
+	b64code := base64.StdEncoding.EncodeToString(mpkCode)
+	// fmt.Println("**-> b64code", b64code)
+
+	b, e, t := element.Vars()
 
 	e("html").R(
 		e("head").R(
 			e("title").R(t("GoNotes Form")),
-			e("style").R(t(`
-	body { background-color: #3a3939; color: #b7b9be }
-	.container { padding: 1em; border: 1px solid gray; border-radius: 0.5em;
-		width: calc(100vw - 3rem); height: calc(100vh - 5rem);
-	}
-    #editor { 
-        position: relative;
-        height: calc(100vh - 17rem);
-    }
-    ul { list-style-type:none; margin: 0; padding: 0; }
-    ul.topmost > li:first-child { border-top: 1px solid #515c57}
-    ul.topmost > li { border-top:none; border-bottom: 1px solid #515c57; padding: 0.3em 0.3em}
-    td label {margin-right: 0.4em; font-size: 0.9em; color: #858181 }
-    p label {margin-right: 0.4em; vertical-align: top; font-size: 0.9em; color: #858181}
-    li { border-top: 1px solid #B89c72; line-height:1.2em; padding: 1.2em 4em }
-    .h1 { font-size: 1.2em; margin-right: 0.2em; margin-bottom: 0.1em; padding: 0.1em }
-	.h1 a {text-decoration:none}
-	.h1 a:visited, .h1 a:link {color:7bb197}
-    .h3 { color:#b4b4b4; font-size: 0.9rem; font-weight:bold; margin-bottom: 0.1em;
-		padding: 0.1em;  font-size: 0.9rem;}
-    .title { font-size:1.1em; font-weight: bold; color:green; padding-top: 0.4em }
-    .count { font-size: 0.8em; color:#401020; padding-left: 0.5em; padding-right: 0.5em }
-    .tool { font-size: 0.7em; color:#401020; padding-left: 0.5em }
-	input.descr { width:99%; background-color:#a29b90; }
-	#note_form { width: 100%; height: 100% }
-    .note-body { padding-left:1.5em; margin-top: 0.1em; width:99%}
-	button {cursor: pointer; margin: 0.5em 0.1em; vertical-align: baseline;}
-	td input { background-color:tan; margin-right: 0.8em; width:96% }
-	.action-btns { text-align: right }
-	input.action-btn { width: 10em; padding-left: 0.2em; padding-right: 0.2em;
-		margin-right: 2em; background-color:#a29b90; }
-	input.action-btn.dup { width: 6em }
-	textarea.note-body { display:none }`)),
+			e("style").R(t(string(noteFormStyles))),
+			// We *must* load msgpack before monaco as the js loading is not happening after
+			e("script", "src", "https://rawgithub.com/kawanet/msgpack-lite/master/dist/msgpack.min.js").R(),
+
+			e("link", "rel", "stylesheet", "href", "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/editor/editor.main.css").R(),
+			e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.js").R(),
 		),
-		e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.min.js").R(),
-		e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/mode-markdown.min.js").R(),
-		e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/theme-twilight.min.js").R(),
-		// e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/theme-solarized_dark.min.js").R(),
+
 		e("body").R(
 			e("span", "class", "h1").R(
 				e("a", "href", "/").R(t("GoNotes  ")),
@@ -102,53 +95,38 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 						e("input", "class", "descr", "name", "descr", "size", "83", "value", html.EscapeString(note.Description)),
 					),
 					e("p", "style", "position: relative").R(
-						e("label", "for", "note_body").R(t("Body"), e("br")),
+						e("label", "for", "note_body").R(t("Body (F1 for Cmd Palette)"), e("br")),
 						e("div", "id", "editor").R(t("")),
-						e("textarea", "id", "note_body", "class", "note-body", "name", "note_body", "rows", "1").
-							R(t(note.Body)),
+						e("input", "type", "hidden", "id", "note_body", "name", "note_body").R(),
 					),
+
 					e("div", "class", "action-btns").R(
 						e("p").R(
 							e("input", "type", "submit", "class", "action-btn", "value", "Cancel", "formaction", "/"),
-							func() (r int) {
+							b.Wrap(func() {
 								if note.Id > 0 {
 									e("input", "type", "submit", "class", "action-btn dup", "value", "Dup", "formaction", "/dup/"+strNoteId)
-									// e("button", "onclick", "javascript:window.location='/duplicate/"+strNoteId+"'").R(t("Duplicate"))
 								}
-								return
-							}(),
+							}),
 							e("input", "type", "submit", "id", "create_update_btn", "class", "action-btn",
-								"onsubmit", "getEditorContents", "value", formAction),
+								"onsubmit", ";", "value", formAction), // the event handler here is being overridden by the note_form event handler in note_form.js
 						),
 					),
 				),
 			),
-			e("script", "type", "text/javascript").R(
-				t(`var editor = ace.edit("editor");
-					editor.setTheme("ace/theme/twilight");
-					editor.session.setMode("ace/mode/markdown");
-					editor.session.setUseWorker(false);
-					console.log("JavaScript loaded");
-					
-					document.getElementById('editor').style.fontSize='15px';
-					editor.getSession().setValue(document.getElementById("note_body").value);
 
-					var nf = document.getElementById("note_form");
-					nf.addEventListener("submit", getEditorContents);
-					function getEditorContents() {
-						var nb = document.getElementById("note_body");
-						if (typeof editor !== 'undefined' && nb !== null && typeof nb !== 'undefined') {
-							nb.value = editor.getValue();
-						}
-						return true;
-					}
-				`),
+			e("script", "type", "text/javascript").R(
+				t("document.addEventListener('DOMContentLoaded', function() {"),
+				t(`var bin = atob('`, b64code, `');`),
+				t(`window.codeObj = msgpack.decode(Uint8Array.from(bin, c => c.charCodeAt(0)));
+						console.log(codeObj);`),
+				t(string(noteFormJS)),
+				t("});"), // close DOM Event listener
 			),
 		),
 	)
-	// fmt.Println(str)
 
-	_, err = fmt.Fprint(w, s.String())
+	_, err = fmt.Fprint(w, b.String())
 	if err != nil {
 		log.Println("Error on NoteForm render:", err)
 	}
