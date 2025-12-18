@@ -24,6 +24,8 @@ github.com/rohanthewiz/element v0.4.5-0.20250415084613-3f7de6583b6b h1:bW1Ydee+B
 github.com/rohanthewiz/element v0.4.5-0.20250415084613-3f7de6583b6b/go.mod h1:yxmrFVnO9eQQ7GbjRfJgJG9u8yHUjTTxy/6ji3PNhXY=
 github.com/rohanthewiz/element v0.5.4 h1:GuUkF8/y39opotrVYrfrnygCAVVpyF/aPXyKNJKZnd0=
 github.com/rohanthewiz/element v0.5.4/go.mod h1:cA57S9UGRSaWrMmGC1M+8QCQw/y8kgODiBB0KEwIyzo=
+github.com/rohanthewiz/element v0.5.5-0.20251217001259-4c301e8b5181 h1:INrcQuZ3nhr9ssKCC6LteLLY0htf03+4+6795e82koo=
+github.com/rohanthewiz/element v0.5.5-0.20251217001259-4c301e8b5181/go.mod h1:cA57S9UGRSaWrMmGC1M+8QCQw/y8kgODiBB0KEwIyzo=
 github.com/rohanthewiz/go_markdown v0.0.0-20160315044756-cbcef778537c h1:YugQmg/oxgxqo5ZXqJ8/jf8ToxSOYyS42Xd98O3QgPM=
 github.com/rohanthewiz/go_markdown v0.0.0-20160315044756-cbcef778537c/go.mod h1:XlkDlzjkhDrYy4oOm1UMpNuHzbG+HgEg/XxxH1iX9RI=
 github.com/rohanthewiz/serr v1.2.2 h1:uFQXy4Gzf0ZAfdGvUxRmHJbGcFAjYnHBL3k2HiCvgeM=

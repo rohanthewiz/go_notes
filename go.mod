@@ -8,7 +8,7 @@ require (
 	github.com/jinzhu/gorm v0.0.0-20160404144928-5174cc5c242a
 	github.com/julienschmidt/httprouter v1.1.0
 	github.com/mattn/go-sqlite3 v1.2.0
-	github.com/rohanthewiz/element v0.5.4
+	github.com/rohanthewiz/element v0.5.5-0.20251217001259-4c301e8b5181
 	github.com/rohanthewiz/go_markdown v0.0.0-20160315044756-cbcef778537c
 	github.com/rohanthewiz/serr v1.2.20
 	github.com/vmihailenco/msgpack/v5 v5.4.1

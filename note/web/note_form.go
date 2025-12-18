@@ -61,72 +61,75 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 	b64code := base64.StdEncoding.EncodeToString(mpkCode)
 	// fmt.Println("**-> b64code", b64code)
 
-	b, e, t := element.Vars()
+	b := element.B()
 
-	e("html").R(
-		e("head").R(
-			e("title").R(t("GoNotes Form")),
-			e("style").R(t(string(noteFormStyles))),
+	b.Html().R(
+		b.Head().R(
+			b.Title().T("GoNotes Form"),
+			b.Style().T(string(noteFormStyles)),
 			// We *must* load msgpack before monaco as the js loading is not happening after
-			e("script", "type", "text/javascript").R(t(string(msgpackJS))),
+			b.Script("type", "text/javascript").T(string(msgpackJS)),
 
-			e("link", "rel", "stylesheet", "href", "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/editor/editor.main.css").R(),
-			e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.js").R(),
+			b.Link("rel", "stylesheet", "href", "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/editor/editor.main.css").R(),
+			b.Script("type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.js").R(),
 		),
 
-		e("body").R(
-			e("span", "class", "h1").R(
-				e("a", "href", "/").R(t("GoNotes  ")),
+		b.Body().R(
+			b.SpanClass("h1").R(
+				b.A("href", "/").T("GoNotes  "),
 			),
-			e("span", "class", "h1").R(t(pageHeadingPrefix, "Note")),
-			e("div", "class", "container").R(
-				e("form", "id", "note_form", "action", action, "method", "post").R(
+			b.SpanClass("h1").T(pageHeadingPrefix, "Note"),
+			b.DivClass("container").R(
+				b.Form("id", "note_form", "action", action, "method", "post").R(
 					// careful not to change any name attributes below, or form may break
-					e("table").R(
-						e("tr").R(
-							e("td").R(
-								e("label", "for", "title").R(t("Title")),
-								e("input", "name", "title", "type", "text", "size", "54", "value", html.EscapeString(note.Title)),
+					b.Table().R(
+						b.Tr().R(
+							b.Td().R(
+								b.Label("for", "title").T("Title"),
+								b.Input("name", "title", "type", "text", "size", "54", "value", html.EscapeString(note.Title)),
 							),
-							e("td").R(
-								e("label", "for", "tag").R(t("&nbsp;&nbsp;Tags")),
-								e("input", "name", "tag", "type", "text", "size", "24", "value", html.EscapeString(note.Tag)),
+							b.Td().R(
+								b.Label("for", "tag").T("&nbsp;&nbsp;Tags"),
+								b.Input("name", "tag", "type", "text", "size", "24", "value", html.EscapeString(note.Tag)),
 							),
 						),
 					),
 
-					e("p").R(
-						e("label", "for", "descr").R(t("Description")),
-						e("input", "class", "descr", "name", "descr", "size", "83", "value", html.EscapeString(note.Description)),
+					b.P().R(
+						b.Label("for", "descr").T("Description"),
+						b.InputClass("descr", "name", "descr", "size", "83", "value", html.EscapeString(note.Description)),
 					),
-					e("p", "style", "position: relative").R(
-						e("label", "for", "note_body").R(t("Body (F1 for Cmd Palette)"), e("br")),
-						e("div", "id", "editor").R(t("")),
-						e("input", "type", "hidden", "id", "note_body", "name", "note_body").R(),
+					b.P("style", "position: relative").R(
+						b.Label("for", "note_body").R(
+							b.T("Body (F1 for Cmd Palette)"),
+							b.Br(),
+						),
+						b.Div("id", "editor").R(),
+						b.Input("type", "hidden", "id", "note_body", "name", "note_body").R(),
 					),
 
-					e("div", "class", "action-btns").R(
-						e("p").R(
-							e("input", "type", "submit", "class", "action-btn", "value", "Cancel", "formaction", "/"),
+					b.DivClass("action-btns").R(
+						b.P().R(
+							b.InputClass("action-btn", "type", "submit", "value", "Cancel", "formaction", "/"),
 							b.Wrap(func() {
 								if note.Id > 0 {
-									e("input", "type", "submit", "class", "action-btn dup", "value", "Dup", "formaction", "/dup/"+strNoteId)
+									b.InputClass("action-btn dup", "type", "submit", "value", "Dup", "formaction", "/dup/"+strNoteId)
 								}
 							}),
-							e("input", "type", "submit", "id", "create_update_btn", "class", "action-btn",
+							b.InputClass("action-btn", "type", "submit", "id", "create_update_btn",
 								"onsubmit", ";", "value", formAction), // the event handler here is being overridden by the note_form event handler in note_form.js
 						),
 					),
 				),
 			),
 
-			e("script", "type", "text/javascript").R(
-				t("document.addEventListener('DOMContentLoaded', function() {"),
-				t(`var bin = atob('`, b64code, `');`),
-				t(`window.codeObj = msgpack.decode(Uint8Array.from(bin, c => c.charCodeAt(0)));
+			b.Script("type", "text/javascript").R(
+				b.T("document.addEventListener('DOMContentLoaded', function() {"),
+				b.T(`var bin = atob('`, b64code, `');`),
+				b.T(`window.codeObj = msgpack.decode(Uint8Array.from(bin, c => c.charCodeAt(0)));
 						console.log(codeObj);`),
-				t(string(noteFormJS)),
-				t("});"), // close DOM Event listener
+				b.T(string(noteFormJS)),
+				b.T("});"), // close DOM Event listener
 			),
 		),
 	)
