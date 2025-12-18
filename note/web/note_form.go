@@ -32,6 +32,11 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 		return serr.Wrap(err, "failed to load embedded note_form.js")
 	}
 
+	msgpackJS, err := embedFS.ReadFile("embeds/msgpack.min.js")
+	if err != nil {
+		return serr.Wrap(err, "failed to load embedded msgpack.min.js")
+	}
+
 	if note.Id > 0 {
 		strNoteId = strconv.FormatUint(note.Id, 10)
 		action = "/note/" + strNoteId
@@ -63,7 +68,7 @@ func NoteForm(w io.Writer, note note.Note) (err error) {
 			e("title").R(t("GoNotes Form")),
 			e("style").R(t(string(noteFormStyles))),
 			// We *must* load msgpack before monaco as the js loading is not happening after
-			e("script", "src", "https://cdn.jsdelivr.net/npm/msgpack-lite@0.1.26/dist/msgpack.min.js").R(),
+			e("script", "type", "text/javascript").R(t(string(msgpackJS))),
 
 			e("link", "rel", "stylesheet", "href", "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/editor/editor.main.css").R(),
 			e("script", "type", "text/javascript", "src", "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.js").R(),
