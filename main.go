@@ -72,7 +72,9 @@ func main() {
 	}
 
 	if optsIntf["v"].(bool) {
-		fmt.Println(app_name, version)
+		fmt.Printf("%s %s\n", app_name, version)
+		fmt.Printf("Git Commit: %s\n", GitCommit)
+		fmt.Printf("Build Date: %s\n", BuildDate)
 		return
 	}
 

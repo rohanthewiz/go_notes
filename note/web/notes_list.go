@@ -49,6 +49,11 @@ func NotesList(w io.Writer, req *http.Request, notes []note.Note, optsStr map[st
 				b.T(" | "),
 				b.AClass("tool", "href", "http://127.0.0.1:"+optsStr["port"]+"/q/all").T("All"),
 				b.T("]"),
+				b.Wrap(func() {
+					if optsStr["git_commit"] != "" && optsStr["git_commit"] != "dev" {
+						b.SpanClass("build-info").T(" | ", optsStr["git_commit"])
+					}
+				}),
 			),
 			b.UlClass("topmost").R(
 				element.ForEach(notes, func(n note.Note) {

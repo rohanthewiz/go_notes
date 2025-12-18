@@ -82,6 +82,13 @@ li a:link, li a:visited {
     padding-left: 0.5em
 }
 
+.build-info {
+    font-size: 0.7em;
+    color: #8a8a8a;
+    padding-left: 0.5em;
+    font-style: italic
+}
+
 .note-body {
     padding-left: 1em;
     margin-top: 0.1em

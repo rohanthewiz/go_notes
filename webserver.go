@@ -31,6 +31,10 @@ func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 func webListNotes(w http.ResponseWriter, r *http.Request) {
 	notes := queryNotes()
 
+	// Add build metadata to options
+	optsStr["git_commit"] = GitCommit
+	optsStr["build_date"] = BuildDate
+
 	err := web.NotesList(w, r, notes, optsStr)
 	if err != nil {
 		log.Println("Error in notes list html gen:", err)
