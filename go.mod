@@ -1,14 +1,16 @@
 module go_notes
 
-go 1.19
+go 1.22
+
+toolchain go1.24.7
 
 require (
 	github.com/jinzhu/gorm v0.0.0-20160404144928-5174cc5c242a
 	github.com/julienschmidt/httprouter v1.1.0
 	github.com/mattn/go-sqlite3 v1.2.0
-	github.com/rohanthewiz/element v0.4.5-0.20250415084613-3f7de6583b6b
+	github.com/rohanthewiz/element v0.5.4
 	github.com/rohanthewiz/go_markdown v0.0.0-20160315044756-cbcef778537c
-	github.com/rohanthewiz/serr v1.2.2
+	github.com/rohanthewiz/serr v1.2.20
 	github.com/vmihailenco/msgpack/v5 v5.4.1
 )
 
